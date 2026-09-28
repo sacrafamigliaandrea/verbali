@@ -192,6 +192,8 @@ const SCUOLE = {
   S:{nome:'Scuola Secondaria di I grado', breve:'Secondaria', col:'#2489cf', pdf:[36,137,207]},
 };
 const ARGOMENTI = [
+  ['generici','Verbali generici – struttura libera'],
+  ['organi','Organi collegiali'],
   ['programmazione','Programmazione e progettazione'],
   ['consigli','Consigli, scrutini e relazioni'],
   ['glo','GLO – Gruppo di Lavoro Operativo'],
@@ -202,6 +204,9 @@ const ARGOMENTI = [
   ['continuita','Continuità tra gradi'],
   ['tutela','Disciplina e tutela'],
   ['valutazione','Valutazione'],
+  ['esami','Esame di Stato del primo ciclo'],
+  ['relazioni','Relazioni e documenti del docente'],
+  ['sicurezza','Sicurezza, salute e frequenza'],
 ];
 const LOGO = document.querySelector('.top img').src;
 const SCUOLA_NOME = 'Scuola Sacra Famiglia';
@@ -376,7 +381,7 @@ function disegnaElenco(lista){
    ===================================================================== */
 function apri(id, s){
   MOD = MODULI.find(m => m.id === id); SCU = s; azzera();
-  BLOCCHI = MOD.blocchi(s);
+  BLOCCHI = conAnnotazioni(MOD.blocchi(s));
   inizializza(BLOCCHI);
   const app = $('#app'); app.innerHTML = '';
   const bar = el('div', {class:'bar'}, el('div', {class:'wrap'},
@@ -392,6 +397,22 @@ function apri(id, s){
   app.append(bar, form);
   disegnaForm(form);
   window.scrollTo(0, 0);
+}
+/* Ogni modulo, anche il piu' dettagliato, riceve una sezione di annotazioni libere prima della
+   chiusura/firme: copre i casi non previsti. Vuota = non stampata. Disattivabile con libere:false. */
+function conAnnotazioni(bl){
+  if (MOD.libere === false || bl.some(b => b.t === 'libere')) return bl;
+  const extra = [{t:'h', testo:'Annotazioni aggiuntive'},
+    {t:'nota', testo:'Sezione facoltativa: aggiungi qui punti non previsti dal modulo (ogni sezione ha titolo e testo). Se resta vuota non compare nel PDF.'},
+    {t:'libere', id:'_annotazioni', init:[], sottotitoli:true, aggiungi:'Aggiungi annotazione'}];
+  let i = bl.length;
+  for (let k = bl.length - 1; k >= 0; k--){
+    const b = bl[k];
+    if (b.t === 'firme' || (b.t === 'h' && /chiusura|presa visione|firme/i.test(b.testo))){ i = k; if (b.t === 'h') break; }
+  }
+  // se prima delle firme c'e' un testo fisso (es. "Letto, confermato..."), inserisci prima di quello
+  while (i > 0 && bl[i - 1].t === 'testofisso' && bl[i] && bl[i].t === 'firme') i--;
+  return [...bl.slice(0, i), ...extra, ...bl.slice(i)];
 }
 function esci(){
   if (SPORCO && !confirm('Uscendo dal modulo i dati inseriti verranno cancellati. Hai già salvato il PDF?')) return;
@@ -415,6 +436,7 @@ function inizializza(blocchi){
       else if (b.t === 'multi') STATO[b.id] = b.def ? [...b.def] : [];
       else if (b.t === 'matrice') STATO[b.id] = {};
       else if (b.t === 'firme') STATO[b.id || 'firme'] = {};
+      else if (b.t === 'libere') STATO[b.id] = (b.init || [{titolo:'', testo:''}]).map(x => Object.assign({titolo:'', testo:''}, x));
       else if (b.t === 'data' && b.oggi) STATO[b.id] = oggiISO();
       else STATO[b.id] = b.def != null ? b.def : '';
     }
@@ -523,6 +545,29 @@ function campo(b){
             el('button', {class:'ico', title:'Rimuovi', html:SVG.meno, onclick:() => { STATO[b.id].splice(i, 1); draw(); segna(); }})));
         });
         box.append(el('button', {class:'btn agg', html:SVG.piu + 'Aggiungi voce', onclick:() => { STATO[b.id].push(''); draw(); }}));
+      };
+      draw();
+      return el('div', {class:'f', style:'grid-column:1/-1'}, b.label ? el('span', {class:'lbl'}, b.label) : null, box);
+    }
+    case 'libere': {
+      const box = el('div', {class:'elenco', style:'gap:12px'});
+      const draw = () => {
+        box.innerHTML = '';
+        STATO[b.id].forEach((sz, i) => {
+          const t = el('input', {type:'text', value:sz.titolo, placeholder:b.phTitolo || 'Titolo della sezione', 'aria-label':`Titolo sezione ${i + 1}`, style:'border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fbfcfe;font-weight:600;flex:1'});
+          const a = el('textarea', {rows:4, placeholder:b.phTesto || 'Testo', 'aria-label':`Testo sezione ${i + 1}`, style:'border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fbfcfe;width:100%;resize:vertical'});
+          a.value = sz.testo;
+          t.addEventListener('input', () => { sz.titolo = t.value; segna(); });
+          a.addEventListener('input', () => { sz.testo = a.value; segna(); });
+          const sposta = (d) => { const j = i + d; if (j < 0 || j >= STATO[b.id].length) return; [STATO[b.id][i], STATO[b.id][j]] = [STATO[b.id][j], STATO[b.id][i]]; draw(); segna(); };
+          box.append(el('div', {style:'border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;display:flex;flex-direction:column;gap:8px'},
+            el('div', {class:'it'}, el('span', {class:'n'}, (i + 1) + '.'), t,
+              el('button', {class:'ico', title:'Sposta su', html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>', onclick:() => sposta(-1)}),
+              el('button', {class:'ico', title:'Sposta giù', html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>', onclick:() => sposta(1)}),
+              el('button', {class:'ico', title:'Rimuovi sezione', html:SVG.meno, onclick:() => { STATO[b.id].splice(i, 1); draw(); segna(); }})),
+            a));
+        });
+        box.append(el('button', {class:'btn agg', html:SVG.piu + (b.aggiungi || 'Aggiungi sezione'), onclick:() => { STATO[b.id].push({titolo:'', testo:''}); draw(); }}));
       };
       draw();
       return el('div', {class:'f', style:'grid-column:1/-1'}, b.label ? el('span', {class:'lbl'}, b.label) : null, box);
@@ -895,6 +940,15 @@ function creaPDF(){
           break;
         }
         case 'firme': percorriFirme(b); break;
+        case 'libere': {
+          flushCelle();
+          for (const sz of (STATO[b.id] || [])){
+            if (compatto && !sz.titolo.trim() && !sz.testo.trim()) continue;
+            if (b.sottotitoli){ areaTesto(sz.titolo || '', sz.testo || ''); }
+            else { titolo(sz.titolo || 'Sezione'); paragrafo(sz.testo || ''); }
+          }
+          break;
+        }
       }
     }
   };
