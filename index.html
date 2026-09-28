@@ -126,6 +126,18 @@ footer.pie{color:var(--muted);font-size:12.5px;padding:30px 0 40px;text-align:ce
 .firme{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;grid-column:1/-1}
 .firme .f{background:#fafbfd;border:1px solid var(--line);border-radius:8px;padding:10px}
 .nascosto{display:none!important}
+/* elementi essenziali (obbligatori pena invalidita') */
+.obbl>label::after,.obbl>.lbl::after{content:" *";color:var(--ambra);font-weight:700}
+.obbl-rif{font-size:11.5px;color:var(--ambra);display:flex;gap:5px;align-items:flex-start}
+.obbl-rif::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--ambra);margin-top:5px}
+.obbl.manca input,.obbl.manca textarea,.obbl.manca .opz,.obbl.manca .tab,.obbl.manca .elenco{outline:2px solid var(--ambra);outline-offset:2px;border-radius:8px}
+.legenda{background:var(--ambra-t);border:1px solid #f0d9a8;border-radius:var(--r);padding:11px 14px;font-size:13.5px;color:#6b4a12;margin-bottom:14px}
+.legenda b{color:var(--ambra)}
+.rif{font-size:13px;color:#39445a;margin:0;padding-left:18px}
+.rif li{margin:2px 0}
+.mancanti{margin:0 0 14px;padding-left:18px;font-size:14px;color:#2d3748;max-height:40vh;overflow:auto}
+.mancanti li{margin:4px 0}
+.mancanti small{display:block;color:var(--ambra)}
 /* ---------- anteprima ---------- */
 .modal{position:fixed;inset:0;background:rgba(15,25,45,.55);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal .box{background:#fff;border-radius:14px;width:min(980px,100%);height:min(92vh,1200px);display:flex;flex-direction:column;overflow:hidden}
@@ -161,6 +173,27 @@ footer.pie{color:var(--muted);font-size:12.5px;padding:30px 0 40px;text-align:ce
   .seg button{padding:7px 10px}
 }
 @media print{.top,.bar{display:none}}
+/* Tablet (iPad verticale/orizzontale): barra del modulo compatta */
+@media (max-width:1100px){
+  .bar .meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .wrap>div{min-width:0!important}
+  /* campi da 1-2 colonne (es. data) troppo stretti: portati a 3 */
+  .g>[style$="span 1"],.g>[style$="span 2"]{grid-column:span 3!important}
+}
+/* Dispositivi touch (iPad, tablet, telefoni) */
+@media (pointer:coarse){
+  .f input[type=text],.f input[type=date],.f input[type=time],.f input[type=number],.f textarea,.f select,
+  .tab td input[type=text],.tab td textarea,.tab td select,.elenco input,.cerca input{font-size:16px}
+  .f input[type=date],.f input[type=time]{min-height:44px}
+  .opz label{padding:6px 0;font-size:15px}
+  .opz input,.tab td.c input{width:22px;height:22px}
+  .btn{min-height:44px}
+  .ico{padding:10px}
+  .ico svg{width:18px;height:18px}
+  .bdg{padding:6px 10px;font-size:12.5px}
+  .seg button{min-height:40px}
+  .doc{padding:16px}
+}
 </style>
 </head>
 <body>
@@ -209,6 +242,7 @@ const ARGOMENTI = [
   ['sicurezza','Sicurezza, salute e frequenza'],
 ];
 const LOGO = document.querySelector('.top img').src;
+const IOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const SCUOLA_NOME = 'Scuola Sacra Famiglia';
 const SCUOLA_SUB = "S. Paola Elisabetta Cerioli – Via Milano, 75 – 25034 Orzinuovi (BS)";
 
@@ -286,6 +320,28 @@ const H = {
   },
 };
 
+/* Marca come elementi essenziali (obbl) i campi standard di un verbale di organo collegiale */
+const RIF_ESS = {
+  data:'Elemento identificativo dell\u2019atto (CdS sez. II n. 3544/2020)',
+  organo:'Identificazione dell\u2019organo (Regolamento OO.CC.; artt. 5 e 7 D.Lgs. 297/1994)',
+  luogo:'Elemento identificativo; seduta a distanza solo se prevista dal Regolamento',
+  convocazione:'Convocazione con ordine del giorno a tutti i componenti (C.M. 105/1975)',
+  odg:'Si delibera solo sui punti all\u2019ordine del giorno',
+  presenti:'Nomi di presenti e assenti per verificare il numero legale (art. 37 c. 2 D.Lgs. 297/1994; CdS n. 3544/2020)',
+  presidente:'Presidente identificato e firmatario (C.M. 105/1975)',
+  segretario:'Firma del segretario verbalizzante essenziale (CdS sez. II n. 3544/2020)',
+};
+function marcaEssenziali(bl){
+  const walk = (arr) => arr.map(b => {
+    const c = Object.assign({}, b);
+    if (c.campi) c.campi = walk(c.campi);
+    if (c.blocchi) c.blocchi = walk(c.blocchi);
+    if (c.id && RIF_ESS[c.id] && !c.obbl){ c.obbl = true; c.rif = RIF_ESS[c.id]; }
+    return c;
+  });
+  return walk(bl);
+}
+
 /* =====================================================================
    STATO (solo in memoria)
    ===================================================================== */
@@ -334,6 +390,7 @@ function home(){
   w.append(el('section', {class:'hero'},
     el('div', {}, el('h1', {}, 'Modulistica docenti'),
       el('p', {}, 'Verbali, PEI, GLO, PDP e documenti di classe per Green Nido, Infanzia, Primaria e Secondaria. Scegli il modulo, compilalo e scarica il PDF da caricare sul registro elettronico.'))));
+  if (IOS) w.append(el('div', {class:'privacy', style:'border-left-color:var(--ambra)', html:'<b style="color:var(--ambra)">Su iPad:</b> Safari non avvisa se chiudi la scheda o se passi a lungo ad altre app: i dati non salvati andrebbero persi, perché non vengono conservati per scelta di riservatezza. Salva il PDF prima di chiudere.'}));
   w.append(el('div', {class:'privacy', html:'<b>Riservatezza:</b> i dati inseriti restano solo in questa scheda del browser e non vengono inviati né memorizzati. Chiudendo il modulo vengono cancellati. Il PDF scaricato va caricato sul registro elettronico e poi <b>eliminato dal dispositivo</b>.'}));
   const seg = el('div', {class:'seg', role:'group', 'aria-label':'Filtra per scuola'});
   const vociFiltro = [['tutte', 'Tutte', null], ...Object.entries(SCUOLE).map(([k, v]) => [k, v.breve, v.col])];
@@ -392,7 +449,7 @@ function apri(id, s){
       el('input', {type:'checkbox', id:'compatto', checked:true}), 'PDF compatto'),
     el('button', {class:'btn', onclick:svuota, html:SVG.pulisci + 'Svuota'}),
     el('button', {class:'btn', onclick:anteprima, html:SVG.occhio + 'Anteprima'}),
-    el('button', {class:'btn pri', onclick:scarica, html:SVG.scarica + 'Salva PDF'})));
+    el('button', {class:'btn pri', onclick:() => scarica(), html:SVG.scarica + 'Salva PDF'})));
   const form = el('div', {class:'form', style:`--acc:${SCUOLE[s].col}`});
   app.append(bar, form);
   disegnaForm(form);
@@ -445,8 +502,13 @@ function inizializza(blocchi){
 }
 function segna(){ SPORCO = true; aggiornaDinamici(); }
 
+function haObbl(bl){ return bl.some(b => b.obbl || (b.campi && haObbl(b.campi)) || (b.blocchi && haObbl(b.blocchi))); }
 function disegnaForm(root){
   root.innerHTML = '';
+  if (haObbl(BLOCCHI)){
+    const spec = MOD.legenda ? MOD.legenda(SCU) : null;
+    root.append(el('div', {class:'legenda', html:'<b>*</b> ' + (spec ? esc(spec) : 'Elementi essenziali del verbale: se mancano, il verbale o le deliberazioni possono essere invalidi o impugnabili.') + ' Sotto ciascuno è indicato il riferimento normativo; al salvataggio l\u2019app segnala quelli non compilati.'}));
+  }
   let sez = null, grid = null;
   const nuovaSez = (titolo) => {
     sez = el('section', {class:'sez'}); if (titolo) sez.append(el('h3', {}, titolo));
@@ -476,6 +538,14 @@ function disegnaForm(root){
 function span(b){ return `grid-column:span ${Math.round(b.w || 12)}`; }
 
 function campo(b){
+  const e = campoBase(b);
+  if (e && b.obbl){
+    e.classList.add('obbl'); e.dataset.obbl = b.id;
+    e.append(el('span', {class:'obbl-rif'}, 'Elemento essenziale' + (b.rif ? ' – ' + b.rif : '')));
+  }
+  return e;
+}
+function campoBase(b){
   switch (b.t){
     case 'nota': return el('div', {class:'nota', html:SVG.info}, el('span', {}, b.testo));
     case 'testofisso': return el('div', {class:'fisso', 'data-fisso':b.testo});
@@ -549,6 +619,8 @@ function campo(b){
       draw();
       return el('div', {class:'f', style:'grid-column:1/-1'}, b.label ? el('span', {class:'lbl'}, b.label) : null, box);
     }
+    case 'riferimenti':
+      return el('div', {class:'f', style:'grid-column:1/-1'}, el('ul', {class:'rif'}, b.voci.map(v => el('li', {}, v))));
     case 'libere': {
       const box = el('div', {class:'elenco', style:'gap:12px'});
       const draw = () => {
@@ -675,7 +747,7 @@ function pulisci(s){
 }
 function vuoto(v){ return v == null || v === '' || v === false || (Array.isArray(v) && (!v.length || v.every(vuoto))) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length); }
 
-function creaPDF(){
+function creaPDF(man = []){
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
   const compatto = $('#compatto') ? $('#compatto').checked : true;
@@ -940,6 +1012,19 @@ function creaPDF(){
           break;
         }
         case 'firme': percorriFirme(b); break;
+        case 'riferimenti': {
+          flushCelle();
+          if (!b.voci.length) break;
+          titolo(b.titolo || 'Riferimenti normativi');
+          for (const v of b.voci){
+            const l = split(v, PDF.W - 5, 7.8);
+            spazio(l.length * lh(7.8));
+            font('normal', 7.8, GRIGIO); doc.text('–', PDF.M + 1, y + 7.8 * PT); doc.text(l, PDF.M + 4, y + 7.8 * PT);
+            y += l.length * lh(7.8) + 0.4;
+          }
+          y += 2;
+          break;
+        }
         case 'libere': {
           flushCelle();
           for (const sz of (STATO[b.id] || [])){
@@ -955,6 +1040,16 @@ function creaPDF(){
   const percorriFirme = (b) => { flushCelle(); firmePDF(b.ruoli, b.ruoli.map((_, i) => (STATO[b.id] || {})[i] || '')); };
 
   intestazione(true);
+  if (man.length){
+    // banda di avviso: documento incompleto (ambra, mai rosso)
+    const testo = 'VERBALE INCOMPLETO – elementi essenziali non compilati: ' + man.map(x => x.label).join('; ');
+    const l = split(testo, PDF.W - 6, 8.5, 'bold');
+    const h = l.length * lh(8.5) + 4;
+    doc.setFillColor(253, 243, 225); doc.setDrawColor(183, 121, 31); doc.setLineWidth(0.4);
+    doc.rect(PDF.M, y, PDF.W, h, 'FD');
+    font('bold', 8.5, [140, 90, 20]); doc.text(l, PDF.M + 3, y + 2 + 8.5 * PT);
+    y += h + 3;
+  }
   percorri(BLOCCHI);
   flushCelle();
 
@@ -966,6 +1061,7 @@ function creaPDF(){
     font('normal', 7, GRIGIO);
     doc.text('Scuola Sacra Famiglia – Orzinuovi (BS) · sacrafamiglia.edu.it', PDF.M, 291);
     doc.text(`Pagina ${i} di ${n}`, PDF.M + PDF.W, 291, {align:'right'});
+    if (man.length){ font('bold', 7, [140, 90, 20]); doc.text('BOZZA INCOMPLETA', PDF.M + PDF.W / 2, 291, {align:'center'}); }
   }
   doc.setProperties({title:pulisci(MOD.titolo), subject:pulisci(SCUOLE[SCU].nome), creator:'Modulistica docenti – Scuola Sacra Famiglia'});
   return doc;
@@ -976,12 +1072,54 @@ function nomeFile(){
   const d = STATO.data || oggiISO();
   return `${base}_${SCUOLE[SCU].breve}_${d}.pdf`;
 }
+/* elementi essenziali non compilati (solo nelle parti visibili) */
+function mancanti(){
+  const out = [];
+  const pieno = (b) => {
+    const v = STATO[b.id];
+    switch (b.t){
+      case 'multi': return Array.isArray(v) && v.length > 0;
+      case 'elenco': return Array.isArray(v) && v.some(x => x && x.trim());
+      case 'libere': return Array.isArray(v) && v.some(x => (x.testo || '').trim());
+      case 'tabella': {
+        const init = b.init || [];
+        return (v || []).some((r, i) => r.some((x, j) => !(b.fisse && j === 0) && b.col[j].tipo !== 'pres' && x !== '' && x !== false && !(init[i] && init[i][j] === x)));
+      }
+      case 'matrice': return v && Object.keys(v).length > 0;
+      default: return v != null && String(v).trim() !== '';
+    }
+  };
+  const walk = (bl, sezione) => {
+    for (const b of bl){
+      if (b.t === 'h') sezione = b.testo;
+      if (b.t === 'riga') walk(b.campi, sezione);
+      else if (b.t === 'se'){ if (condizione(b.campo, b.vale)) walk(b.blocchi, sezione); }
+      else if (b.obbl && !pieno(b)) out.push({id:b.id, label:b.label || sezione || b.id, rif:b.rif || ''});
+    }
+  };
+  walk(BLOCCHI, '');
+  return out;
+}
+function evidenzia(lista){
+  document.querySelectorAll('.obbl.manca').forEach(e => e.classList.remove('manca'));
+  lista.forEach(m => { const e = document.querySelector(`[data-obbl="${m.id}"]`); if (e) e.classList.add('manca'); });
+  const primo = lista[0] && document.querySelector(`[data-obbl="${lista[0].id}"]`);
+  if (primo) primo.scrollIntoView({behavior:'smooth', block:'center'});
+}
 let URL_ANTEPRIMA = null;
 function anteprima(){
   if (!window.jspdf){ alert('Libreria PDF non caricata: controlla la connessione e ricarica la pagina.'); return; }
-  const doc = creaPDF();
+  const doc = creaPDF(mancanti());
   if (URL_ANTEPRIMA) URL.revokeObjectURL(URL_ANTEPRIMA);
   URL_ANTEPRIMA = URL.createObjectURL(doc.output('blob'));
+  if (IOS){
+    // Safari iOS/iPadOS: un PDF in iframe mostra solo la prima pagina. Si apre in una nuova scheda
+    // (dalla scheda si torna qui senza perdere i dati, che restano in questa pagina).
+    const w = window.open(URL_ANTEPRIMA, '_blank');
+    if (!w) toast('Consenti l\u2019apertura di nuove schede per vedere l\u2019anteprima.');
+    const u = URL_ANTEPRIMA; setTimeout(() => URL.revokeObjectURL(u), 60000); URL_ANTEPRIMA = null;
+    return;
+  }
   const chiudi = () => { m.remove(); URL.revokeObjectURL(URL_ANTEPRIMA); URL_ANTEPRIMA = null; };
   const m = el('div', {class:'modal', onclick:e => { if (e.target === m) chiudi(); }},
     el('div', {class:'box'},
@@ -991,14 +1129,38 @@ function anteprima(){
       el('iframe', {src:URL_ANTEPRIMA, title:'Anteprima PDF'})));
   document.body.append(m);
 }
-function scarica(){
+/* Scarica un Blob come file. Safari iPadOS 13+ supporta l'attributo download (file in File > Download). */
+function salvaFile(blob, nome){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nome; a.rel = 'noopener';
+  if (!('download' in a)) { window.open(url, '_blank'); }
+  else { document.body.append(a); a.click(); a.remove(); }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function scarica(forza){
   if (!window.jspdf){ alert('Libreria PDF non caricata: controlla la connessione e ricarica la pagina.'); return; }
-  const doc = creaPDF();
-  doc.save(nomeFile());
+  const man = mancanti();
+  if (man.length && !forza){
+    const m = el('div', {class:'modal'}, el('div', {class:'box small'},
+      el('h3', {}, 'Mancano elementi essenziali'),
+      el('p', {}, 'Senza questi elementi il verbale o le deliberazioni possono essere invalidi o impugnabili:'),
+      el('ul', {class:'mancanti'}, man.map(x => el('li', {}, x.label, x.rif ? el('small', {}, x.rif) : null))),
+      el('div', {class:'az'},
+        el('button', {class:'btn pri', onclick:() => { m.remove(); evidenzia(man); }}, 'Completa il modulo'),
+        el('button', {class:'btn', onclick:() => { m.remove(); scarica(true); }}, 'Salva come bozza incompleta'))));
+    document.body.append(m);
+    return;
+  }
+  document.querySelectorAll('.obbl.manca').forEach(e => e.classList.remove('manca'));
+  const doc = creaPDF(man);
+  salvaFile(doc.output('blob'), nomeFile());
   SPORCO = false;
   const m = el('div', {class:'modal'}, el('div', {class:'box small'},
     el('h3', {}, 'PDF salvato'),
-    el('p', {}, `Il file "${nomeFile()}" è stato scaricato sul dispositivo. Caricalo sul registro elettronico e poi eliminalo dalla cartella Download.`),
+    el('p', {}, IOS
+      ? `Il file "${nomeFile()}" è nell\u2019app File, cartella Download (se Safari chiede conferma, tocca "Scarica"). Caricalo sul registro elettronico e poi eliminalo dall\u2019app File.`
+      : `Il file "${nomeFile()}" è stato scaricato sul dispositivo. Caricalo sul registro elettronico e poi eliminalo dalla cartella Download.`),
     el('p', {}, 'Vuoi cancellare i dati del modulo e tornare all’elenco?'),
     el('div', {class:'az'},
       el('button', {class:'btn', onclick:() => m.remove()}, 'Resta nel modulo'),
@@ -1129,26 +1291,119 @@ function scarica(){
     ];
   };
 
+  /* Verbale di programmazione – modello dettagliato.
+     Elementi essenziali (obbl) secondo: D.Lgs. 297/1994 artt. 5, 7, 37; C.M. 105/1975;
+     CdS sez. II n. 3544/2020 (verbale requisito sostanziale, firma del segretario essenziale);
+     L. 241/1990 art. 3; per la paritaria L. 62/2000 art. 1 c. 4 lett. c e Regolamento OO.CC.
+     Il team di programmazione e il collettivo del nido NON sono organi deliberanti:
+     la mancanza di un elemento e' irregolarita', non invalidita' (vedi legenda). */
+  const ORGANI_PROG = {
+    N: ['Collettivo educativo'],
+    I: ['Consiglio di intersezione (componente docenti)', 'Collegio dei docenti della Scuola dell’Infanzia', 'Team di sezione (programmazione)'],
+    P: ['Consiglio di interclasse (componente docenti)', 'Team docenti di classe (programmazione settimanale)'],
+    S: ['Consiglio di classe (componente docenti)', 'Dipartimento disciplinare'],
+  };
+  const COLLEGIALI = ['Consiglio di intersezione (componente docenti)', 'Collegio dei docenti della Scuola dell’Infanzia',
+    'Consiglio di interclasse (componente docenti)', 'Consiglio di classe (componente docenti)', 'Dipartimento disciplinare'];
+  const R = {
+    organo: 'Identificazione dell’organo: artt. 5 e 7 D.Lgs. 297/1994; per la paritaria Regolamento degli organi collegiali (L. 62/2000, art. 1 c. 4 lett. c)',
+    data: 'Elemento identificativo dell’atto (CdS sez. II n. 3544/2020)',
+    luogo: 'Elemento identificativo; seduta a distanza ammessa solo se prevista dal Regolamento (dal 1/4/2022, cessato l’art. 73 D.L. 18/2020)',
+    regtel: 'Senza previsione regolamentare la seduta telematica rende annullabili le delibere',
+    convocazione: 'Convocazione di tutti i componenti con ordine del giorno; preavviso di massima 5 giorni (C.M. 105/1975). Il componente non convocato vizia la delibera',
+    odg: 'Si delibera solo sui punti all’ordine del giorno: argomenti estranei rendono la delibera annullabile (salvo tutti presenti e consenso unanime, se previsto dal Regolamento)',
+    presenti: 'Nomi di presenti e assenti necessari per verificare il numero legale (art. 37 c. 2 D.Lgs. 297/1994; CdS n. 3544/2020)',
+    quorum: 'Seduta valida con la metà più uno dei componenti in carica (art. 37 c. 2 D.Lgs. 297/1994, recepito dal Regolamento)',
+    presidente: 'Presidente identificato e firmatario (art. 5 D.Lgs. 297/1994; C.M. 105/1975)',
+    segretario: 'La firma del segretario verbalizzante è essenziale (CdS sez. II n. 3544/2020)',
+    nido: 'Buona prassi documentale (D.G.R. Lombardia XI/2929/2020: coordinamento pedagogico e incontri di équipe)',
+    team: 'Riunione non deliberante: la mancanza è irregolarità documentale, non invalidità',
+  };
+
   registra({
     id:'programmazione', argomento:'programmazione', scuole:['N', 'I', 'P', 'S'], file:'Verbale_programmazione',
-    titolo:'Verbale di seduta di programmazione',
-    descrizione:'Collettivo, intersezione, team o consiglio di classe: inizio anno, in itinere, fine anno',
-    blocchi:(s) => [
-      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}, {t:'testo', id:'sezione', label:SEZ[s]}]),
-      {t:'scelta', id:'tipo', label:'Tipo di seduta', opz:['Inizio anno', 'In itinere', 'Fine anno', 'Settimanale / periodica'], col:4},
-      ...H.apertura(ORGANO[s]),
-      ...H.odg(),
-      {t:'nota', testo:'Punti tipici per ' + H.NOMI[s] + ' — ' + Object.entries(ODG_TIPICI[s]).map(([k, v]) => k + ': ' + v.join('; ')).join(' | ')},
-      ...H.presenti(RUOLI[s]),
-      ...H.presidenza(H.PRES[s]),
-      ...progettazioneGrado(s),
-      ...H.trattazione(),
-      ...H.delibere(),
-      ...H.impegni(),
-      {t:'multi', id:'allegati', label:'Allegati', opz:['Foglio firme presenze', 'Progettazione / UdA', 'Griglie di osservazione o valutazione', 'Calendario'], altro:true, col:2},
-      H.privacy(),
-      ...H.chiusura(),
-    ],
+    titolo:'Verbale di programmazione – modello dettagliato',
+    descrizione:'Con elementi essenziali pena invalidità e riferimenti normativi citati nel modulo',
+    legenda:(s) => s === 'N'
+      ? 'Il collettivo del nido non è un organo collegiale deliberante: gli elementi segnati con * non sono causa di invalidità, ma costituiscono la documentazione minima richiesta dalla buona prassi e verificabile in vigilanza (D.G.R. Lombardia XI/2929/2020).'
+      : null,
+    blocchi:(s) => {
+      const nido = s === 'N';
+      const r = (k) => nido ? R.nido : R[k];
+      return [
+        {t:'h', testo:'Dati generali'},
+        {t:'riga', campi:[
+          {t:'testo', id:'as', label:nido ? 'Anno educativo' : 'Anno scolastico', w:3, def:annoScolastico()},
+          {t:'data', id:'data', label:'Data della seduta', w:3, oggi:true, obbl:true, rif:r('data')},
+          {t:'testo', id:'n_verbale', label:'Verbale n.', w:2},
+          {t:'testo', id:'sezione', label:SEZ[s], w:4}]},
+        {t:'scelta', id:'organo', label:'Organo / riunione', opz:ORGANI_PROG[s], def:ORGANI_PROG[s][0], obbl:true, rif:r('organo'), col:1, nopdf:true},
+        {t:'se', campo:'organo', vale:['Team di sezione (programmazione)', 'Team docenti di classe (programmazione settimanale)'], blocchi:[
+          {t:'nota', testo:'Riunione di programmazione non deliberante (per la scuola statale art. 28 c. 5 CCNL 2006-2009; nella paritaria secondo il CCNL applicato, es. AGIDAE, tra le attività funzionali). Il verbale documenta il lavoro svolto: gli elementi mancanti sono irregolarità, non causa di invalidità.'}]},
+        {t:'scelta', id:'tipo', label:'Tipo di seduta', opz:['Inizio anno', 'In itinere', 'Fine anno', 'Settimanale / periodica'], col:4},
+
+        {t:'h', testo:'Convocazione e apertura'},
+        {t:'riga', campi:[
+          {t:'testo', id:'convocazione', label:'Convocazione (prot. n. e data dell’avviso)', w:6, nopdf:true, obbl:!nido, rif:R.convocazione},
+          {t:'ora', id:'ora_inizio', label:'Ora di inizio', w:2, nopdf:true},
+          {t:'scelta', id:'modalita', label:'Modalità', opz:['in presenza', 'in modalità telematica sincrona'], def:'in presenza', w:4, nopdf:true}]},
+        {t:'testo', id:'luogo', label:'Luogo (o piattaforma)', nopdf:true, obbl:true, rif:r('luogo')},
+        {t:'se', campo:'modalita', vale:'in modalità telematica sincrona', blocchi:[
+          {t:'testo', id:'reg_tel', label:'Norma del Regolamento che consente la seduta telematica (articolo)', nopdf:true, obbl:!nido, rif:R.regtel},
+          {t:'testofisso', testo:'La seduta si svolge in modalità telematica sincrona sulla piattaforma indicata, ai sensi di {reg_tel}; il Presidente ha verificato l’identità dei partecipanti e la loro presenza continuativa.'}]},
+        {t:'testofisso', testo:nido
+          ? 'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce il Collettivo educativo del Green Nido per discutere il seguente ordine del giorno.'
+          : 'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce il {organo}, convocato con avviso {convocazione} regolarmente comunicato a tutti i componenti, per discutere il seguente ordine del giorno.'},
+        {t:'elenco', id:'odg', label:'Ordine del giorno', min:3, ph:'Punto all’ordine del giorno', obbl:true, rif:nido ? R.nido : R.odg},
+        {t:'nota', testo:'Punti tipici per ' + H.NOMI[s] + ' — ' + Object.entries(ODG_TIPICI[s]).map(([k, v]) => k + ': ' + v.join('; ')).join(' | ')},
+
+        {t:'h', testo:'Presenti e numero legale'},
+        {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:5}, {h:'Ruolo / qualifica', w:5}, {h:'Presenza', w:2, tipo:'pres'}],
+          righe:Math.max(4, RUOLI[s].length), init:RUOLI[s].map(x => ['', x, 'P']), aggiungi:true, obbl:true, rif:r('presenti')},
+        {t:'nota', testo:'Presenza: P = presente, A = assente, AG = assente giustificato. Indicare tutti i componenti in carica, anche gli assenti.'},
+        {t:'se', campo:'organo', vale:COLLEGIALI, blocchi:[
+          {t:'riga', campi:[
+            {t:'num', id:'in_carica', label:'Componenti in carica', w:4, nopdf:true, obbl:true, rif:R.quorum},
+            {t:'num', id:'n_presenti', label:'Presenti', w:4, nopdf:true, obbl:true, rif:R.quorum},
+            {t:'testo', id:'art_reg', label:'Articolo del Regolamento OO.CC. sul numero legale', w:4, nopdf:true, ph:'es. art. 5'}]},
+          {t:'testofisso', testo:'Il Presidente, constatata la presenza di n. {n_presenti} componenti su {in_carica} in carica, accertato il numero legale ai sensi di {art_reg} del Regolamento degli organi collegiali (conforme all’art. 37 D.Lgs. 297/1994), dichiara aperta la seduta.'}]},
+        {t:'riga', campi:[
+          {t:'testo', id:'presidente', label:`Presiede (${H.PRES[s]} o delegato)`, w:6, nopdf:true, obbl:true, rif:r('presidente')},
+          {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, obbl:true, rif:r('segretario')}]},
+        {t:'testofisso', testo:'Presiede {presidente}; funge da segretario verbalizzante {segretario}.'},
+
+        ...progettazioneGrado(s),
+        ...H.trattazione(),
+        {t:'h', testo:'Deliberazioni'},
+        {t:'nota', testo:'Solo per gli organi collegiali che deliberano. Per ogni delibera vanno riportati l’esito del voto (maggioranza assoluta dei voti validamente espressi; in parità prevale il voto del Presidente: art. 37 c. 3 D.Lgs. 297/1994) e la motivazione quando l’atto incide su terzi (art. 3 L. 241/1990). Votazioni su persone: a scrutinio segreto (art. 37 c. 4).'},
+        {t:'tabella', id:'delibere', col:[{h:'N.', w:0.8}, {h:'Oggetto e motivazione', w:6.2, tipo:'area'}, {h:'Favorevoli', w:1.25}, {h:'Contrari', w:1.25}, {h:'Astenuti', w:1.25}, {h:'Esito', w:1.25}], righe:1, aggiungi:true},
+        {t:'area', id:'dichiarazioni', label:'Dichiarazioni a verbale richieste dai componenti', nota:'Riportare il testo richiesto (meglio se consegnato per iscritto e allegato). L’omissione è irregolarità sanabile in sede di approvazione.'},
+        ...H.impegni(),
+        {t:'multi', id:'allegati', label:'Allegati', opz:['Avviso di convocazione', 'Foglio firme presenze', 'Progettazione / UdA', 'Griglie di osservazione o valutazione', 'Dichiarazioni scritte'], altro:true, col:2},
+        H.privacy(),
+
+        {t:'h', testo:'Chiusura'},
+        {t:'riga', campi:[
+          {t:'ora', id:'ora_fine', label:'Ora di chiusura', w:3, nopdf:true},
+          {t:'scelta', id:'approvazione', label:'Approvazione del verbale', opz:['letto e approvato seduta stante', 'da approvare nella seduta successiva'], def:'letto e approvato seduta stante', w:9, nopdf:true}]},
+        {t:'nota', testo:'L’approvazione non è condizione di validità delle delibere, che nascono quando sono adottate; dà al verbale efficacia di prova (CdS sez. VI n. 6208/2001; CdS n. 3544/2020).'},
+        {t:'testofisso', testo:'Esauriti i punti all’ordine del giorno, la seduta è tolta alle ore {ora_fine}. Il presente verbale è {approvazione} e viene sottoscritto dal Presidente e dal Segretario.'},
+        {t:'firme', ruoli:['Il Presidente', 'Il Segretario verbalizzante']},
+        {t:'riferimenti', voci:nido ? [
+          'D.Lgs. 65/2017 – Sistema integrato di educazione e di istruzione 0-6; D.M. 43/2022 – Orientamenti nazionali per i servizi educativi 0-3.',
+          'D.G.R. Lombardia XI/2929 del 9/3/2020 – Requisiti di esercizio dei nidi: coordinamento pedagogico, incontri di équipe; incontro verbalizzato con le famiglie per la presentazione del progetto educativo.',
+          'Reg. UE 2016/679 (GDPR) – dati personali di minori: minimizzazione e conservazione riservata.',
+        ] : [
+          'L. 62/2000, art. 1 c. 4 lett. c – nella scuola paritaria organi collegiali improntati alla partecipazione democratica, disciplinati dal Regolamento degli organi collegiali.',
+          'D.Lgs. 297/1994, art. 5 (consigli di intersezione, interclasse e classe; c. 8: coordinamento didattico con la sola componente docente), art. 7 (Collegio dei docenti), art. 37 (validità delle sedute e delle deliberazioni) – applicati alla paritaria tramite il Regolamento.',
+          'C.M. 105/1975 – convocazione con ordine del giorno, preavviso di massima 5 giorni, verbale firmato da presidente e segretario.',
+          'Consiglio di Stato, sez. II, n. 3544/2020 – il verbale è requisito sostanziale; necessari i nomi dei presenti e la firma del segretario; non occorre la firma di tutti i componenti.',
+          'L. 241/1990, art. 3 – obbligo di motivazione dei provvedimenti.',
+          'D.M. 221/2025 – Nuove Indicazioni nazionali (dal 2026/27 infanzia e classi prime); D.M. 183/2024 – Linee guida educazione civica; O.M. 3/2025 – valutazione nella primaria.',
+          'Reg. UE 2016/679 (GDPR) – dati personali di minori: minimizzazione e conservazione riservata.',
+        ]},
+      ];
+    },
   });
 
   /* ---------- COLLOQUIO CON LA FAMIGLIA ---------- */
@@ -2651,7 +2906,7 @@ function scarica(){
   /* ------------------------------------------------------------------ */
   registra({
     id: 'progettazione-gruppo',
-    titolo: 'Incontro di progettazione del gruppo docente',
+    titolo: 'Incontro di progettazione – format della scuola',
     descrizione: 'Riunione del gruppo docente sui progetti dell’anno e decisioni assunte',
     argomento: 'programmazione',
     scuole: ['P', 'S'],
@@ -2827,6 +3082,1428 @@ function scarica(){
       {t:'area', id:'osservazioni', label:'Osservazioni'},
       {t:'firme', ruoli:['Il docente coordinatore dell’educazione civica']}
     ]
+  });
+})();
+
+</script>
+<script data-schemi="organi">
+// Moduli degli organi collegiali (argomento 'organi').
+// Scuola paritaria: gli organi collegiali sono istituiti e regolati dal regolamento della scuola,
+// improntati alla partecipazione democratica (art. 1 c. 4 lett. c L. 62/2000). Le norme statali
+// (D.Lgs. 297/1994, O.M. 215/1991, D.Lgs. 66/2017, D.P.R. 249/1998) sono usate come riferimento.
+// Riferimenti verificati a settembre 2026.
+(() => {
+  const SEZ = {N:'Gruppo / sezione', I:'Sezione', P:'Classe', S:'Classe'};
+  const CONSIGLIO = {I:'Consiglio di intersezione', P:'Consiglio di interclasse', S:'Consiglio di classe'};
+
+  // Tabella delibere numerate (più completa di H.delibere: numero progressivo della delibera)
+  const delibereNumerate = (id = 'delibere', label = 'Delibere e votazioni') => [
+    {t:'tabella', id, label,
+      col:[{h:'N. delibera', w:1.2}, {h:'Oggetto', w:5.3, tipo:'area'}, {h:'Favorevoli', w:1.3}, {h:'Contrari', w:1.3}, {h:'Astenuti', w:1.3}, {h:'Esito', w:1.6}],
+      righe:2, aggiungi:true},
+    {t:'nota', testo:'Numerazione progressiva nell’anno scolastico (es. 5/2026-27). Salvo diversa previsione del regolamento, le delibere sono adottate a maggioranza assoluta dei voti validamente espressi; in caso di parità prevale il voto del Presidente (art. 37 D.Lgs. 297/1994). Esito: approvata / respinta / approvata all’unanimità.'},
+  ];
+
+  // Numero legale: presenti su aventi diritto
+  const numeroLegale = (chi = 'componenti') => [
+    {t:'riga', campi:[
+      {t:'num', id:'aventi_diritto', label:'Aventi diritto (componenti in carica)', w:6, nopdf:true},
+      {t:'num', id:'n_presenti', label:'Presenti', w:6, nopdf:true}]},
+    {t:'testofisso', testo:`Accertata la presenza di n. {n_presenti} ${chi} su n. {aventi_diritto} aventi diritto e quindi del numero legale (metà più uno dei componenti in carica), il Presidente dichiara valida la seduta.`},
+  ];
+
+  const presidenzaLibera = (labelPres, formula) => [
+    {t:'riga', campi:[
+      {t:'testo', id:'presidente', label:labelPres, w:6, nopdf:true},
+      {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true}]},
+    {t:'testofisso', testo:formula || 'Presiede {presidente}; funge da segretario verbalizzante {segretario}.'},
+  ];
+
+  /* ------------------------------------------------------------------ */
+  /* 1. COLLEGIO DEI DOCENTI                                             */
+  /* ------------------------------------------------------------------ */
+  const ODG_COLLEGIO = [
+    'Settembre: insediamento; nomina del segretario e dei collaboratori; piano annuale delle attività e calendario degli impegni; curricolo e applicazione delle Nuove Indicazioni nazionali (D.M. 221/2025) alle classi interessate; criteri di valutazione e comportamento; referenti, funzioni e commissioni; aggiornamento del PTOF',
+    'Ottobre: approvazione dell’aggiornamento del PTOF e dei progetti; piano di formazione; uscite e viaggi d’istruzione',
+    'Gennaio-febbraio: esiti della valutazione del I quadrimestre; recupero e potenziamento; iscrizioni e orientamento',
+    'Maggio: adozione dei libri di testo; criteri per gli scrutini finali e per l’esame di Stato (Secondaria)',
+    'Giugno: verifica del PTOF e delle funzioni; approvazione del Piano per l’inclusione (su proposta del GLI); relazioni finali; proposte per il nuovo anno',
+  ];
+
+  registra({
+    id:'collegio-docenti', argomento:'organi', scuole:['I', 'P', 'S'], file:'Verbale_Collegio_docenti',
+    titolo:'Verbale del Collegio dei docenti',
+    sottotitolo:'Organo collegiale della scuola paritaria (L. 62/2000) – funzioni di riferimento: art. 7 D.Lgs. 297/1994',
+    descrizione:'Seduta unitaria o di grado: numero legale, trattazione e delibere numerate',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}, {t:'testo', id:'convocazione', label:'Convocazione (prot. / data)'}]),
+      {t:'riga', campi:[
+        {t:'scelta', id:'composizione', label:'Composizione', opz:['in seduta unitaria (tutti i gradi)', `della ${H.NOMI[s]}`], def:`della ${H.NOMI[s]}`, w:7, nopdf:true},
+        {t:'scelta', id:'tipo_seduta', label:'Seduta', opz:['ordinaria', 'straordinaria'], def:'ordinaria', w:5, nopdf:true}]},
+      ...H.apertura('il Collegio dei docenti {composizione}, in seduta {tipo_seduta}, regolarmente convocato con avviso {convocazione},'),
+      ...H.odg(['Lettura e approvazione del verbale della seduta precedente']),
+      {t:'nota', testo:'Punti tipici per periodo — ' + ODG_COLLEGIO.join(' | ')},
+      {t:'nota', testo:'Sui punti non iscritti all’ordine del giorno non si delibera: le «varie ed eventuali» servono solo per comunicazioni.'},
+      ...H.presenti(['Coordinatore didattico (Presidente)', 'Docente', 'Docente', 'Docente di sostegno', 'Docente IRC'], 'Presenti e assenti'),
+      {t:'nota', testo:'Per collegi numerosi si può elencare solo assenti e assenti giustificati, allegando il foglio firme delle presenze.'},
+      ...numeroLegale('docenti'),
+      ...presidenzaLibera('Presiede (Coordinatore didattico o delegato)', 'Presiede {presidente}, Coordinatore didattico; funge da segretario verbalizzante {segretario}.'),
+      ...H.trattazione(),
+      {t:'h', testo:'Deliberazioni'},
+      ...delibereNumerate(),
+      {t:'area', id:'dichiarazioni', label:'Dichiarazioni di voto e interventi a verbale', righe:3,
+        nota:'Il docente che chiede la verbalizzazione di un intervento lo detta o lo consegna per iscritto; il testo viene allegato.'},
+      {t:'multi', id:'allegati', label:'Allegati', opz:['Foglio firme presenze', 'Piano annuale delle attività', 'Documenti approvati (PTOF, criteri, regolamenti)', 'Dichiarazioni scritte dei docenti', 'Elenco dei libri di testo adottati'], altro:true, col:2},
+      ...H.chiusura(['Il Presidente – Coordinatore didattico', 'Il Segretario verbalizzante']),
+    ],
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 2. CONSIGLIO D'ISTITUTO / DELLA SCUOLA                              */
+  /* ------------------------------------------------------------------ */
+  const ODG_CONSIGLIO = [
+    'Insediamento, elezione del Presidente e del segretario (se previsto)',
+    'Calendario scolastico ed eventuali adattamenti; orari',
+    'Contributi e rette (solo se di competenza dell’organo secondo il regolamento dell’Ente gestore)',
+    'Criteri per uscite didattiche e viaggi d’istruzione',
+    'Regolamento d’istituto, regolamento di disciplina, Patto educativo di corresponsabilità',
+    'Adozione / aggiornamento del PTOF',
+    'Iniziative extrascolastiche, feste, Gioco Estate',
+  ];
+
+  registra({
+    id:'consiglio-istituto', argomento:'organi', scuole:['N', 'I', 'P', 'S'], file:'Verbale_Consiglio_istituto',
+    titolo:'Verbale del Consiglio d’istituto',
+    sottotitolo:'Organo collegiale di partecipazione della scuola paritaria (art. 1 c. 4 lett. c L. 62/2000) – regolamento della scuola',
+    descrizione:'Consiglio d’istituto o della scuola: componenti, delibere e votazioni',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}, {t:'testo', id:'convocazione', label:'Convocazione (prot. / data)'}]),
+      {t:'testo', id:'organo_nome', label:'Denominazione dell’organo', def:'Consiglio d’istituto', nopdf:true,
+        nota:'Usare la denominazione del regolamento della scuola (es. Consiglio d’istituto, Consiglio della scuola, Consiglio di gestione).'},
+      {t:'scelta', id:'tipo_seduta', label:'Seduta', opz:['ordinaria', 'straordinaria'], def:'ordinaria', nopdf:true},
+      ...H.apertura('il {organo_nome}, in seduta {tipo_seduta}, regolarmente convocato con avviso {convocazione},'),
+      ...H.odg(['Lettura e approvazione del verbale della seduta precedente']),
+      {t:'nota', testo:'Punti tipici: ' + ODG_CONSIGLIO.join('; ') + '. Le competenze dell’organo sono quelle attribuite dal regolamento: le decisioni economiche e di gestione restano in capo all’Ente gestore salvo delega.'},
+      ...H.presenti([
+        'Legale rappresentante dell’Ente gestore (o delegato)',
+        'Coordinatore didattico',
+        'Coordinatrice pedagogica Green Nido',
+        'Rappresentante dei docenti',
+        'Rappresentante dei docenti',
+        'Rappresentante dei genitori',
+        'Rappresentante dei genitori',
+        'Rappresentante del personale non docente',
+      ], 'Componenti presenti e assenti'),
+      ...numeroLegale('componenti'),
+      ...presidenzaLibera('Presidente (secondo il regolamento; di norma un genitore)'),
+      ...H.trattazione(),
+      {t:'h', testo:'Deliberazioni'},
+      ...delibereNumerate(),
+      {t:'area', id:'dichiarazioni', label:'Dichiarazioni di voto e interventi a verbale', righe:2},
+      {t:'testofisso', testo:'Le delibere sono pubblicate secondo le modalità previste dal regolamento; non sono soggetti a pubblicazione gli atti concernenti singole persone, salvo contraria richiesta dell’interessato.'},
+      ...H.impegni(),
+      {t:'multi', id:'allegati', label:'Allegati', opz:['Foglio firme presenze', 'Documenti approvati', 'Prospetti economici', 'Regolamenti'], altro:true, col:2},
+      ...H.chiusura(['Il Presidente', 'Il Segretario verbalizzante']),
+    ],
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 3. ASSEMBLEA DEI GENITORI                                           */
+  /* ------------------------------------------------------------------ */
+  registra({
+    id:'assemblea-genitori', argomento:'organi', scuole:['N', 'I', 'P', 'S'], file:'Verbale_assemblea_genitori',
+    titolo:'Verbale di assemblea dei genitori',
+    sottotitolo:'Assemblea di classe / sezione – regolamento della scuola (riferimento: art. 15 D.Lgs. 297/1994)',
+    descrizione:'Assemblea di classe o sezione: programmazione, patto educativo, regole e richieste',
+    blocchi:(s) => {
+      const doc = s === 'N' ? 'educatrici' : 'docenti';
+      return [
+        ...H.testata(s, [{t:'testo', id:'sezione', label:SEZ[s]}]),
+        {t:'riga', campi:[
+          {t:'scelta', id:'tipo', label:'Assemblea', opz:['di inizio anno', 'in corso d’anno'], def:'di inizio anno', w:5, nopdf:true},
+          {t:'testo', id:'convocata', label:'Convocata da', w:7, def:s === 'N' ? 'Coordinatrice pedagogica' : 'Coordinatore didattico', nopdf:true,
+            nota:'Può essere convocata anche dai rappresentanti dei genitori, secondo il regolamento.'}]},
+        ...H.apertura(`l’assemblea {tipo} dei genitori (${SEZ[s].toLowerCase()} {sezione}), convocata da {convocata},`),
+        ...H.odg(s === 'N'
+          ? ['Presentazione delle educatrici e del progetto educativo', 'Ambientamenti, routine e giornata al nido', 'Regole e organizzazione', 'Varie ed eventuali']
+          : [`Presentazione dei ${doc} e della programmazione annuale`, 'Patto educativo di corresponsabilità', 'Regole e organizzazione', 'Elezione dei rappresentanti dei genitori: modalità di voto', 'Varie ed eventuali']),
+        {t:'riga', campi:[
+          {t:'num', id:'n_famiglie', label:'Famiglie presenti', w:4},
+          {t:'num', id:'n_totale', label:'Famiglie della ' + SEZ[s].toLowerCase(), w:4},
+          {t:'testo', id:'foglio_firme', label:'Foglio firme', w:4, def:'allegato'}]},
+        {t:'tabella', id:'personale', label:'Personale della scuola presente', col:[{h:'Cognome e nome', w:6}, {h:'Ruolo', w:6}], righe:3,
+          init:[['', s === 'N' ? 'Coordinatrice pedagogica' : 'Coordinatore didattico'], ['', s === 'N' ? 'Educatrice' : 'Docente'], ['', s === 'N' ? 'Educatrice' : 'Docente']], aggiungi:true},
+        ...presidenzaLibera('Presiede', 'Presiede l’assemblea {presidente}; funge da segretario verbalizzante {segretario}.'),
+        {t:'h', testo:'Presentazione della scuola'},
+        {t:'area', id:'programmazione', label:s === 'N' ? 'Progetto educativo, ambientamenti e routine' : 'Programmazione annuale, progetti, uscite', righe:4},
+        {t:'area', id:'patto', label:'Patto educativo di corresponsabilità: punti illustrati', righe:2,
+          nota:'Richiamare impegni reciproci di scuola, famiglia' + (s === 'S' ? ' e studente (D.P.R. 249/1998, art. 5-bis)' : '') + '; indicare come e quando verrà sottoscritto.'},
+        {t:'multi', id:'regole', label:'Regole e organizzazione illustrate', opz:[
+          'Orari di entrata e uscita, ritardi', 'Deleghe per il ritiro', 'Assenze e giustificazioni',
+          s === 'N' ? 'Corredo e materiale personale' : 'Materiale scolastico e compiti',
+          'Comunicazioni scuola-famiglia e registro elettronico', 'Colloqui con ' + (s === 'N' ? 'le educatrici' : 'i docenti'),
+          'Mensa, diete e farmaci (con documentazione)', 'Uscite didattiche e autorizzazioni',
+          ...(s === 'S' ? ['Uso dei dispositivi personali'] : [])], altro:true, col:2},
+        {t:'h', testo:'Interventi e richieste dei genitori'},
+        {t:'tabella', id:'interventi', col:[{h:'Intervento / richiesta', w:7, tipo:'area'}, {h:'Risposta o impegno della scuola', w:5, tipo:'area'}], righe:3, aggiungi:true},
+        {t:'nota', testo:'Non si discutono situazioni di singoli alunni: vanno rinviate ai colloqui individuali. Non indicare i nomi dei genitori che intervengono, se non necessario.'},
+        {t:'area', id:'accordi', label:'Proposte e accordi', righe:2},
+        ...H.chiusura(['Chi presiede', 'Il Segretario verbalizzante']),
+      ];
+    },
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 4. ELEZIONE DEI RAPPRESENTANTI DEI GENITORI                         */
+  /* ------------------------------------------------------------------ */
+  const N_RAPPR = {I:'1 rappresentante per ciascuna sezione', P:'1 rappresentante per ciascuna classe', S:'fino a 4 rappresentanti per ciascuna classe'};
+  const PREF = {I:'1 preferenza', P:'1 preferenza', S:'2 preferenze'};
+
+  registra({
+    id:'elezioni-rappresentanti', argomento:'organi', scuole:['I', 'P', 'S'], file:'Verbale_elezioni_rappresentanti',
+    titolo:'Verbale delle operazioni di voto e scrutinio',
+    sottotitolo:'Elezione annuale dei rappresentanti dei genitori – procedura semplificata (riferimento: artt. 21-22 O.M. 215/1991)',
+    descrizione:'Seggio, votanti, preferenze, proclamazione degli eletti (entro il 31 ottobre)',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'sezione', label:SEZ[s]}, {t:'testo', id:'seggio', label:'Seggio n.'}]),
+      {t:'testofisso', testo:`Elezione dei rappresentanti dei genitori nel ${CONSIGLIO[s]} – ${SEZ[s].toLowerCase()} {sezione}. Si eleggono ${N_RAPPR[s]}; ogni elettore può esprimere ${PREF[s]}. Sono elettori ed eleggibili entrambi i genitori (o chi ne fa legalmente le veci) degli ${s === 'I' ? 'bambini' : 'alunni'} iscritti.`},
+      {t:'nota', testo:'Le elezioni annuali si concludono entro il 31 ottobre. Precede l’assemblea dei genitori (usare il modulo «Verbale di assemblea dei genitori»). Voto su lista unica comprendente tutti i genitori; scheda segreta. Se i votanti sono pochi, il seggio può essere accorpato con quello di altre ' + (s === 'I' ? 'sezioni' : 'classi') + ', trasferendo elenco e urna.'},
+      {t:'h', testo:'Costituzione del seggio'},
+      {t:'riga', campi:[
+        {t:'testo', id:'pres_seggio', label:'Presidente del seggio', w:4, nopdf:true},
+        {t:'testo', id:'scrutatore1', label:'Scrutatore', w:4, nopdf:true},
+        {t:'testo', id:'scrutatore2', label:'Scrutatore', w:4, nopdf:true}]},
+      {t:'riga', campi:[
+        {t:'ora', id:'ora_apertura', label:'Apertura del seggio', w:4, nopdf:true},
+        {t:'ora', id:'ora_chiusura', label:'Chiusura del seggio', w:4, nopdf:true},
+        {t:'testo', id:'luogo', label:'Luogo', w:4, nopdf:true}]},
+      {t:'testofisso', testo:'Il giorno {data}, alle ore {ora_apertura}, presso {luogo}, al termine dell’assemblea dei genitori si costituisce il seggio elettorale composto dai genitori {pres_seggio} (presidente), {scrutatore1} e {scrutatore2} (scrutatori). Il presidente, verificati l’elenco degli elettori, le schede e l’urna, dichiara aperte le operazioni di voto. Gli elettori votano previo riconoscimento e firmano l’elenco. Alle ore {ora_chiusura} il presidente dichiara chiuse le votazioni e si procede immediatamente allo scrutinio.'},
+      {t:'h', testo:'Risultati dello scrutinio'},
+      {t:'riga', campi:[
+        {t:'num', id:'elettori', label:'Elettori aventi diritto', w:4},
+        {t:'num', id:'votanti', label:'Votanti', w:4},
+        {t:'num', id:'valide', label:'Schede valide', w:4}]},
+      {t:'riga', campi:[
+        {t:'num', id:'bianche', label:'Schede bianche', w:4},
+        {t:'num', id:'nulle', label:'Schede nulle', w:4},
+        {t:'num', id:'non_utilizzate', label:'Schede non utilizzate', w:4}]},
+      {t:'tabella', id:'voti', label:'Voti di preferenza riportati', col:[{h:'Cognome e nome del genitore', w:7}, {h:'Voti di preferenza', w:2}, {h:'Note', w:3}], righe:6, aggiungi:true},
+      {t:'nota', testo:'Riportare tutti i genitori che hanno ottenuto almeno un voto, in ordine decrescente. Preferenze oltre il numero consentito: si considerano valide solo le prime (verificare il regolamento); scheda con segni di riconoscimento: nulla.'},
+      {t:'scelta', id:'parita', label:'Parità di voti per l’ultimo posto', opz:['Non si sono verificate parità', 'Si è proceduto a sorteggio'], def:'Non si sono verificate parità'},
+      {t:'se', campo:'parita', vale:'Si è proceduto a sorteggio', blocchi:[
+        {t:'area', id:'sorteggio', label:'Esito del sorteggio (genitori in parità, modalità, estratto)', righe:2},
+      ]},
+      {t:'h', testo:'Proclamazione degli eletti'},
+      {t:'tabella', id:'eletti', col:[{h:'Cognome e nome', w:7}, {h:'Voti', w:2}, {h:'Note (es. eletto per sorteggio)', w:3}], righe:s === 'S' ? 4 : 1, aggiungi:true},
+      {t:'testofisso', testo:`Il presidente del seggio proclama eletti rappresentanti dei genitori nel ${CONSIGLIO[s]} i genitori sopra indicati. Il presente verbale, l’elenco degli elettori con le firme dei votanti e le schede scrutinate sono chiusi in plico e consegnati alla segreteria della scuola.`},
+      {t:'area', id:'contestazioni', label:'Eventuali contestazioni o osservazioni', righe:2},
+      {t:'nota', testo:'I nomi dei genitori eletti sono resi noti alle famiglie della ' + SEZ[s].toLowerCase() + '; i nomi dei soli votati non eletti non vanno diffusi oltre il verbale.'},
+      {t:'testofisso', testo:'Letto, confermato e sottoscritto.'},
+      {t:'firme', ruoli:['Il Presidente del seggio', 'Lo scrutatore', 'Lo scrutatore']},
+    ],
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 5. DIPARTIMENTO / AREA DISCIPLINARE                                 */
+  /* ------------------------------------------------------------------ */
+  registra({
+    id:'dipartimento', argomento:'organi', scuole:['P', 'S'], file:'Verbale_dipartimento',
+    titolo:'Verbale di riunione per dipartimento',
+    sottotitolo:'Articolazione del Collegio dei docenti per aree disciplinari',
+    descrizione:'Curricolo verticale, prove comuni, griglie di valutazione, libri di testo',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}, {t:'testo', id:'dipartimento', label:s === 'P' ? 'Ambito / classi parallele' : 'Dipartimento', nopdf:true}]),
+      {t:'nota', testo:s === 'P'
+        ? 'Esempi: area linguistica, area logico-matematica e scientifica, area storico-geografica, area espressiva e motoria, lingua inglese, IRC; oppure classi parallele.'
+        : 'Esempi: dipartimento di lettere, matematica e scienze, lingue straniere, tecnologia, arte e musica, scienze motorie, IRC, sostegno.'},
+      ...H.apertura(`il ${s === 'P' ? 'gruppo di lavoro per ambito disciplinare' : 'Dipartimento'} {dipartimento} della ${H.NOMI[s]},`),
+      ...H.odg(['Curricolo verticale e raccordo con le Nuove Indicazioni nazionali', 'Prove comuni: calendario, contenuti e criteri', 'Griglie di valutazione', 'Proposte formative e progetti']),
+      {t:'nota', testo:'Punti tipici: settembre – curricolo, prove d’ingresso, griglie; gennaio-febbraio – esiti delle prove intermedie; maggio – libri di testo, prove finali; giugno – verifica del curricolo e proposte.'},
+      ...H.presenti(['Coordinatore di dipartimento', 'Docente', 'Docente', 'Docente']),
+      ...presidenzaLibera('Coordinatore di dipartimento (presiede)', 'Presiede {presidente}, coordinatore del dipartimento su delega del Coordinatore didattico; funge da segretario verbalizzante {segretario}.'),
+      {t:'h', testo:'Curricolo verticale'},
+      {t:'area', id:'curricolo', label:'Revisione del curricolo: traguardi, obiettivi, nuclei essenziali, raccordi tra le classi e con gli altri gradi', righe:4,
+        nota:'Dal 2026/27 le Nuove Indicazioni nazionali (D.M. 221/2025) si applicano alle classi prime' + (s === 'P' ? ' della primaria' : ' della secondaria') + '; indicare le modifiche al curricolo d’istituto e i tempi di estensione alle altre classi.'},
+      {t:'h', testo:'Prove comuni'},
+      {t:'tabella', id:'prove', col:[{h:'Tipo', w:1.8}, {h:'Classi', w:1.5}, {h:'Disciplina', w:2}, {h:'Periodo / data', w:1.7}, {h:'Contenuti e obiettivi verificati', w:3, tipo:'area'}, {h:'Criteri e griglia', w:2, tipo:'area'}],
+        righe:3, init:[['Ingresso'], ['Intermedia'], ['Finale']], aggiungi:true},
+      {t:'area', id:'esiti_prove', label:'Analisi degli esiti delle prove già svolte e azioni conseguenti', righe:3},
+      {t:'h', testo:'Griglie e criteri di valutazione'},
+      {t:'area', id:'griglie', label:'Griglie concordate o modificate', righe:3,
+        nota:s === 'P'
+          ? 'Primaria: giudizi sintetici Ottimo, Distinto, Buono, Discreto, Sufficiente, Non sufficiente (L. 150/2024, O.M. 3/2025), con descrittori riferiti agli obiettivi di apprendimento.'
+          : 'Secondaria: voti in decimi con descrittori; per il comportamento voto in decimi (L. 150/2024). Indicare anche gli adattamenti per PEI e PDP.'},
+      {t:'h', testo:'Libri di testo'},
+      {t:'tabella', id:'libri', col:[{h:'Disciplina', w:2}, {h:'Classe', w:1}, {h:'Titolo, autore, editore, ISBN', w:4.5, tipo:'area'}, {h:'Conferma / nuova adozione', w:2}, {h:'Motivazione', w:2.5, tipo:'area'}], righe:2, aggiungi:true},
+      {t:'nota', testo:'Le proposte di adozione vanno al Collegio dei docenti (seduta di maggio), nel rispetto dei tetti di spesa e delle indicazioni della nota ministeriale annuale sulle adozioni.' + (s === 'P' ? ' Alla primaria i libri sono forniti gratuitamente tramite cedola libraria.' : '')},
+      {t:'h', testo:'Proposte formative e progetti'},
+      {t:'area', id:'proposte', label:'Formazione dei docenti, progetti, uscite, concorsi', righe:3},
+      {t:'h', testo:'Proposte da sottoporre al Collegio dei docenti'},
+      ...delibereNumerate('delibere', 'Decisioni e votazioni del dipartimento'),
+      ...H.impegni(),
+      ...H.chiusura(['Il Coordinatore di dipartimento', 'Il Segretario verbalizzante']),
+    ],
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 6. COMMISSIONE / GRUPPO DI LAVORO                                   */
+  /* ------------------------------------------------------------------ */
+  registra({
+    id:'commissione', argomento:'organi', scuole:['N', 'I', 'P', 'S'], file:'Verbale_commissione',
+    titolo:'Verbale di commissione o gruppo di lavoro',
+    descrizione:'PTOF, RAV, continuità, orientamento, orario, eventi: lavori e proposte',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}]),
+      {t:'scelta', id:'area', label:'Ambito', opz:['PTOF', 'RAV e piano di miglioramento', 'Continuità', 'Orientamento', 'Orario', 'Eventi e feste', 'Formazione', 'Inclusione'], altro:true, col:4, nopdf:true},
+      {t:'testo', id:'commissione', label:'Denominazione della commissione / gruppo di lavoro', nopdf:true, ph:'es. Commissione PTOF'},
+      ...H.apertura('la {commissione} (ambito: {area}),'),
+      ...H.odg(),
+      ...H.presenti([s === 'N' ? 'Referente / coordinatrice' : 'Referente della commissione', s === 'N' ? 'Educatrice' : 'Docente', s === 'N' ? 'Educatrice' : 'Docente']),
+      ...presidenzaLibera('Coordina (referente)', 'Coordina i lavori {presidente}; funge da segretario verbalizzante {segretario}.'),
+      {t:'h', testo:'Mandato'},
+      {t:'area', id:'mandato', label:'Compiti affidati e riferimento dell’incarico (es. delibera del Collegio dei docenti n. … del …)', righe:2},
+      {t:'h', testo:'Lavori svolti'},
+      {t:'area', id:'lavori', label:'Sintesi dei lavori della seduta', righe:5},
+      {t:'area', id:'materiali', label:'Documenti prodotti o esaminati', righe:2},
+      {t:'h', testo:'Proposte'},
+      {t:'tabella', id:'proposte', col:[{h:'Proposta', w:6, tipo:'area'}, {h:'Motivazione', w:4, tipo:'area'}, {h:'Organo competente', w:2}], righe:2, aggiungi:true},
+      {t:'nota', testo:'La commissione istruisce e propone: le decisioni spettano al Collegio dei docenti, al Coordinatore ' + (s === 'N' ? '/ alla Coordinatrice pedagogica' : 'didattico') + ' o all’Ente gestore secondo le rispettive competenze.'},
+      {t:'h', testo:'Prossimi passi'},
+      ...H.impegni(),
+      {t:'riga', campi:[{t:'data', id:'prossimo', label:'Prossimo incontro', w:4}, {t:'ora', id:'prossimo_ora', label:'Ora', w:3}, {t:'testo', id:'prossimo_luogo', label:'Luogo', w:5}]},
+      ...H.chiusura(['Il Referente', 'Il Segretario verbalizzante']),
+    ],
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 7. GLI – GRUPPO DI LAVORO PER L'INCLUSIONE                          */
+  /* ------------------------------------------------------------------ */
+  registra({
+    id:'gli', argomento:'organi', scuole:['N', 'I', 'P', 'S'], file:'Verbale_GLI',
+    titolo:'Verbale del GLI – Gruppo di Lavoro per l’Inclusione',
+    sottotitolo:'Art. 9 c. 8 D.Lgs. 66/2017 mod. D.Lgs. 96/2019 – Piano per l’inclusione (art. 8)',
+    descrizione:'Dati aggregati, risorse, Piano per l’inclusione, supporto a team e consigli',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}]),
+      {t:'scelta', id:'fase', label:'Seduta', opz:['Inizio anno: rilevazione e organizzazione delle risorse', 'Intermedia: monitoraggio', 'Fine anno: verifica e proposta del Piano per l’inclusione'], col:1},
+      ...H.apertura('il Gruppo di Lavoro per l’Inclusione (GLI) della scuola,'),
+      ...H.odg(),
+      ...H.presenti(['Coordinatore didattico (Presidente)', 'Coordinatrice pedagogica Green Nido', 'Referente per l’inclusione', 'Docente curricolare', 'Docente di sostegno', 'Educatore / assistente', 'Consulente esterno (specialista, servizi)', 'Rappresentante dei genitori (consulenza)'], 'Composizione e presenze'),
+      {t:'nota', testo:'Il GLI è composto da docenti curricolari, docenti di sostegno ed eventualmente personale non docente e specialisti; è presieduto dal Coordinatore didattico. Può avvalersi della consulenza di genitori, studenti e associazioni del territorio.'},
+      ...presidenzaLibera('Presiede (Coordinatore didattico o delegato)'),
+      {t:'nota', testo:'Privacy: in questo verbale solo dati aggregati e numerici. Nessun nome, iniziale, diagnosi o elemento che renda identificabile un alunno (attenzione alle classi con un solo caso). Le situazioni individuali si trattano nei GLO, nei team e nei consigli di classe.'},
+      {t:'h', testo:'Rilevazione dei bisogni (dati aggregati)'},
+      {t:'tabella', id:'dati', col:[{h:'Grado', w:3}, {h:'Iscritti', w:1.5}, {h:'Disabilità (L. 104/1992)', w:2}, {h:'DSA (L. 170/2010)', w:1.8}, {h:'Altri BES con PDP', w:1.8}, {h:'In osservazione', w:1.9}],
+        fisse:['Green Nido', 'Scuola dell’Infanzia', 'Scuola Primaria', 'Scuola Secondaria di I grado', 'Totale']},
+      {t:'nota', testo:'Solo numeri. Al nido e all’infanzia la colonna DSA non si compila (la diagnosi è possibile dalla fine della seconda primaria).'},
+      {t:'h', testo:'Risorse'},
+      {t:'tabella', id:'risorse', col:[{h:'Risorsa', w:4}, {h:'Disponibilità / dati', w:4, tipo:'area'}, {h:'Criticità e proposte', w:4, tipo:'area'}],
+        fisse:['Docenti di sostegno (ore settimanali)', 'Assistenti all’autonomia e alla comunicazione (ente locale)', 'Referenti e figure per l’inclusione', 'Sportello o consulenza psicopedagogica', 'Rapporti con ASST / UONPIA e servizi sociali', 'Spazi, ausili e materiali']},
+      {t:'se', campo:'fase', vale:'Fine anno: verifica e proposta del Piano per l’inclusione', blocchi:[
+        {t:'h', testo:'Piano per l’inclusione'},
+        {t:'area', id:'verifica_piano', label:'Verifica del Piano dell’anno in corso: punti di forza e criticità', righe:4},
+        {t:'area', id:'obiettivi', label:'Obiettivi di incremento dell’inclusività per il prossimo anno', righe:4},
+        {t:'area', id:'utilizzo_risorse', label:'Proposta di utilizzo delle risorse', righe:3},
+        {t:'testofisso', testo:'Il GLI trasmette la proposta di Piano per l’inclusione al Collegio dei docenti per la deliberazione; il Piano è parte integrante del PTOF.'},
+      ]},
+      {t:'se', campo:'fase', vale:['Inizio anno: rilevazione e organizzazione delle risorse', 'Intermedia: monitoraggio'], blocchi:[
+        {t:'area', id:'monitoraggio', label:'Stato di attuazione del Piano per l’inclusione e azioni correttive', righe:3},
+      ]},
+      {t:'h', testo:'Supporto a team e consigli'},
+      {t:'area', id:'supporto', label:'Indicazioni per l’attuazione di PEI e PDP: scadenze, modelli, strumenti comuni, criteri condivisi', righe:3},
+      {t:'area', id:'formazione', label:'Formazione del personale: bisogni rilevati e proposte', righe:2},
+      {t:'nota', testo:'La provincia di Brescia è in sperimentazione della riforma della disabilità (D.Lgs. 62/2024) dal 1/1/2025: considerare il raccordo tra PEI e Progetto di vita.'},
+      ...H.delibere(),
+      ...H.impegni(),
+      ...H.chiusura(),
+    ],
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* 8. ORGANO DI GARANZIA                                               */
+  /* ------------------------------------------------------------------ */
+  const OG_ESITI = ['Ricorso respinto: il provvedimento è confermato', 'Ricorso accolto: il provvedimento è annullato', 'Ricorso parzialmente accolto: il provvedimento è modificato'];
+
+  registra({
+    id:'organo-garanzia', argomento:'organi', scuole:['S'], file:'Verbale_Organo_garanzia',
+    titolo:'Verbale dell’Organo di garanzia',
+    sottotitolo:'Ricorso contro un provvedimento disciplinare – art. 5 D.P.R. 249/1998 come modificato dal D.P.R. 134/2025',
+    descrizione:'Esame del ricorso contro una sanzione disciplinare: istruttoria e decisione motivata',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}, {t:'testo', id:'prot_ricorso', label:'Ricorso (prot.)', nopdf:true}]),
+      ...H.apertura('l’Organo di garanzia interno per l’esame del ricorso prot. {prot_ricorso},'),
+      ...H.odg(['Verifica della ricevibilità del ricorso', 'Istruttoria e audizioni', 'Decisione']),
+      ...H.presenti(['Coordinatore didattico (Presidente)', 'Docente designato', 'Genitore rappresentante', 'Genitore rappresentante', 'Membro supplente']),
+      {t:'nota', testo:'Composizione secondo il regolamento della scuola; riferimento per la secondaria di I grado: Coordinatore didattico, un docente e due genitori. Il componente in conflitto di interessi (es. genitore dell’alunno, docente che ha partecipato alla sanzione) si astiene ed è sostituito dal supplente. Il regolamento stabilisce se le decisioni richiedono la presenza di tutti i componenti.'},
+      ...presidenzaLibera('Presiede (Coordinatore didattico o delegato)', 'Presiede {presidente}; funge da segretario verbalizzante {segretario}. Il Presidente accerta la regolare composizione dell’Organo e l’assenza di situazioni di incompatibilità.'),
+      {t:'h', testo:'1. Ricorso e provvedimento impugnato'},
+      {t:'riga', campi:[
+        {t:'testo', id:'alunno', label:'Alunno/a (iniziali)', w:3},
+        {t:'testo', id:'classe', label:'Classe', w:2},
+        {t:'testo', id:'ricorrente', label:'Ricorrente (genitore / esercente la responsabilità)', w:7}]},
+      {t:'riga', campi:[
+        {t:'testo', id:'organo_sanzione', label:'Organo che ha irrogato la sanzione', w:5},
+        {t:'data', id:'data_delibera', label:'Data della delibera', w:3},
+        {t:'testo', id:'verbale_sanzione', label:'Verbale n. / prot.', w:4}]},
+      {t:'area', id:'sanzione', label:'Provvedimento impugnato (tipo, durata, attività previste)', righe:2},
+      {t:'riga', campi:[
+        {t:'data', id:'data_comunicazione', label:'Comunicazione alla famiglia', w:4, nopdf:true},
+        {t:'data', id:'data_ricorso', label:'Presentazione del ricorso', w:4, nopdf:true},
+        {t:'scelta', id:'ricevibile', label:'Termine di 15 giorni', opz:['rispettato', 'non rispettato'], w:4, nopdf:true}]},
+      {t:'testofisso', testo:'Il ricorso è stato presentato il {data_ricorso} avverso il provvedimento comunicato il {data_comunicazione}: il termine di 15 giorni dalla comunicazione risulta {ricevibile}.'},
+      {t:'se', campo:'ricevibile', vale:'non rispettato', blocchi:[
+        {t:'testofisso', testo:'Il ricorso è pertanto dichiarato irricevibile per tardività e l’Organo non procede all’esame nel merito.'},
+      ]},
+      {t:'area', id:'motivi', label:'Motivi del ricorso (sintesi)', righe:3},
+      {t:'h', testo:'2. Istruttoria'},
+      {t:'multi', id:'documenti', label:'Documenti esaminati', opz:['Contestazione degli addebiti', 'Verbale della seduta che ha deliberato la sanzione', 'Comunicazione del provvedimento alla famiglia', 'Memorie e documenti del ricorrente', 'Regolamento di disciplina', 'Patto educativo di corresponsabilità'], altro:true, col:2},
+      {t:'tabella', id:'audizioni', label:'Audizioni', col:[{h:'Persona sentita (ruolo)', w:3}, {h:'Data', w:1.5}, {h:'Sintesi di quanto dichiarato', w:7.5, tipo:'area'}], righe:2, aggiungi:true},
+      {t:'nota', testo:'Nomi di altri alunni, vittime o testimoni minorenni: «omissis» o iniziali. L’Organo verifica la correttezza del procedimento (contestazione, audizione, motivazione) e la proporzionalità della sanzione.'},
+      {t:'h', testo:'3. Decisione'},
+      {t:'scelta', id:'esito', label:'Esito', opz:OG_ESITI, col:1},
+      {t:'se', campo:'esito', vale:OG_ESITI[2], blocchi:[
+        {t:'area', id:'modifica', label:'Provvedimento come modificato', righe:2},
+      ]},
+      {t:'area', id:'motivazione', label:'Motivazione', righe:5},
+      {t:'riga', campi:[{t:'num', id:'fav', label:'Favorevoli', w:3}, {t:'num', id:'con', label:'Contrari', w:3}, {t:'num', id:'ast', label:'Astenuti', w:3}, {t:'testo', id:'decisione_entro', label:'Entro il (10 giorni)', w:3}]},
+      {t:'testofisso', testo:'L’Organo di garanzia decide entro 10 giorni dal ricevimento del ricorso; in mancanza di decisione nel termine la sanzione si intende confermata. La decisione è comunicata per iscritto al ricorrente e al Consiglio di classe. Per le violazioni dello Statuto, anche contenute nel regolamento della scuola, è ammesso reclamo al Direttore dell’Ufficio scolastico regionale per la Lombardia, che decide previo parere dell’Organo di garanzia regionale (art. 5 c. 3 D.P.R. 249/1998).'},
+      {t:'riga', campi:[{t:'data', id:'data_notifica', label:'Decisione comunicata alla famiglia il', w:6}, {t:'testo', id:'mezzo', label:'Mezzo (prot. / raccomandata / PEC / consegna a mano)', w:6}]},
+      ...H.chiusura(['Il Presidente', 'Il Segretario verbalizzante']),
+    ],
+  });
+})();
+
+</script>
+<script data-schemi="generici">
+(() => {
+  /* ---------------------------------------------------------------
+     Verbali generici (struttura libera) e moduli di sicurezza,
+     salute e frequenza; accoglienza alunni neo arrivati in Italia.
+     Normativa verificata a settembre 2026.
+     --------------------------------------------------------------- */
+  const ALUNNO = {N:'Bambino/a', I:'Bambino/a', P:'Alunno/a', S:'Alunno/a'};
+  const ALUNNI = {N:'Bambini', I:'Bambini', P:'Alunni', S:'Alunni'};
+  const SEZ = {N:'Gruppo / sezione', I:'Sezione', P:'Classe', S:'Classe'};
+  const DOC = {N:'Educatrice', I:'Docente', P:'Docente', S:'Docente'};
+  const ALCOORD = {N:'alla Coordinatrice pedagogica', I:'al Coordinatore didattico', P:'al Coordinatore didattico', S:'al Coordinatore didattico'};
+
+  /* ---------- VERBALE GENERICO (modulo jolly) ---------- */
+  registra({
+    id:'verbale-generico', argomento:'generici', scuole:['N', 'I', 'P', 'S'], file:'Verbale_riunione',
+    titolo:'Verbale di riunione',
+    descrizione:'Verbale a struttura libera per qualsiasi organo, commissione o gruppo di lavoro',
+    legenda:() => 'Elementi essenziali del verbale: per un organo collegiale deliberante (collegio, consiglio, dipartimento) la loro mancanza può rendere invalide le deliberazioni; per commissioni e gruppi di lavoro non deliberanti è un\u2019irregolarità documentale.',
+    blocchi:(s) => marcaEssenziali([
+      ...H.testata(s),
+      {t:'riga', campi:[
+        {t:'testo', id:'organo', label:'Organo / gruppo riunito', w:8, ph:'es. il Collegio dei docenti, la Commissione mensa', nopdf:true},
+        {t:'testo', id:'n_verbale', label:'Verbale n.', w:4}]},
+      {t:'nota', testo:'Scrivere l’organo o il gruppo con l’articolo, come deve comparire nella frase di apertura (es. «il gruppo di lavoro Continuità», «la Commissione orario»).'},
+      {t:'scelta', id:'tipo', label:'Tipo di seduta', opz:['ordinaria', 'straordinaria'], altro:true, def:'ordinaria', col:3, nopdf:true},
+      {t:'riga', campi:[
+        {t:'ora', id:'ora_inizio', label:'Ora di inizio', w:3, nopdf:true},
+        {t:'scelta', id:'modalita', label:'Modalità', opz:['in presenza', 'a distanza', 'in modalità mista'], w:4, def:'in presenza', nopdf:true},
+        {t:'testo', id:'luogo', label:'Luogo / piattaforma', w:5, ph:'es. aula docenti', nopdf:true}]},
+      {t:'testo', id:'convocazione', label:'Convocazione (atto, data, prot.)', ph:'es. circolare n. 12 del 20/09/2026', nopdf:true},
+      {t:'testofisso', testo:'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce in seduta {tipo} {organo}, convocato con {convocazione}, per discutere il seguente ordine del giorno.'},
+      ...H.odg(),
+      ...H.presenti([]),
+      {t:'riga', campi:[
+        {t:'testo', id:'presidente', label:'Presiede', w:6, nopdf:true},
+        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true}]},
+      {t:'testofisso', testo:'Presiede {presidente}; funge da segretario verbalizzante {segretario}. Constatata la validità della seduta, il Presidente dichiara aperti i lavori.'},
+      {t:'h', testo:'Trattazione dei punti all’ordine del giorno'},
+      {t:'nota', testo:'Una sezione per ogni punto: rinominala (es. «1. Approvazione del verbale precedente»), riordinala o eliminala. Per ogni punto: sintesi degli interventi (chi, che cosa), proposte emerse, decisione. Nel PDF ogni punto diventa una sezione.'},
+      {t:'libere', id:'punti', init:[{titolo:'Punto 1'}, {titolo:'Punto 2'}, {titolo:'Punto 3'}], aggiungi:'Aggiungi punto', phTitolo:'Titolo del punto', phTesto:'Sintesi della discussione e decisione'},
+      {t:'h', testo:'Delibere, impegni e allegati'},
+      ...H.delibere(),
+      ...H.impegni(),
+      {t:'elenco', id:'allegati', label:'Allegati', min:1, ph:'es. foglio firme delle presenze'},
+      H.privacy(),
+      ...H.chiusura(['Il Presidente', 'Il Segretario verbalizzante']),
+      {t:'riferimenti', voci:[
+        'L. 62/2000, art. 1 c. 4 lett. c e Regolamento degli organi collegiali della scuola.',
+        'D.Lgs. 297/1994, art. 37 – validità delle sedute (metà più uno dei componenti in carica) e delle deliberazioni (maggioranza assoluta dei voti validamente espressi).',
+        'C.M. 105/1975 – convocazione con ordine del giorno; verbale firmato da presidente e segretario.',
+        'Consiglio di Stato, sez. II, n. 3544/2020 – il verbale è requisito sostanziale; necessari nomi dei presenti e firma del segretario.',
+        'L. 241/1990, art. 3 – motivazione dei provvedimenti.',
+      ]},
+    ]),
+  });
+
+  /* ---------- VERBALE SINTETICO (una pagina) ---------- */
+  registra({
+    id:'verbale-sintetico', argomento:'generici', scuole:['N', 'I', 'P', 'S'], file:'Verbale_sintetico',
+    titolo:'Verbale sintetico di incontro',
+    descrizione:'Verbale breve di una pagina per incontri informali e confronti tra colleghi',
+    libere:false,
+    blocchi:(s) => [
+      {t:'h', testo:'Incontro'},
+      {t:'riga', campi:[
+        {t:'data', id:'data', label:'Data', w:3, oggi:true},
+        {t:'ora', id:'ora_inizio', label:'Dalle ore', w:2},
+        {t:'ora', id:'ora_fine', label:'Alle ore', w:2},
+        {t:'testo', id:'luogo', label:'Luogo / piattaforma', w:5}]},
+      {t:'testo', id:'argomento', label:'Argomento'},
+      {t:'area', id:'partecipanti', label:'Partecipanti (nome e ruolo)', righe:2},
+      {t:'area', id:'sintesi', label:'Sintesi', righe:6},
+      {t:'area', id:'decisioni', label:'Decisioni e azioni (chi, che cosa, entro quando)', righe:3},
+      {t:'nota', testo:'Per riunioni formali di un organo (con ordine del giorno, presenze e delibere) usare il «Verbale di riunione». ' + (s === 'N' || s === 'I' ? 'Bambini' : 'Alunni') + ' solo con iniziali, se necessario.'},
+      {t:'firme', ruoli:['Il verbalizzante']},
+    ],
+  });
+
+  /* ---------- RELAZIONE LIBERA ---------- */
+  registra({
+    id:'relazione-libera', argomento:'generici', scuole:['N', 'I', 'P', 'S'], file:'Relazione',
+    titolo:'Relazione',
+    descrizione:'Documento libero su carta intestata: relazioni, comunicazioni, note',
+    blocchi:(s) => [
+      {t:'h', testo:'Intestazione'},
+      {t:'riga', campi:[
+        {t:'testo', id:'destinatario', label:'Destinatario (facoltativo)', w:8, ph:'es. ' + ALCOORD[s].replace(/^al(la)? /, '')},
+        {t:'testo', id:'prot', label:'Prot. n. (facoltativo)', w:4}]},
+      {t:'testo', id:'oggetto', label:'Oggetto'},
+      {t:'h', testo:'Testo'},
+      {t:'nota', testo:'Suddividi il testo in sezioni con un sottotitolo facoltativo (es. Premessa, Situazione, Proposte); puoi aggiungerle, riordinarle ed eliminarle. Un sottotitolo vuoto non viene stampato.'},
+      {t:'libere', id:'corpo', init:[{titolo:'', testo:''}], sottotitoli:true, aggiungi:'Aggiungi sezione', phTitolo:'Sottotitolo (facoltativo)'},
+      H.privacy(),
+      {t:'h', testo:'Luogo, data e firma'},
+      {t:'riga', campi:[
+        {t:'testo', id:'luogo', label:'Luogo', w:6, def:'Orzinuovi', nopdf:true},
+        {t:'data', id:'data', label:'Data', w:6, oggi:true, nopdf:true}]},
+      {t:'testofisso', testo:'{luogo}, {data}'},
+      {t:'firme', ruoli:['Firma']},
+    ],
+  });
+
+  /* ---------- PROVA DI EVACUAZIONE ---------- */
+  registra({
+    id:'prova-evacuazione', argomento:'sicurezza', scuole:['N', 'I', 'P', 'S'], file:'Modulo_evacuazione',
+    titolo:'Modulo di evacuazione',
+    sottotitolo:'Prova di evacuazione – D.M. 26/08/1992 punto 12 – D.Lgs. 81/2008 – D.M. 2/9/2021',
+    descrizione:'Scheda della classe per la prova: presenze, tempi, punto di raccolta, criticità',
+    blocchi:(s) => {
+      const piccoli = s === 'N' || s === 'I';
+      return [
+        {t:'nota', testo:'Si compila al punto di raccolta, dopo l’appello, e si consegna subito al Coordinatore dell’emergenza (vedi Piano di emergenza). Le prove sono almeno due per anno ' + (s === 'N' ? 'educativo' : 'scolastico') + ' e coinvolgono tutte le persone presenti nell’edificio.'},
+        ...H.testata(s, [{t:'testo', id:'n_prova', label:'Prova n.'}, {t:'ora', id:'ora_allarme', label:'Ora dell’allarme'}, {t:'testo', id:'sezione', label:SEZ[s]}]),
+        {t:'riga', campi:[
+          {t:'scelta', id:'preavviso', label:'Tipo di prova', opz:['programmata', 'non preavvisata'], w:6},
+          {t:'testo', id:'aula', label:'Aula / locale', w:3},
+          {t:'testo', id:'piano', label:'Piano', w:3}]},
+        {t:'scelta', id:'scenario', label:'Scenario simulato', opz:['incendio', 'terremoto', 'fuga di gas / nube tossica'], altro:true, col:4},
+        {t:'testo', id:'docente', label:(s === 'N' ? 'Educatrice' : 'Docente') + ' presente al momento dell’allarme'},
+        {t:'h', testo:ALUNNI[s]},
+        {t:'riga', campi:[
+          {t:'num', id:'presenti', label:ALUNNI[s] + ' presenti', w:3},
+          {t:'num', id:'evacuati', label:'Evacuati', w:3},
+          {t:'num', id:'assenti', label:'Assenti', w:3},
+          {t:'num', id:'dispersi', label:'Dispersi', w:3}]},
+        {t:'riga', campi:[
+          {t:'num', id:'feriti', label:'Feriti', w:3},
+          {t:'testo', id:'nomi_dispersi', label:'Nominativi di dispersi o feriti (solo se presenti)', w:9}]},
+        ...(s === 'N'
+          ? [{t:'riga', campi:[
+              {t:'num', id:'adulti', label:'Educatrici e altri adulti presenti', w:4},
+              {t:'testo', id:'non_deambulanti', label:'Bambini non deambulanti: numero e modalità (culla di evacuazione, passeggino, in braccio)', w:8}]}]
+          : [{t:'testo', id:'assistiti', label:'Alunni con disabilità o difficoltà motorie assistiti: numero e adulto incaricato'}]),
+        {t:'riga', campi:piccoli
+          ? [{t:'testo', id:'testa', label:'Adulto in testa al gruppo', w:6}, {t:'testo', id:'coda', label:'Adulto in coda al gruppo', w:6}]
+          : [{t:'testo', id:'aprifila', label:'Apri-fila (e sostituto)', w:6}, {t:'testo', id:'chiudifila', label:'Chiudi-fila (e sostituto)', w:6}]},
+        {t:'h', testo:'Evacuazione'},
+        {t:'riga', campi:[
+          {t:'testo', id:'punto_raccolta', label:'Punto di raccolta', w:4},
+          {t:'ora', id:'ora_arrivo', label:'Ora di arrivo al punto di raccolta', w:4},
+          {t:'testo', id:'tempo', label:'Tempo di evacuazione (min e s)', w:4}]},
+        {t:'scelta', id:'percorso', label:'Percorso di esodo', opz:['principale, previsto dal Piano di emergenza', 'alternativo (percorso principale simulato come non praticabile)'], col:2},
+        {t:'multi', id:'svolgimento', label:'Svolgimento', col:2, opz:[
+          'Segnale di allarme udito chiaramente',
+          ...(s === 'N'
+            ? ['Registro delle presenze portato con sé', 'Bambini accompagnati per mano o trasportati', 'Nessun bambino lasciato senza adulto di riferimento']
+            : ['Registro / elenco della classe portato con sé', 'Fila ordinata, senza correre né spingere', 'Oggetti personali lasciati in aula']),
+          'Scenario terremoto: protezione sotto i banchi o vicino ai muri portanti prima dell’uscita',
+          'Porta dell’aula chiusa all’uscita (se previsto)',
+          'Appello svolto al punto di raccolta',
+          'Modulo consegnato al Coordinatore dell’emergenza']},
+        {t:'area', id:'criticita', label:'Criticità riscontrate (segnale, percorso, uscite, comportamenti, tempi)', righe:3},
+        {t:'area', id:'proposte', label:'Proposte di miglioramento', righe:2},
+        {t:'firme', ruoli:[s === 'N' ? 'L’educatrice' : 'Il docente', 'Per ricevuta: il Coordinatore dell’emergenza']},
+      ];
+    },
+  });
+
+  /* ---------- RELAZIONE DI INFORTUNIO ---------- */
+  registra({
+    id:'infortunio', argomento:'sicurezza', scuole:['N', 'I', 'P', 'S'], file:'Relazione_infortunio',
+    titolo:'Relazione di infortunio',
+    sottotitolo:'Per la denuncia INAIL (art. 18 D.L. 48/2023, a regime dal 2025/26) e l’assicurazione scolastica',
+    descrizione:'Relazione del docente su un infortunio: dinamica, vigilanza, soccorso, avviso alla famiglia',
+    blocchi:(s) => [
+      {t:'nota', testo:'Solo fatti, descritti in modo oggettivo. Nessuna valutazione medica o diagnosi, nessuna attribuzione di colpa. Consegnare la relazione ' + ALCOORD[s] + ' entro la giornata: i termini per la denuncia all’INAIL decorrono dalla ricezione del certificato medico.'},
+      ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s]}, {t:'testo', id:'sezione', label:SEZ[s]}]),
+      {t:'h', testo:'L’evento'},
+      {t:'riga', campi:[
+        {t:'data', id:'data_evento', label:'Data dell’evento', w:3},
+        {t:'ora', id:'ora_evento', label:'Ora', w:2},
+        {t:'testo', id:'luogo_evento', label:'Luogo (aula, cortile, palestra, uscita didattica…)', w:7}]},
+      {t:'scelta', id:'momento', label:'Momento della giornata', col:3, altro:true, opz:
+        s === 'N'
+          ? ['gioco in sezione', 'gioco all’aperto', 'pasto', 'igiene / cambio', 'sonno / riposo', 'accoglienza o ricongiungimento']
+          : ['attività in aula', s === 'I' ? 'attività motoria' : 'educazione fisica', 'intervallo / ricreazione', 'mensa', 'uscita didattica', 'ingresso / uscita da scuola']},
+      {t:'area', id:'attivita', label:'Attività in corso', righe:2},
+      {t:'riga', campi:[
+        {t:'testo', id:'docente', label:DOC[s] + ' presente', w:5},
+        {t:'testo', id:'vigilanza', label:'Posizione dell’adulto e modalità di vigilanza al momento dell’evento', w:7}]},
+      {t:'area', id:'dinamica', label:'Dinamica (che cosa è successo, come, in quale sequenza)', righe:5},
+      {t:'testo', id:'parte', label:'Parte del corpo interessata (come riferito o visibile, senza diagnosi)'},
+      ...(s === 'N' ? [] : [{t:'area', id:'riferito', label:'Quanto riferito da ' + (s === 'I' ? 'bambino/a' : 'alunno/a') + ' (parole testuali tra virgolette, se utile)', righe:2}]),
+      {t:'tabella', id:'testimoni', label:'Testimoni adulti', col:[{h:'Cognome e nome', w:5}, {h:'Ruolo', w:4}, {h:'Presente all’evento / intervenuto', w:3}], righe:2, aggiungi:true},
+      {t:'nota', testo:'Eventuali compagni presenti si indicano in modo generico («alcuni compagni»), senza nomi.'},
+      {t:'h', testo:'Primo soccorso e comunicazioni'},
+      {t:'area', id:'soccorso', label:'Primo soccorso prestato (chi, che cosa, a che ora)', righe:3},
+      {t:'testo', id:'addetto', label:'Addetto al primo soccorso intervenuto'},
+      {t:'riga', campi:[
+        {t:'ora', id:'ora_avviso', label:'Ora dell’avviso alla famiglia', w:3},
+        {t:'testo', id:'avvisato', label:'Familiare avvisato', w:5},
+        {t:'testo', id:'chi_avvisa', label:'Avviso effettuato da', w:4}]},
+      {t:'scelta', id:'esito', label:'Seguito', altro:true, opz:[
+        'rientro in ' + (s === 'N' || s === 'I' ? 'sezione' : 'classe') + ' e ripresa delle attività',
+        'ritiro da parte della famiglia',
+        'chiamata al 112 (NUE) e trasporto al pronto soccorso',
+        'accompagnamento al pronto soccorso da parte della famiglia']},
+      {t:'se', campo:'esito', vale:'chiamata al 112 (NUE) e trasporto al pronto soccorso', blocchi:[
+        {t:'riga', campi:[
+          {t:'ora', id:'ora_112', label:'Ora della chiamata', w:3},
+          {t:'testo', id:'accompagnatore', label:'Adulto della scuola che ha accompagnato (se la famiglia non era presente)', w:9}]}]},
+      {t:'h', testo:'Trasmissione'},
+      {t:'testofisso', testo:'La presente relazione è consegnata ' + ALCOORD[s] + ' per gli adempimenti di competenza: denuncia all’INAIL, ove prevista, e apertura del sinistro presso l’assicurazione della scuola. La famiglia è invitata a consegnare in segreteria, il prima possibile, il certificato medico o del pronto soccorso.'},
+      H.privacy(),
+      {t:'firme', ruoli:[s === 'N' ? 'L’educatrice' : 'Il docente', 'Per ricevuta: ' + (s === 'N' ? 'la Coordinatrice pedagogica' : 'il Coordinatore didattico')]},
+    ],
+  });
+
+  /* ---------- SOMMINISTRAZIONE DI FARMACI ---------- */
+  registra({
+    id:'somministrazione-farmaci', argomento:'sicurezza', scuole:['N', 'I', 'P', 'S'], file:'Verbale_somministrazione_farmaci',
+    titolo:'Verbale di incontro per la somministrazione di farmaci',
+    sottotitolo:'Raccomandazioni MIUR-Ministero della Salute 25/11/2005 – Protocollo ATS Brescia 2026 (D.G.R. Lombardia XII/4483/2025)',
+    descrizione:'Accordi scuola-famiglia per la somministrazione di farmaci in orario scolastico',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s]}, {t:'testo', id:'sezione', label:SEZ[s]}]),
+      {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6}, {h:'Ruolo', w:6}], righe:5, aggiungi:true,
+        init:[['', H.PRES[s]], ['', DOC[s]], ['', 'Genitore'], ['', 'Genitore'], ['', 'Operatore sanitario ASST (se presente)']]},
+      {t:'h', testo:'Documentazione agli atti'},
+      {t:'riga', campi:[
+        {t:'testo', id:'richiesta', label:'Richiesta della famiglia (Allegato 1): prot. / data', w:6},
+        {t:'testo', id:'prescrizione', label:'Prescrizione e piano terapeutico (Allegato 2): prot. / data', w:6, nopdf:true}]},
+      {t:'testofisso', testo:'Farmaco, dose, orari, modalità di somministrazione e conservazione sono quelli indicati nella prescrizione medica agli atti (prot. {prescrizione}), alla quale si rinvia integralmente. Il presente verbale non riporta dati clinici.'},
+      {t:'nota', testo:'Non trascrivere diagnosi, nome del farmaco o dosaggi: fa fede solo la prescrizione del medico, con i moduli previsti dal protocollo ATS / ASST vigente.'},
+      {t:'h', testo:'Modalità'},
+      {t:'scelta', id:'tipologia', label:'Tipo di somministrazione', opz:[
+        'programmata, a orario definito (continuità terapeutica)',
+        'al bisogno o in emergenza, secondo il piano terapeutico'], altro:true},
+      {t:'multi', id:'modalita_somm', label:'Chi somministra', col:2, altro:true, opz:[
+        'Personale della scuola che ha dichiarato la propria disponibilità',
+        'Genitore o suo delegato che accede a scuola',
+        ...(s === 'S' || s === 'P' ? ['Autosomministrazione da parte dell’alunno/a, se prevista dalla prescrizione, con la supervisione di un adulto'] : []),
+        'Personale sanitario']},
+      {t:'tabella', id:'personale', label:'Personale disponibile', col:[{h:'Cognome e nome', w:4}, {h:'Ruolo', w:3}, {h:'Disponibilità scritta (data)', w:2.5}, {h:'Formazione ricevuta (data, ente)', w:2.5}], righe:3, aggiungi:true},
+      {t:'nota', testo:'La disponibilità del personale è volontaria e va dichiarata per iscritto; la somministrazione non richiede competenze sanitarie specialistiche. La formazione è curata dall’ATS / ASST secondo il protocollo. Indicare anche i sostituti.'},
+      {t:'h', testo:'Conservazione'},
+      {t:'riga', campi:[
+        {t:'testo', id:'luogo_cons', label:'Luogo di conservazione', w:6},
+        {t:'testo', id:'resp_cons', label:'Responsabile della conservazione', w:6}]},
+      {t:'multi', id:'conservazione', label:'Accordi sulla conservazione', col:2, opz:[
+        'Confezione integra fornita dalla famiglia, con il nome ' + (s === 'N' || s === 'I' ? 'del bambino' : 'dell’alunno'),
+        'Conservazione secondo le indicazioni (temperatura, luce)',
+        'Fuori dalla portata ' + (s === 'N' || s === 'I' ? 'dei bambini' : 'degli alunni') + ' ma rapidamente accessibile',
+        'Controllo della scadenza e rinnovo a cura della famiglia',
+        'Registro delle somministrazioni',
+        'Trasporto del farmaco durante uscite e visite a cura di un adulto incaricato']},
+      {t:'h', testo:'Piano di intervento in emergenza'},
+      {t:'area', id:'emergenza', label:'Procedura concordata: segnali da osservare (come descritti nel piano terapeutico), chi interviene, chi chiama, chi avvisa la famiglia', righe:4},
+      {t:'testofisso', testo:'In caso di emergenza si chiama sempre il 112 (NUE) e si avvisa la famiglia; il personale presta il primo soccorso e segue il piano terapeutico agli atti.'},
+      {t:'h', testo:'Autorizzazioni e validità'},
+      {t:'multi', id:'autorizzazioni', label:'La famiglia', opz:[
+        'autorizza il personale indicato a somministrare il farmaco secondo la prescrizione',
+        'si impegna a comunicare subito ogni variazione della terapia, con nuova prescrizione',
+        'fornisce il farmaco e ne cura il rinnovo alla scadenza',
+        'autorizza il trattamento dei soli dati sanitari necessari (art. 9 Reg. UE 2016/679) e la loro condivisione con il personale coinvolto']},
+      {t:'riga', campi:[
+        {t:'data', id:'valido_dal', label:'Valido dal', w:4},
+        {t:'data', id:'valido_al', label:'al', w:4},
+        {t:'data', id:'verifica', label:'Verifica / rinnovo entro', w:4}]},
+      {t:'nota', testo:'Validità di norma limitata all’anno ' + (s === 'N' ? 'educativo' : 'scolastico') + ' in corso: la richiesta va rinnovata a ogni anno e a ogni variazione della terapia. Verificare la durata indicata nel protocollo ATS vigente.'},
+      H.privacy(),
+      {t:'testofisso', testo:'Letto, confermato e sottoscritto.'},
+      {t:'firme', ruoli:['Per la scuola: ' + (s === 'N' ? 'la Coordinatrice pedagogica' : 'il Coordinatore didattico'), 'Il genitore', 'Il genitore', 'Il personale disponibile']},
+    ],
+  });
+
+  /* ---------- FREQUENZA IRREGOLARE ---------- */
+  registra({
+    id:'frequenza-irregolare', argomento:'sicurezza', scuole:['I', 'P', 'S'], file:'Monitoraggio_frequenza',
+    titolo:'Monitoraggio della frequenza irregolare',
+    sottotitolo:'Obbligo di istruzione – art. 114 D.Lgs. 297/1994 come modificato dall’art. 12 D.L. 123/2023 (L. 159/2023)',
+    descrizione:'Assenze, contatti con la famiglia, azioni della scuola ed eventuali segnalazioni',
+    blocchi:(s) => [
+      ...(s === 'I'
+        ? [{t:'nota', testo:'La Scuola dell’Infanzia non rientra nell’obbligo di istruzione: il modulo serve a documentare il dialogo con la famiglia. Se la frequenza irregolare fa temere una situazione di pregiudizio usare il verbale riservato (Disciplina e tutela).'}]
+        : [{t:'nota', testo:'I docenti segnalano subito ' + ALCOORD[s] + ' le assenze non giustificate superiori a 15 giorni, anche non continuativi, nel trimestre. Segue l’invito formale alla famiglia e, se la frequenza non riprende entro 7 giorni, la segnalazione al Sindaco per l’ammonimento (art. 570-ter c.p.). Verificare la procedura interna e le indicazioni USR / Comune.'}]),
+      ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s]}, {t:'testo', id:'sezione', label:SEZ[s]}]),
+      {t:'h', testo:'Periodo di monitoraggio'},
+      {t:'riga', campi:[
+        {t:'data', id:'dal', label:'Dal', w:4},
+        {t:'data', id:'al', label:'Al', w:4},
+        {t:'num', id:'giorni_lezione', label:'Giorni di lezione nel periodo', w:4}]},
+      {t:'riga', campi:[
+        {t:'num', id:'giorni_assenza', label:'Giorni di assenza', w:3},
+        {t:'num', id:'non_giustificati', label:'di cui non giustificati', w:3},
+        {t:'num', id:'ore_assenza', label:s === 'S' ? 'Ore (ritardi e uscite anticipate)' : 'Ingressi posticipati / uscite anticipate', w:3},
+        {t:'testo', id:'percentuale', label:'Percentuale di assenza', w:3}]},
+      {t:'area', id:'andamento', label:'Andamento della frequenza (giorni ricorrenti, periodi, ritardi)', righe:2},
+      {t:'h', testo:'Contatti con la famiglia'},
+      {t:'tabella', id:'contatti', col:[{h:'Data', w:2}, {h:'Modalità (telefono, colloquio, registro, lettera, PEC)', w:4}, {h:'Chi ha contattato', w:2.5}, {h:'Esito', w:3.5, tipo:'area'}], righe:3, aggiungi:true},
+      {t:'area', id:'motivazioni', label:'Motivazioni riferite dalla famiglia (per motivi di salute rinviare ai certificati agli atti)', righe:3},
+      {t:'h', testo:'Azioni della scuola'},
+      {t:'multi', id:'azioni', label:'Azioni svolte', col:2, altro:true, opz:[
+        'Monitoraggio settimanale delle presenze',
+        'Colloquio con la famiglia',
+        'Comunicazione scritta di invito alla regolare frequenza',
+        s === 'I' ? 'Attività di accoglienza e coinvolgimento del bambino' : 'Piano di recupero degli apprendimenti',
+        'Coinvolgimento dei servizi sociali del Comune',
+        'Confronto con il ' + (s === 'I' ? 'team di sezione' : 'team / Consiglio di classe')]},
+      {t:'area', id:'azioni_note', label:'Descrizione delle azioni ed esiti', righe:3},
+      ...(s === 'I' ? [] : [
+        {t:'h', testo:'Segnalazioni secondo la normativa vigente'},
+        {t:'tabella', id:'segnalazioni', col:[{h:'Atto', w:6}, {h:'Data e prot.', w:2.5}, {h:'Esito', w:3.5, tipo:'area'}],
+          fisse:[
+            'Invito formale al responsabile dell’obbligo a far riprendere la frequenza entro 7 giorni',
+            'Segnalazione al Sindaco del Comune di residenza per l’ammonimento',
+            'Segnalazione ai servizi sociali del Comune',
+            'Segnalazione alla Procura della Repubblica presso il Tribunale per i minorenni (situazioni di pregiudizio)']},
+        {t:'nota', testo:'Compilare solo le righe degli atti effettivamente trasmessi (le altre non vengono stampate). Gli atti sono firmati dal Coordinatore didattico e conservati agli atti.'},
+      ]),
+      {t:'scelta', id:'esito', label:'Esito del monitoraggio', opz:[
+        'frequenza regolarizzata: chiusura del monitoraggio',
+        'prosecuzione del monitoraggio fino alla data indicata',
+        s === 'I' ? 'passaggio al verbale riservato' : 'avvio o prosecuzione della procedura di segnalazione']},
+      {t:'riga', campi:[{t:'data', id:'prossima_verifica', label:'Prossima verifica', w:4}]},
+      H.privacy(),
+      {t:'firme', ruoli:['Il Coordinatore didattico', s === 'I' ? 'Il docente di sezione' : 'Il docente coordinatore / referente']},
+    ],
+  });
+
+  /* ---------- ACCOGLIENZA ALUNNO NEO ARRIVATO IN ITALIA ---------- */
+  registra({
+    id:'accoglienza-nai', argomento:'bes', scuole:['I', 'P', 'S'], file:'Verbale_accoglienza_NAI',
+    titolo:'Verbale di accoglienza di alunno neo arrivato in Italia',
+    sottotitolo:'Linee guida alunni stranieri 2014 – Orientamenti interculturali 2022 – art. 11 D.L. 71/2024 (L. 106/2024)',
+    descrizione:'Colloquio con la famiglia, competenze in italiano, classe, piano di accoglienza e L2',
+    blocchi:(s) => {
+      const inf = s === 'I';
+      return [
+        ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s]}, {t:'testo', id:'prot', label:'Prot. n.'}]),
+        {t:'riga', campi:[
+          {t:'testo', id:'eta', label:'Età', w:3},
+          {t:'testo', id:'provenienza', label:'Paese di provenienza', w:3},
+          {t:'data', id:'arrivo', label:'Arrivo in Italia', w:3},
+          {t:'data', id:'iscrizione', label:'Data di iscrizione', w:3}]},
+        {t:'h', testo:'Colloquio con la famiglia'},
+        {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6}, {h:'Ruolo', w:6}], righe:5, aggiungi:true,
+          init:[['', H.PRES[s]], ['', 'Referente intercultura / italiano L2'], ['', DOC[s]], ['', 'Genitore'], ['', 'Mediatore linguistico-culturale']]},
+        {t:'scelta', id:'mediazione', label:'Mediazione', opz:['con mediatore linguistico-culturale', 'con interprete o familiare', 'senza mediazione'], col:3},
+        {t:'area', id:'colloquio', label:'Informazioni emerse (composizione del nucleo, abitudini, aspettative della famiglia)', righe:3},
+        {t:'tabella', id:'lingue', label:'Lingue conosciute', col:[{h:'Lingua', w:3}, {h:'Dove la usa (famiglia, scuola, altro)', w:4}, {h:'Competenza riferita (orale, lettura, scrittura)', w:5}], righe:2, aggiungi:true},
+        {t:'h', testo:'Percorso scolastico pregresso'},
+        ...(inf
+          ? [{t:'area', id:'percorso', label:'Esperienze precedenti di scuola o servizi per l’infanzia', righe:2}]
+          : [{t:'riga', campi:[
+              {t:'num', id:'anni', label:'Anni di scolarità nel Paese d’origine', w:4},
+              {t:'testo', id:'ultima_classe', label:'Ultima classe frequentata', w:4},
+              {t:'testo', id:'documenti', label:'Documenti presentati (pagelle, certificati)', w:4}]},
+            {t:'area', id:'percorso', label:'Informazioni sul percorso (alfabeto, lingua di scolarizzazione, discipline, interruzioni)', righe:2}]),
+        {t:'h', testo:'Competenze in italiano'},
+        inf
+          ? {t:'scelta', id:'livello', label:'Comprensione e uso dell’italiano (osservazione)', opz:['non comprende ancora', 'comprende parole e consegne semplici', 'comunica con parole e frasi brevi', 'comunica con sicurezza']}
+          : {t:'scelta', id:'livello', label:'Livello stimato (QCER)', opz:['Pre-A1 (nessuna conoscenza)', 'A1', 'A2', 'B1 o superiore'], col:4},
+        {t:'testo', id:'accertamento', label:'Modalità di accertamento', ph:inf ? 'osservazione nelle prime settimane' : 'prove d’ingresso, osservazione, eventuale convenzione con il CPIA'},
+        {t:'area', id:'altre_competenze', label:'Competenze osservate in altri ambiti (' + (inf ? 'gioco, autonomie, relazione, linguaggi non verbali' : 'matematica, lingua d’origine, lingue straniere, linguaggi espressivi') + ')', righe:2},
+        {t:'h', testo:'Assegnazione ' + (inf ? 'della sezione' : 'della classe')},
+        {t:'testo', id:'classe', label:inf ? 'Sezione assegnata' : 'Classe assegnata'},
+        ...(inf ? [] : [{t:'scelta', id:'criterio', label:'Criterio', opz:[
+          'classe corrispondente all’età anagrafica (criterio ordinario, art. 45 D.P.R. 394/1999)',
+          'classe immediatamente inferiore o superiore, per i motivi indicati']}]),
+        {t:'area', id:'motivazione', label:'Criteri e motivazione (' + (inf ? 'età, composizione delle sezioni' : 'ordinamento del Paese d’origine, competenze accertate, composizione delle classi') + ')', righe:2},
+        {t:'h', testo:'Piano di accoglienza e italiano L2'},
+        {t:'multi', id:'accoglienza', label:'Azioni di accoglienza', col:2, altro:true, opz:[
+          'Presentazione al gruppo e ' + (inf ? 'compagno di riferimento' : 'compagno tutor'),
+          'Materiali plurilingui per la famiglia (regolamento, calendario, comunicazioni)',
+          'Laboratorio di italiano L2 per comunicare',
+          ...(inf ? [] : ['Italiano per lo studio (lessico disciplinare, testi semplificati)', 'Docente dedicato all’italiano L2 (art. 11 D.L. 71/2024), se assegnato']),
+          'Mediazione linguistico-culturale',
+          'Valorizzazione della lingua d’origine',
+          'Collaborazione con CPIA, Comune o enti del territorio']},
+        {t:'tabella', id:'piano_l2', label:'Attività di italiano L2', col:[{h:'Attività', w:5, tipo:'area'}, {h:'Tempi (ore settimanali, periodo)', w:3}, {h:'Docente / referente', w:4}], righe:2, aggiungi:true},
+        ...(inf ? [] : [
+          {t:'scelta', id:'pdp', label:'Personalizzazione', opz:[
+            'Si predispone un PDP transitorio per svantaggio linguistico (C.M. 8/2013), con obiettivi minimi e criteri di valutazione adattati',
+            'Il PDP non si ritiene necessario al momento; la situazione si rivaluta alla data indicata']},
+          {t:'nota', testo:'Valutazione: nel primo periodo si privilegiano progressi nell’italiano L2 e osservazioni sul processo; i criteri adattati sono indicati nel PDP.'}]),
+        {t:'riga', campi:[
+          {t:'testo', id:'referente', label:'Docente referente dell’accoglienza', w:8},
+          {t:'data', id:'verifica', label:'Verifica del piano entro', w:4}]},
+        H.privacy(),
+        {t:'testofisso', testo:'Letto, confermato e sottoscritto.'},
+        {t:'firme', ruoli:['Il Coordinatore didattico', 'Il referente', 'Il genitore', 'Il mediatore']},
+      ];
+    },
+  });
+})();
+
+</script>
+<script data-schemi="documenti">
+/* =====================================================================
+   ESAME DI STATO DEL PRIMO CICLO, PDP, RELAZIONI E PIANO DI LAVORO
+   Riferimenti (verificati a settembre 2026):
+   - Esame: D.Lgs. 62/2017 artt. 5-11 (art. 6 c. 2-bis introdotto dalla
+     L. 150/2024); D.M. 741/2017; D.M. 14/2024 (certificazione delle
+     competenze); D.M. 218/2025 (idoneità e privatisti); note MIUR
+     1865/2017, 7885/2018, 5772/2019. Nel 2025/26 restano tre prove
+     scritte (italiano, competenze logico-matematiche, lingue straniere
+     in due sezioni) e il colloquio. Nelle paritarie presiede il
+     Coordinatore delle attività educative e didattiche.
+   - PDP: L. 170/2010, D.M. 5669/2011 e Linee guida DSA 2011; Dir.
+     27/12/2012, C.M. 8/2013, Nota 2563/2013; alunni NAI: Linee guida
+     alunni stranieri 2014, Orientamenti interculturali 2022, D.L.
+     71/2024 conv. L. 106/2024 (italiano L2).
+   - Sostegno: D.I. 182/2020 mod. D.I. 153/2023.
+   - Piano di lavoro: Nuove Indicazioni D.M. 221/2025 dal 2026/27 per le
+     classi prime; educazione civica D.M. 183/2024; valutazione L.
+     150/2024 e O.M. 3/2025 (giudizi sintetici alla primaria).
+   Nessuna diagnosi né codice ICD: solo estremi dei documenti agli atti.
+   ===================================================================== */
+(() => {
+  const CLASSE = s => s === 'I' ? 'Sezione' : 'Classe';
+  const AL_CAP = s => s === 'I' ? 'Bambino/a' : 'Alunno/a';
+  const TEAM = s => ({I:'Docenti di sezione', P:'Team docenti', S:'Consiglio di classe'})[s];
+
+  const DISCIPLINE = {
+    P:['Italiano', 'Inglese', 'Storia', 'Geografia', 'Matematica', 'Scienze', 'Tecnologia', 'Musica',
+      'Arte e immagine', 'Educazione fisica', 'Educazione civica', 'Religione cattolica'],
+    S:['Italiano', 'Storia', 'Geografia', 'Inglese', 'Seconda lingua comunitaria', 'Matematica', 'Scienze',
+      'Tecnologia', 'Musica', 'Arte e immagine', 'Scienze motorie e sportive', 'Educazione civica', 'Religione cattolica'],
+  };
+
+  const firmeDocenti = (id = 'firme_docenti', label = 'Firme dei docenti') => ({t:'tabella', id, label,
+    col:[{h:'Docente', w:4}, {h:'Disciplina / ambito', w:4}, {h:'Firma', w:4}], righe:6, aggiungi:true});
+
+  /* ---------- esame: blocchi comuni ---------- */
+  const ESAME_SOTTO = 'D.Lgs. 62/2017 artt. 6-11 mod. L. 150/2024 – D.M. 741/2017 – D.M. 14/2024';
+  const COMMISSIONE = 'la Commissione dell’esame di Stato conclusivo del primo ciclo di istruzione della Scuola Secondaria di I grado paritaria Sacra Famiglia di Orzinuovi';
+  const PROVE = [
+    'Prova scritta di italiano',
+    'Prova scritta relativa alle competenze logico-matematiche',
+    'Prova scritta relativa alle competenze nelle lingue straniere (inglese e seconda lingua comunitaria)',
+  ];
+  const FORMULA_VOTO = 'Il voto finale è determinato dalla media tra il voto di ammissione e la media dei voti delle tre prove scritte e del colloquio, senza arrotondamenti intermedi; la media finale è arrotondata all’unità superiore per frazioni pari o superiori a 0,5 (art. 8 c. 7 D.Lgs. 62/2017; art. 13 D.M. 741/2017). Per i candidati privatisti il voto finale è la media dei voti delle prove e del colloquio. L’esame è superato con un voto finale non inferiore a sei decimi.';
+  const FORMULA_LODE = 'La valutazione di dieci decimi può essere accompagnata dalla lode, con deliberazione all’unanimità della Commissione, su proposta della sottocommissione, in relazione alle valutazioni conseguite nel percorso scolastico del triennio e agli esiti delle prove d’esame (art. 8 c. 8 D.Lgs. 62/2017).';
+
+  const presidenzaEsame = () => [
+    {t:'riga', campi:[
+      {t:'testo', id:'presidente', label:'Presidente (Coordinatore didattico)', w:6, nopdf:true},
+      {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true}]},
+    {t:'testofisso', testo:'Presiede {presidente}, Coordinatore delle attività educative e didattiche, Presidente della Commissione ai sensi dell’art. 8 c. 3 D.Lgs. 62/2017 e dell’art. 4 D.M. 741/2017; funge da segretario verbalizzante {segretario}. Constatata la validità della seduta, il Presidente dichiara aperti i lavori.'},
+  ];
+
+  /* =====================================================================
+     1. ESAME – RIUNIONE PRELIMINARE
+     ===================================================================== */
+  registra({
+    id:'esame-preliminare',
+    titolo:'Esame di Stato – riunione preliminare',
+    sottotitolo:ESAME_SOTTO,
+    descrizione:'Plenaria preliminare: sottocommissioni, calendario, criteri di prove, colloquio e lode',
+    argomento:'esami',
+    scuole:['S'],
+    file:'Esame_riunione_preliminare',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}]),
+      {t:'h', testo:'Apertura'},
+      ...H.apertura(`${COMMISSIONE}, in seduta plenaria, per la riunione preliminare (art. 5 D.M. 741/2017)`),
+      ...H.odg([
+        'Insediamento della Commissione e composizione delle sottocommissioni',
+        'Calendario delle prove scritte, dei colloqui e della ratifica finale',
+        'Tracce delle prove scritte e criteri di correzione e valutazione',
+        'Criteri di conduzione e valutazione del colloquio',
+        'Prove per candidati con disabilità, DSA e altri BES',
+        'Candidati privatisti',
+        'Criteri per l’attribuzione del voto finale e della lode',
+        'Varie ed eventuali']),
+      ...H.presenti(['Coordinatore didattico – Presidente', 'Docente classe terza', 'Docente classe terza', 'Docente classe terza', 'Docente di sostegno'], 'Componenti presenti'),
+      ...presidenzaEsame(),
+
+      {t:'h', testo:'Composizione della Commissione e delle sottocommissioni'},
+      {t:'testofisso', testo:'La Commissione d’esame è composta da tutti i docenti assegnati alle classi terze, compresi i docenti di sostegno e, per gli alunni che se ne avvalgono, i docenti di religione cattolica e di attività alternative, ed è articolata in tante sottocommissioni quante sono le classi terze (art. 4 D.M. 741/2017). Ogni sottocommissione individua al proprio interno un docente coordinatore.'},
+      {t:'tabella', id:'sottocommissioni', label:'Sottocommissioni',
+        col:[{h:'Classe', w:1.5}, {h:'Docenti componenti', w:5, tipo:'area'}, {h:'Coordinatore', w:2.5}, {h:'Candidati interni', w:1.5}, {h:'Privatisti', w:1.5}],
+        righe:2, aggiungi:true},
+      {t:'riga', campi:[
+        {t:'testo', id:'sostituto', label:'Sostituto del Presidente in caso di assenza o impedimento', w:8, nopdf:true},
+        {t:'testo', id:'sost_atto', label:'Atto di delega (prot. n.)', w:4, nopdf:true}]},
+      {t:'testofisso', testo:'In caso di assenza o impedimento il Presidente è sostituito da {sostituto}, docente della Commissione (delega prot. n. {sost_atto}). I componenti delle sottocommissioni assenti sono sostituiti con provvedimento del Presidente.'},
+
+      {t:'h', testo:'Calendario'},
+      {t:'tabella', id:'calendario', col:[{h:'Attività', w:5}, {h:'Data', w:2}, {h:'Orario', w:2}, {h:'Note', w:3}],
+        fisse:[...PROVE, 'Colloqui (secondo il calendario delle sottocommissioni)', 'Riunioni di sottocommissione per la valutazione finale', 'Riunione plenaria di ratifica', 'Eventuale sessione suppletiva']},
+      {t:'nota', testo:'Le prove scritte si svolgono in giornate diverse, anche non consecutive; la durata di ciascuna prova non supera le quattro ore (art. 5 D.M. 741/2017). Pubblicare il calendario dei colloqui secondo le modalità della scuola.'},
+
+      {t:'h', testo:'Prove scritte'},
+      {t:'multi', id:'ita_tip', label:'Prova di italiano – tipologie delle tracce (art. 7 D.M. 741/2017)', col:1,
+        opz:['Testo narrativo o descrittivo', 'Testo argomentativo', 'Comprensione e sintesi di un testo letterario, divulgativo, scientifico'],
+        def:['Testo narrativo o descrittivo', 'Testo argomentativo', 'Comprensione e sintesi di un testo letterario, divulgativo, scientifico'],
+        nota:'La prova può essere strutturata in più parti riferibili alle diverse tipologie, anche combinate.'},
+      {t:'testofisso', testo:'Per la prova di italiano la Commissione predispone almeno tre terne di tracce, formulate in coerenza con il profilo dello studente e con i traguardi delle Indicazioni nazionali; il giorno della prova viene sorteggiata la terna da proporre ai candidati, che svolgono una traccia a scelta.'},
+      {t:'multi', id:'mat_tip', label:'Prova logico-matematica – tipologie (art. 8 D.M. 741/2017)', col:1,
+        opz:['Problemi articolati su una o più richieste', 'Quesiti a risposta aperta'],
+        def:['Problemi articolati su una o più richieste', 'Quesiti a risposta aperta'],
+        nota:'Le tracce possono fare riferimento anche a metodi di analisi, organizzazione e rappresentazione dei dati, tipici del pensiero computazionale.'},
+      {t:'testofisso', testo:'Per la prova logico-matematica la Commissione predispone almeno tre tracce, riferite ad ambedue le tipologie; il giorno della prova ne viene sorteggiata una. La prova accerta la capacità di rielaborazione e di organizzazione delle conoscenze, delle abilità e delle competenze acquisite nelle aree numeri, spazio e figure, relazioni e funzioni, dati e previsioni.'},
+      {t:'multi', id:'lin_tip', label:'Prova di lingue straniere – tipologie (art. 9 D.M. 741/2017)', col:1, opz:[
+        'Questionario di comprensione di un testo', 'Completamento, riscrittura o trasformazione di un testo',
+        'Elaborazione di un dialogo su traccia', 'Lettera o email personale', 'Sintesi di un testo']},
+      {t:'testofisso', testo:'La prova di lingue straniere è articolata in due sezioni distinte, per l’inglese e per la seconda lingua comunitaria, riferite rispettivamente al livello A2 e al livello A1 del Quadro comune europeo di riferimento; la Commissione predispone almeno tre tracce e alla prova viene attribuito un unico voto.'},
+      {t:'area', id:'strumenti_ammessi', label:'Strumenti ammessi durante le prove', righe:2, ph:'es. dizionario della lingua italiana, calcolatrice, tavole numeriche, dizionario bilingue'},
+
+      {t:'h', testo:'Criteri di correzione e valutazione'},
+      {t:'tabella', id:'criteri_prove', col:[{h:'Prova', w:3}, {h:'Indicatori e criteri di valutazione', w:7, tipo:'area'}, {h:'Griglia allegata', w:2, tipo:'sn'}],
+        fisse:['Italiano', 'Competenze logico-matematiche', 'Lingue straniere', 'Colloquio']},
+      {t:'testofisso', testo:'A ciascuna prova scritta e al colloquio la sottocommissione attribuisce un voto in decimi, senza frazioni decimali, sulla base dei criteri comuni qui deliberati e delle griglie allegate.'},
+
+      {t:'h', testo:'Colloquio'},
+      {t:'testofisso', testo:'Il colloquio è condotto collegialmente dalla sottocommissione ed è finalizzato a valutare il livello di acquisizione delle conoscenze, abilità e competenze descritte nel profilo finale dello studente, con particolare attenzione alla capacità di argomentazione, di risoluzione di problemi, di pensiero critico e riflessivo e di collegamento organico tra le discipline; tiene conto dei livelli di padronanza delle competenze di educazione civica e delle lingue straniere (art. 8 c. 5 D.Lgs. 62/2017; art. 10 D.M. 741/2017).'},
+      {t:'area', id:'colloquio_criteri', label:'Modalità di conduzione (avvio, materiali, durata indicativa)', righe:3},
+      {t:'scelta', id:'musicale', label:'Percorso a indirizzo musicale', opz:['non presente', 'presente'], def:'non presente', w:6},
+      {t:'se', campo:'musicale', vale:'presente', blocchi:[
+        {t:'testofisso', testo:'Per gli alunni iscritti al percorso a indirizzo musicale il colloquio comprende una prova di pratica di strumento, anche per gruppi di alunni (art. 10 D.M. 741/2017).'},
+        {t:'area', id:'musicale_org', label:'Organizzazione della prova di strumento', righe:2}]},
+
+      {t:'h', testo:'Candidati con disabilità, DSA e altri BES'},
+      {t:'testofisso', testo:'Per i candidati con disabilità la sottocommissione predispone, se necessario e sulla base del PEI, prove differenziate idonee a valutare i progressi in rapporto alle potenzialità e ai livelli di apprendimento iniziali, con valore equivalente ai fini del superamento dell’esame e del diploma; i candidati utilizzano attrezzature tecniche e sussidi didattici e ogni forma di ausilio impiegata durante l’anno (art. 11 cc. 4-6 D.Lgs. 62/2017; art. 14 D.M. 741/2017). Ai candidati che non si presentano all’esame è rilasciato un attestato di credito formativo.'},
+      {t:'testofisso', testo:'Per i candidati con DSA le modalità di svolgimento delle prove sono coerenti con il PDP: tempi più lunghi e strumenti compensativi utilizzati in corso d’anno, senza pregiudizio per la validità delle prove. In caso di dispensa dalla prova scritta di lingua straniera la sottocommissione stabilisce una prova orale sostitutiva; in caso di esonero dalle lingue straniere sono predisposte prove differenziate con valore equivalente. Nel diploma e nei tabelloni non si fa menzione delle modalità di svolgimento (art. 11 cc. 9-15 D.Lgs. 62/2017).'},
+      {t:'testofisso', testo:'Per i candidati con altri bisogni educativi speciali individuati dal Consiglio di classe, compresi gli alunni neo arrivati in Italia, non sono previste misure dispensative; possono essere utilizzati gli strumenti compensativi previsti dal PDP e già impiegati nelle verifiche in corso d’anno (Nota MIUR 5772/2019).'},
+      {t:'tabella', id:'bes_misure', label:'Misure deliberate per i singoli candidati',
+        col:[{h:'Candidato (iniziali o codice)', w:2.5}, {h:'Classe', w:1}, {h:'Documento di riferimento', w:2}, {h:'Misure per le prove scritte e il colloquio', w:6.5, tipo:'area'}],
+        righe:2, aggiungi:true, init:[['', '', 'PEI / PDP', ''], ['', '', 'PEI / PDP', '']]},
+      H.privacy(),
+
+      {t:'h', testo:'Candidati privatisti'},
+      {t:'scelta', id:'privatisti', label:'Candidati privatisti', opz:['nessun candidato privatista', 'sono presenti candidati privatisti'], def:'nessun candidato privatista', w:8},
+      {t:'se', campo:'privatisti', vale:'sono presenti candidati privatisti', blocchi:[
+        {t:'testofisso', testo:'I candidati privatisti, la cui ammissione è subordinata alla partecipazione alle prove nazionali INVALSI, sostengono le stesse prove dei candidati interni; sono assegnati alle sottocommissioni indicate e il loro voto finale è dato dalla media dei voti delle prove scritte e del colloquio (art. 10 D.Lgs. 62/2017; art. 3 D.M. 741/2017).'},
+        {t:'tabella', id:'privatisti_el', col:[{h:'Candidato', w:4}, {h:'Sottocommissione assegnata', w:3}, {h:'Note (percorso, lingue studiate)', w:5, tipo:'area'}], righe:1, aggiungi:true}]},
+
+      {t:'h', testo:'Voto finale e lode'},
+      {t:'testofisso', testo:FORMULA_VOTO},
+      {t:'testofisso', testo:FORMULA_LODE},
+      {t:'area', id:'lode_criteri', label:'Criteri deliberati per la proposta di lode', righe:3, ph:'es. voto di ammissione pari a 10/10, media delle prove pari a 10, percorso triennale costante'},
+      {t:'testofisso', testo:'Agli alunni che superano l’esame è rilasciata la certificazione delle competenze sul modello nazionale (D.M. 14/2024), integrata dalle sezioni predisposte dall’INVALSI.'},
+
+      {t:'h', testo:'Delibere'},
+      ...H.delibere(),
+      {t:'area', id:'varie', label:'Varie ed eventuali', righe:2},
+      {t:'multi', id:'allegati', label:'Allegati', col:2, altro:true, opz:[
+        'Calendario delle prove e dei colloqui', 'Griglie di correzione delle prove scritte', 'Griglia di valutazione del colloquio',
+        'Prospetto delle sottocommissioni', 'Delega del Presidente']},
+      ...H.chiusura(['Il Presidente della Commissione', 'Il Segretario verbalizzante']),
+    ],
+  });
+
+  /* =====================================================================
+     2. ESAME – VERBALE DI SOTTOCOMMISSIONE
+     ===================================================================== */
+  const FASI = ['correzione delle prove scritte', 'colloqui', 'valutazione finale e proposta dei voti'];
+  registra({
+    id:'esame-sottocommissione',
+    titolo:'Esame di Stato – verbale di sottocommissione',
+    sottotitolo:ESAME_SOTTO,
+    descrizione:'Correzione delle prove, colloqui o proposta dei voti finali della classe',
+    argomento:'esami',
+    scuole:['S'],
+    file:'Esame_sottocommissione',
+    blocchi:(s) => [
+      ...H.testata(s, [
+        {t:'testo', id:'n_verbale', label:'Verbale n.'},
+        {t:'testo', id:'classe', label:'Sottocommissione classe', nopdf:true}]),
+      {t:'scelta', id:'fase', label:'Fase dei lavori', opz:FASI, col:3, nopdf:true},
+      {t:'nota', testo:'Compilare un verbale per ciascuna seduta; per i colloqui distribuiti su più giorni si può redigere un verbale per giornata.'},
+      {t:'h', testo:'Apertura'},
+      ...H.apertura('la Sottocommissione della classe {classe} dell’esame di Stato conclusivo del primo ciclo di istruzione, per la seguente fase dei lavori: {fase},'),
+      ...H.presenti(['Coordinatore della sottocommissione', 'Docente', 'Docente', 'Docente', 'Docente di sostegno'], 'Componenti presenti'),
+      {t:'riga', campi:[
+        {t:'testo', id:'coordinatore', label:'Coordinatore della sottocommissione', w:6, nopdf:true},
+        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true}]},
+      {t:'testofisso', testo:'Coordina i lavori {coordinatore}; funge da segretario verbalizzante {segretario}. La sottocommissione opera secondo i criteri deliberati dalla Commissione nella riunione preliminare.'},
+
+      {t:'se', campo:'fase', vale:'correzione delle prove scritte', blocchi:[
+        {t:'h', testo:'Correzione delle prove scritte'},
+        {t:'multi', id:'prove_corrette', label:'Prove corrette nella seduta', opz:PROVE, col:1},
+        {t:'testofisso', testo:'La sottocommissione procede collegialmente alla correzione degli elaborati, applicando le griglie di valutazione deliberate nella riunione preliminare, e attribuisce a ciascuna prova un voto in decimi senza frazioni decimali. Per i candidati con PEI o PDP la valutazione tiene conto delle misure deliberate.'},
+        {t:'tabella', id:'voti_scritti', label:'Esiti delle prove scritte',
+          col:[{h:'Candidato', w:3.5}, {h:'Italiano', w:1.5}, {h:'Matematica', w:1.5}, {h:'Lingue', w:1.5}, {h:'Osservazioni', w:4, tipo:'area'}],
+          righe:6, aggiungi:true},
+        {t:'area', id:'assenti_scritti', label:'Candidati assenti e motivazione (eventuale sessione suppletiva)', righe:2}]},
+
+      {t:'se', campo:'fase', vale:'colloqui', blocchi:[
+        {t:'h', testo:'Colloqui'},
+        {t:'testofisso', testo:'I colloqui si svolgono secondo il calendario pubblicato e sono condotti collegialmente dalla sottocommissione, con i criteri deliberati nella riunione preliminare; tengono conto delle competenze nelle lingue straniere e di educazione civica.'},
+        {t:'tabella', id:'colloqui', label:'Colloqui svolti',
+          col:[{h:'Candidato', w:3}, {h:'Ora', w:1}, {h:'Sintesi del colloquio (avvio, collegamenti, lingue, educazione civica)', w:6.5, tipo:'area'}, {h:'Voto', w:1.5}],
+          righe:6, aggiungi:true},
+        {t:'area', id:'colloqui_note', label:'Osservazioni (prova di strumento, misure per candidati con PEI o PDP, assenze)', righe:2}]},
+
+      {t:'se', campo:'fase', vale:'valutazione finale e proposta dei voti', blocchi:[
+        {t:'h', testo:'Valutazione finale e proposta dei voti'},
+        {t:'testofisso', testo:FORMULA_VOTO},
+        {t:'tabella', id:'voti_finali', label:'Prospetto dei voti',
+          col:[{h:'Candidato', w:3}, {h:'Prova italiano', w:1.2}, {h:'Prova matematica', w:1.2}, {h:'Prova lingue', w:1.2}, {h:'Colloquio', w:1.2},
+            {h:'Voto ammissione', w:1.2}, {h:'Voto finale proposto', w:1.5}, {h:'Lode proposta', w:1.5, tipo:'sn'}],
+          righe:8, aggiungi:true},
+        {t:'nota', testo:'Esempio: ammissione 8; prove 7, 8, 7 e colloquio 8 (media 7,5); voto finale (8 + 7,5) / 2 = 7,75 arrotondato a 8. Per i privatisti lasciare vuoto il voto di ammissione.'},
+        {t:'area', id:'lode_motivazione', label:'Motivazione delle proposte di lode', righe:3},
+        {t:'area', id:'non_superato', label:'Candidati che non superano l’esame e motivazione', righe:2},
+        {t:'testofisso', testo:'La sottocommissione predispone la certificazione delle competenze (D.M. 14/2024) per i candidati che superano l’esame e sottopone le proposte di voto finale e di lode alla Commissione in seduta plenaria per la ratifica.'}]},
+
+      H.privacy(),
+      {t:'area', id:'varie', label:'Altre annotazioni', righe:2},
+      ...H.chiusura(['Il Coordinatore della sottocommissione', 'Il Segretario verbalizzante']),
+      firmeDocenti('firme_commissari', 'Firme dei componenti della sottocommissione'),
+    ],
+  });
+
+  /* =====================================================================
+     3. ESAME – PLENARIA DI RATIFICA
+     ===================================================================== */
+  registra({
+    id:'esame-ratifica',
+    titolo:'Esame di Stato – plenaria di ratifica',
+    sottotitolo:ESAME_SOTTO,
+    descrizione:'Ratifica degli esiti, delibera delle lodi e chiusura dei lavori della Commissione',
+    argomento:'esami',
+    scuole:['S'],
+    file:'Esame_ratifica_finale',
+    blocchi:(s) => [
+      ...H.testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.'}]),
+      {t:'h', testo:'Apertura'},
+      ...H.apertura(`${COMMISSIONE}, in seduta plenaria, per la ratifica degli esiti`),
+      ...H.odg([
+        'Ratifica delle proposte delle sottocommissioni e dei voti finali',
+        'Delibera sulle proposte di lode',
+        'Certificazione delle competenze',
+        'Pubblicazione degli esiti e consegna degli atti',
+        'Chiusura dei lavori della Commissione']),
+      ...H.presenti(['Coordinatore didattico – Presidente', 'Coordinatore sottocommissione', 'Coordinatore sottocommissione', 'Docente'], 'Componenti presenti'),
+      ...presidenzaEsame(),
+
+      {t:'h', testo:'Ratifica degli esiti'},
+      {t:'testofisso', testo:'I coordinatori delle sottocommissioni illustrano le proposte formulate per ciascun candidato. La Commissione, verificata la regolarità delle operazioni e la corretta applicazione dei criteri deliberati nella riunione preliminare, ratifica i voti finali secondo il prospetto allegato (art. 8 c. 7 D.Lgs. 62/2017; art. 13 D.M. 741/2017).'},
+      {t:'tabella', id:'esiti', label:'Esiti per sottocommissione',
+        col:[{h:'Sottocommissione (classe)', w:3}, {h:'Candidati esaminati', w:1.8}, {h:'Licenziati', w:1.8}, {h:'Non licenziati', w:1.8}, {h:'Lodi', w:1.6}, {h:'di cui privatisti licenziati', w:2}],
+        righe:3, aggiungi:true},
+      {t:'tabella', id:'lodi', label:'Lodi deliberate',
+        col:[{h:'Candidato', w:5}, {h:'Sottocommissione', w:3}, {h:'Votazione', w:4}], righe:2, aggiungi:true, init:[['', '', 'all’unanimità'], ['', '', 'all’unanimità']]},
+      {t:'testofisso', testo:FORMULA_LODE},
+      {t:'area', id:'casi', label:'Casi particolari discussi (non licenziati, candidati con prove differenziate, sessione suppletiva)', righe:3},
+      {t:'testofisso', testo:'Per i candidati che non superano l’esame è resa pubblica esclusivamente la dicitura «esame non superato», senza indicazione del voto. Ai candidati con disabilità che non si sono presentati all’esame è rilasciato un attestato di credito formativo, titolo per l’iscrizione alla scuola secondaria di II grado o ai percorsi di istruzione e formazione professionale ai soli fini del riconoscimento di crediti formativi (art. 11 c. 8 D.Lgs. 62/2017).'},
+
+      {t:'h', testo:'Certificazione delle competenze'},
+      {t:'testofisso', testo:'La Commissione prende atto che la certificazione delle competenze, redatta dai Consigli di classe sul modello nazionale (D.M. 14/2024) e riferita alle competenze chiave europee, è rilasciata ai candidati che hanno superato l’esame ed è integrata dalle sezioni predisposte dall’INVALSI sui livelli conseguiti nelle prove nazionali di italiano, matematica e inglese. Per gli alunni con disabilità il modello può essere accompagnato da una nota esplicativa che rapporti il significato degli enunciati di competenza agli obiettivi del PEI.'},
+
+      {t:'h', testo:'Pubblicazione e consegna degli atti'},
+      {t:'riga', campi:[
+        {t:'data', id:'pubblicazione', label:'Pubblicazione degli esiti', w:4, nopdf:true},
+        {t:'testo', id:'pubbl_modo', label:'Modalità', w:8, def:'tabellone affisso all’albo e area riservata del registro elettronico', nopdf:true}]},
+      {t:'testofisso', testo:'Gli esiti, con l’indicazione del voto finale e dell’eventuale lode, sono pubblicati il {pubblicazione} mediante {pubbl_modo}, nel rispetto della normativa sulla protezione dei dati personali.'},
+      {t:'multi', id:'atti', label:'Atti consegnati alla segreteria', col:2, altro:true, opz:[
+        'Registro dei verbali della Commissione e delle sottocommissioni', 'Elaborati delle prove scritte', 'Griglie di valutazione compilate',
+        'Tabellone degli esiti', 'Schede personali dei candidati', 'Certificazioni delle competenze', 'Documentazione relativa ai candidati privatisti'],
+        def:['Registro dei verbali della Commissione e delle sottocommissioni', 'Elaborati delle prove scritte', 'Tabellone degli esiti']},
+
+      {t:'h', testo:'Delibere e chiusura dei lavori'},
+      ...H.delibere(),
+      {t:'testofisso', testo:'Espletate tutte le operazioni, il Presidente dichiara chiusi i lavori della Commissione dell’esame di Stato conclusivo del primo ciclo di istruzione per l’anno scolastico {as}.'},
+      ...H.chiusura(['Il Presidente della Commissione', 'Il Segretario verbalizzante']),
+      firmeDocenti('firme_commissari', 'Firme dei componenti della Commissione'),
+    ],
+  });
+
+  /* =====================================================================
+     4. PIANO DIDATTICO PERSONALIZZATO
+     ===================================================================== */
+  const TIP = {
+    DSA:'DSA con certificazione (L. 170/2010)',
+    DOC:'Altro BES con documentazione clinica o specialistica',
+    NODOC:'BES senza documentazione (svantaggio socio-economico, linguistico, culturale)',
+    NAI:'Alunno/a neo arrivato/a in Italia (NAI)',
+  };
+  registra({
+    id:'pdp-modello',
+    titolo:'Piano Didattico Personalizzato',
+    sottotitolo:'DSA: L. 170/2010, D.M. 5669/2011, Linee guida 2011 – BES e NAI: Dir. 27/12/2012, C.M. 8/2013, Linee guida alunni stranieri 2014',
+    descrizione:'Il PDP completo per DSA, altri BES e alunni neo arrivati in Italia',
+    argomento:'pdp',
+    scuole:['P', 'S'],
+    file:'PDP',
+    blocchi:(s) => {
+      const organo = s === 'S' ? 'Consiglio di classe' : 'Team docenti';
+      const out = [
+        ...H.testata(s, [
+          {t:'testo', id:'alunno', label:'Alunno/a'},
+          {t:'testo', id:'classe', label:'Classe'}]),
+        {t:'riga', campi:[
+          {t:'testo', id:'nascita', label:'Luogo e data di nascita', w:6},
+          {t:'testo', id:'referente', label:s === 'S' ? 'Coordinatore di classe' : 'Docente prevalente', w:6}]},
+        {t:'nota', testo:'Il PDP è un documento riservato con dati relativi alla salute (art. 9 GDPR): si conserva nel fascicolo personale; non si pubblica in aree del registro visibili alla classe. Non trascrivere diagnosi né codici ICD.'},
+
+        {t:'h', testo:'Tipologia del bisogno educativo speciale'},
+        {t:'scelta', id:'tipologia', label:'Il PDP è redatto per', col:1, opz:[TIP.DSA, TIP.DOC, TIP.NODOC, TIP.NAI]},
+
+        {t:'se', campo:'tipologia', vale:[TIP.DSA, TIP.DOC], blocchi:[
+          {t:'h', testo:'Documentazione agli atti'},
+          {t:'riga', campi:[
+            {t:'scelta', id:'doc_tipo', label:'Tipo di documento', w:12, opz:[
+              'Certificazione DSA (L. 170/2010, Accordo Stato-Regioni 25/7/2012)', 'Relazione clinica / specialistica', 'Aggiornamento della certificazione'], altro:true}]},
+          {t:'riga', campi:[
+            {t:'testo', id:'doc_ente', label:'Redatto da (servizio pubblico / struttura accreditata / specialista)', w:6},
+            {t:'data', id:'doc_data', label:'Data del documento', w:3},
+            {t:'testo', id:'doc_prot', label:'Prot. di acquisizione', w:3}]},
+          {t:'nota', testo:'Indicare solo gli estremi del documento: il contenuto clinico resta nel fascicolo riservato. Il PDP per DSA va redatto entro il primo trimestre o entro tre mesi dalla consegna della certificazione.'}]},
+
+        {t:'se', campo:'tipologia', vale:TIP.NODOC, blocchi:[
+          {t:'h', testo:'Individuazione da parte del ' + organo},
+          {t:'riga', campi:[
+            {t:'data', id:'ind_data', label:'Delibera del ' + organo + ' del', w:4, nopdf:true},
+            {t:'testo', id:'ind_verbale', label:'Verbale n.', w:3, nopdf:true},
+            {t:'testo', id:'ind_prot', label:'Eventuale relazione agli atti (prot.)', w:5}]},
+          {t:'testofisso', testo:`Il ${organo}, con delibera del {ind_data} (verbale n. {ind_verbale}), ha individuato bisogni educativi speciali sulla base di elementi oggettivi e di considerazioni pedagogiche e didattiche, motivando a verbale la decisione di predisporre il presente piano (C.M. 8/2013). Le misure hanno carattere transitorio.`},
+          {t:'multi', id:'area_svantaggio', label:'Area dello svantaggio', col:3, altro:true, opz:['Socio-economico', 'Linguistico-culturale', 'Relazionale / comportamentale']}]},
+
+        {t:'se', campo:'tipologia', vale:TIP.NAI, blocchi:[
+          {t:'h', testo:'Percorso scolastico e competenze linguistiche'},
+          {t:'riga', campi:[
+            {t:'data', id:'nai_arrivo', label:'Arrivo in Italia', w:3},
+            {t:'data', id:'nai_iscr', label:'Iscrizione alla scuola', w:3},
+            {t:'num', id:'nai_anni', label:'Anni di scolarità pregressa', w:3},
+            {t:'testo', id:'nai_classe', label:'Classe di inserimento', w:3}]},
+          {t:'riga', campi:[
+            {t:'testo', id:'nai_lingue', label:'Lingua madre e altre lingue conosciute', w:6},
+            {t:'scelta', id:'nai_livello', label:'Livello di italiano L2 (QCER)', w:6, opz:['pre-A1', 'A1', 'A2', 'B1', 'B2']}]},
+          {t:'area', id:'nai_percorso', label:'Percorso scolastico pregresso (documentazione disponibile, discipline studiate)', righe:2},
+          {t:'multi', id:'nai_risorse', label:'Risorse attivate', col:2, altro:true, opz:[
+            'Laboratorio di italiano L2 per comunicare', 'Laboratorio di italiano L2 per lo studio', 'Mediatore linguistico-culturale',
+            'Tutor tra pari', 'Materiali bilingui e glossari', 'Docente di italiano L2 (D.L. 71/2024)']},
+          {t:'riga', campi:[
+            {t:'num', id:'nai_ore', label:'Ore settimanali di italiano L2', w:4},
+            {t:'testo', id:'nai_durata', label:'Durata prevista del percorso', w:8}]},
+          {t:'testofisso', testo:'Il piano ha carattere transitorio ed è rivisto man mano che cresce la competenza in italiano. Nella fase iniziale la priorità è l’apprendimento dell’italiano per comunicare; i contenuti disciplinari sono selezionati per nuclei essenziali (Linee guida per l’accoglienza e l’integrazione degli alunni stranieri 2014; Orientamenti interculturali 2022).'},
+          {t:'tabella', id:'nai_valutazione', label:'Valutazione nel primo periodo',
+            col:[{h:'Disciplina', w:3}, {h:'Modalità', w:3}, {h:'Contenuti essenziali / obiettivi minimi', w:6, tipo:'area'}],
+            fisse:DISCIPLINE[s], init:DISCIPLINE[s].map(() => ['', 'riferita al PDP', ''])},
+          {t:'nota', testo:'Modalità: «riferita al PDP», oppure, se l’inserimento è molto recente, valutazione rinviata con motivazione («in corso di prima alfabetizzazione»). All’esame di Stato le prove non si differenziano: si possono usare gli strumenti compensativi già impiegati nell’anno.'}]},
+
+        {t:'se', campo:'tipologia', vale:TIP.DSA, blocchi:[
+          {t:'h', testo:'Funzionamento nelle abilità strumentali'},
+          {t:'nota', testo:'Sintetizzare in termini funzionali quanto emerge dalla documentazione (es. velocità e correttezza) e affiancare le osservazioni dei docenti in classe.'},
+          {t:'tabella', id:'abilita', col:[{h:'Abilità', w:2.5}, {h:'Elementi dalla documentazione (sintesi funzionale)', w:4.75, tipo:'area'}, {h:'Osservazioni dei docenti', w:4.75, tipo:'area'}],
+            fisse:['Lettura (velocità, correttezza, comprensione)', 'Scrittura (grafia, ortografia)', 'Produzione del testo', 'Calcolo e procedure', 'Lingue straniere', 'Altro (memoria, attenzione, organizzazione)']}]},
+
+        {t:'h', testo:'Caratteristiche del processo di apprendimento'},
+        {t:'tabella', id:'processo', col:[{h:'Aspetto', w:4}, {h:'Osservazioni', w:8, tipo:'area'}],
+          fisse:['Attenzione e concentrazione', 'Memorizzazione e recupero delle informazioni', 'Organizzazione e pianificazione del lavoro',
+            'Tempi di esecuzione', 'Comprensione delle consegne orali e scritte', 'Autonomia nello studio', 'Motivazione, relazione e partecipazione']},
+        {t:'multi', id:'punti_forza', label:'Punti di forza e canali preferenziali', col:3, altro:true, opz:[
+          'Canale visivo', 'Canale uditivo', 'Canale cinestesico', 'Interesse per le attività pratiche', 'Buone capacità orali', 'Collaborazione con i compagni']},
+        {t:'area', id:'consapevolezza', label:s === 'S' ? 'Consapevolezza del proprio modo di apprendere e strategie di studio' : 'Strategie utilizzate dall’alunno/a nello studio', righe:2},
+
+        {t:'h', testo:'Strategie didattiche'},
+        {t:'multi', id:'strategie', col:2, altro:true, opz:[
+          'Anticipare l’argomento e fornire la mappa della lezione', 'Usare mediatori visivi (schemi, immagini, mappe)',
+          'Suddividere i compiti in fasi e consegne brevi', 'Apprendimento cooperativo e tutoraggio tra pari',
+          'Didattica laboratoriale e compiti autentici', 'Verificare la comprensione delle consegne',
+          'Valorizzare i contenuti rispetto alla forma', 'Promuovere l’uso autonomo degli strumenti compensativi',
+          'Gratificare i progressi e sostenere l’autostima', 'Concordare il carico dei compiti a casa']},
+
+        {t:'h', testo:'Strumenti compensativi e misure dispensative'},
+        {t:'multi', id:'compensativi', label:'Strumenti compensativi comuni', col:2, altro:true, opz:[
+          'Tabelle, formulari e schemi', 'Mappe concettuali e mentali', 'Calcolatrice', 'Sintesi vocale e audiolibri',
+          'Libri di testo digitali', 'Computer o tablet con correttore ortografico', 'Registrazione delle lezioni (con consenso)',
+          'Dizionari digitali', 'Tavola pitagorica', 'Testi con carattere ad alta leggibilità']},
+        {t:'multi', id:'dispensative', label:'Misure dispensative comuni', col:2, altro:true, opz:[
+          'Lettura ad alta voce davanti alla classe', 'Scrittura sotto dettatura di testi lunghi', 'Copiatura dalla lavagna',
+          'Studio mnemonico di tabelline, formule, definizioni', 'Rispetto dei tempi standard nelle verifiche',
+          'Più verifiche nella stessa giornata', 'Uso del corsivo o dello stampato minuscolo', 'Quantità eccessiva di compiti a casa']},
+        {t:'nota', testo:'Le misure dispensative non riducono gli obiettivi di apprendimento: esonerano da prestazioni che la difficoltà rende particolarmente onerose. Per i BES senza documentazione privilegiare strumenti compensativi e strategie; le misure dispensative sono eccezionali e transitorie.'},
+        {t:'tabella', id:'discipline', label:'Misure per disciplina',
+          col:[{h:'Disciplina', w:2}, {h:'Strumenti compensativi', w:3.3, tipo:'area'}, {h:'Misure dispensative', w:3.3, tipo:'area'}, {h:'Modalità di verifica e valutazione', w:3.4, tipo:'area'}],
+          fisse:DISCIPLINE[s]},
+
+        {t:'h', testo:'Criteri e modalità di verifica e valutazione'},
+        {t:'multi', id:'verifica', col:2, altro:true, opz:[
+          'Verifiche programmate e concordate', 'Tempi aggiuntivi (fino al 30%) o riduzione quantitativa della prova',
+          'Prove strutturate (scelta multipla, vero/falso, completamento)', 'Compensazione orale delle prove scritte',
+          'Lettura delle consegne da parte del docente', 'Uso degli strumenti compensativi durante le verifiche',
+          'Valutazione del contenuto e non della forma (ortografia, grafia)', 'Valutazione dei progressi rispetto al punto di partenza']},
+        ...(s === 'S' ? [
+          {t:'scelta', id:'lingue', label:'Lingue straniere', col:1, opz:[
+            'Nessuna misura specifica oltre a quelle indicate per disciplina',
+            'Dispensa dalle prove scritte con prove orali compensative (art. 6 c. 5 D.M. 5669/2011)',
+            'Esonero dall’insegnamento con percorso didattico differenziato (art. 6 c. 6 D.M. 5669/2011)'],
+           nota:'Dispensa ed esonero sono possibili solo per DSA, su richiesta della famiglia e con certificazione che lo preveda. L’esonero comporta prove d’esame differenziate.'},
+          {t:'area', id:'esame', label:'Indicazioni per l’esame di Stato (classe terza): tempi, strumenti, prove orali sostitutive', righe:2}] : []),
+        {t:'area', id:'valutazione_note', label:'Ulteriori criteri di valutazione', righe:2},
+
+        {t:'h', testo:'Patto con la famiglia'},
+        {t:'testofisso', testo:s === 'S'
+          ? 'La scuola si impegna ad applicare le misure del piano, a informare la famiglia sull’andamento e a rivedere il PDP quando necessario; la famiglia si impegna a sostenere l’uso degli strumenti compensativi, a curare l’organizzazione del materiale e a partecipare ai colloqui di verifica; l’alunno/a si impegna a utilizzare gli strumenti concordati, a segnalare le difficoltà e a organizzare lo studio.'
+          : 'La scuola si impegna ad applicare le misure del piano, a informare la famiglia sull’andamento e a rivedere il PDP quando necessario; la famiglia si impegna a sostenere l’uso degli strumenti compensativi, a curare l’organizzazione del materiale e a partecipare ai colloqui di verifica.'},
+        {t:'tabella', id:'patto', label:'Impegni specifici', col:[{h:'Chi', w:3}, {h:'Impegni', w:9, tipo:'area'}],
+          fisse:['Scuola', 'Famiglia', ...(s === 'S' ? ['Alunno/a'] : [])]},
+        {t:'area', id:'compiti', label:'Accordi sui compiti a casa (quantità, tempi, strumenti, chi aiuta)', righe:2},
+        ...(s === 'S' ? [{t:'nota', testo:'L’alunno/a partecipa alla condivisione del piano e lo sottoscrive per la parte che lo/la riguarda, per favorire la consapevolezza del proprio stile di apprendimento.'}] : []),
+
+        {t:'h', testo:'Approvazione e verifiche'},
+        {t:'riga', campi:[
+          {t:'data', id:'approvazione', label:'Approvato dal ' + organo + ' il', w:4, nopdf:true},
+          {t:'data', id:'monitoraggio', label:'Monitoraggio intermedio entro', w:4, nopdf:true},
+          {t:'data', id:'verifica_finale', label:'Verifica finale entro', w:4, nopdf:true}]},
+        {t:'testofisso', testo:`Il presente piano è approvato dal ${organo} il {approvazione}, condiviso con la famiglia e valido per l’a.s. {as}. Il monitoraggio intermedio è previsto entro il {monitoraggio} e la verifica finale entro il {verifica_finale}.`},
+        {t:'nota', testo:'Documentare la condivisione con il verbale «Condivisione del PDP». Il PDP resta valido anche senza firma della famiglia, purché la condivisione sia documentata.'},
+        firmeDocenti('firme_docenti', `Firme del ${organo}`),
+        {t:'firme', ruoli:[
+          'Il Coordinatore didattico',
+          'Il genitore / esercente la responsabilità genitoriale', 'Il genitore / esercente la responsabilità genitoriale',
+          ...(s === 'S' ? ['L’alunno/a'] : [])]},
+      ];
+      return out;
+    },
+  });
+
+  /* =====================================================================
+     5. RELAZIONE FINALE DEL DOCENTE (disciplinare)
+     ===================================================================== */
+  registra({
+    id:'relazione-finale-docente',
+    titolo:'Relazione finale del docente',
+    sottotitolo:'Relazione disciplinare a conclusione dell’anno scolastico',
+    descrizione:'Situazione finale, programma svolto, metodi, verifiche e proposte per disciplina',
+    argomento:'relazioni',
+    scuole:['P', 'S'],
+    file:'Relazione_finale_disciplina',
+    blocchi:(s) => {
+      const fasce = s === 'P'
+        ? ['Ottimo / Distinto', 'Buono / Discreto', 'Sufficiente', 'Non sufficiente']
+        : ['Voto 9-10', 'Voto 7-8', 'Voto 6', 'Voto inferiore a 6'];
+      return [
+        ...H.testata(s, [{t:'testo', id:'classe', label:'Classe'}]),
+        {t:'riga', campi:[
+          {t:'testo', id:'docente', label:'Docente', w:5},
+          {t:'testo', id:'disciplina', label:'Disciplina', w:5},
+          {t:'num', id:'ore', label:'Ore settimanali', w:2}]},
+
+        {t:'h', testo:'Situazione finale della classe'},
+        {t:'riga', campi:[
+          {t:'scelta', id:'livello', label:'Livello complessivo raggiunto', w:12, opz:['alto', 'medio-alto', 'medio', 'eterogeneo', 'medio-basso']}]},
+        {t:'area', id:'situazione', label:'Partecipazione, impegno, metodo di studio e progressi rispetto alla situazione di partenza', righe:4},
+        {t:'tabella', id:'fasce', label:'Distribuzione degli esiti',
+          col:[{h:s === 'P' ? 'Giudizio sintetico' : 'Fascia di voto', w:4}, {h:'N. alunni', w:2}, {h:'Osservazioni', w:6, tipo:'area'}], fisse:fasce},
+        {t:'nota', testo:'Indicare solo numeri: nessun nome di alunno nella relazione.'},
+
+        {t:'h', testo:'Programma svolto'},
+        {t:'scelta', id:'programma', label:'Rispetto al piano di lavoro annuale', col:1, opz:[
+          'è stato svolto integralmente', 'è stato svolto con alcune modifiche', 'non è stato svolto in alcune parti']},
+        {t:'se', campo:'programma', vale:['è stato svolto con alcune modifiche', 'non è stato svolto in alcune parti'], blocchi:[
+          {t:'area', id:'programma_diff', label:'Parti modificate o non svolte e motivazioni', righe:3}]},
+        {t:'area', id:'contenuti', label:'Nuclei e contenuti svolti (sintesi o rinvio al programma allegato)', righe:4},
+        {t:'area', id:'civica', label:'Contributo all’educazione civica (ore svolte e tematiche)', righe:2},
+
+        {t:'h', testo:'Metodologie e strumenti'},
+        {t:'multi', id:'metodologie', label:'Metodologie', col:3, altro:true, opz:[
+          'Lezione frontale e dialogata', 'Apprendimento cooperativo', 'Didattica laboratoriale', 'Tutoraggio tra pari',
+          'Problem solving', 'Classe capovolta', 'Compiti di realtà', 'Uscite didattiche', 'Attività con strumenti digitali']},
+        {t:'multi', id:'strumenti', label:'Strumenti', col:3, altro:true, opz:[
+          'Libro di testo', 'Materiali digitali', 'LIM / monitor interattivo', 'Schede e dispense', 'Laboratori', 'Mappe e schemi']},
+
+        {t:'h', testo:'Verifiche e valutazione'},
+        {t:'multi', id:'verifiche', label:'Tipologie di verifica', col:3, altro:true, opz:[
+          'Prove scritte', 'Prove orali', 'Prove strutturate', 'Prove pratiche', 'Compiti autentici', 'Osservazioni sistematiche']},
+        {t:'riga', campi:[
+          {t:'num', id:'n_verifiche1', label:'N. verifiche I quadrimestre', w:6},
+          {t:'num', id:'n_verifiche2', label:'N. verifiche II quadrimestre', w:6}]},
+        {t:'testofisso', testo:s === 'P'
+          ? 'La valutazione è stata espressa con giudizi sintetici correlati ai livelli di apprendimento (L. 150/2024, O.M. 3/2025), secondo i criteri e le rubriche deliberati dal Collegio dei docenti.'
+          : 'La valutazione è stata espressa in decimi (D.Lgs. 62/2017 mod. L. 150/2024), secondo i criteri e le griglie deliberati dal Collegio dei docenti.'},
+        {t:'area', id:'criteri', label:'Osservazioni sui criteri adottati', righe:2},
+
+        {t:'h', testo:'Recupero, potenziamento e inclusione'},
+        {t:'area', id:'recupero', label:'Interventi di recupero e consolidamento ed esiti', righe:3},
+        {t:'area', id:'potenziamento', label:'Interventi di potenziamento e valorizzazione delle eccellenze', righe:2},
+        {t:'riga', campi:[
+          {t:'num', id:'n_pei', label:'Alunni con PEI', w:3},
+          {t:'num', id:'n_pdp', label:'Alunni con PDP', w:3},
+          {t:'scelta', id:'misure', label:'Misure previste da PEI e PDP', w:6, opz:['applicate integralmente', 'applicate con adattamenti']}]},
+        {t:'area', id:'inclusione_note', label:'Osservazioni sull’applicazione delle misure (rinvio ai documenti agli atti)', righe:2},
+        H.privacy(),
+
+        {t:'h', testo:'Rapporti con le famiglie'},
+        {t:'multi', id:'famiglie', col:3, opz:['costanti', 'regolari', 'sporadici', 'solo su convocazione', 'costruttivi', 'limitati ad alcuni casi']},
+        {t:'area', id:'famiglie_note', label:'Osservazioni', righe:2},
+
+        {t:'h', testo:'Proposte per il prossimo anno'},
+        {t:'area', id:'proposte', label:'Proposte (contenuti, metodologie, progetti, libri di testo, formazione)', righe:3},
+        {t:'multi', id:'allegati', label:'Allegati', col:2, altro:true, opz:['Programma svolto', 'Griglie di valutazione']},
+        {t:'riga', campi:[{t:'testo', id:'luogo', label:'Luogo', w:6, def:'Orzinuovi'}]},
+        {t:'firme', ruoli:['Il/La docente']},
+      ];
+    },
+  });
+
+  /* =====================================================================
+     6. RELAZIONE FINALE DEL DOCENTE DI SOSTEGNO
+     ===================================================================== */
+  const DIM = ['Relazione, interazione e socializzazione', 'Comunicazione e linguaggio', 'Autonomia e orientamento', 'Cognitiva, neuropsicologica e dell’apprendimento'];
+  registra({
+    id:'relazione-sostegno',
+    titolo:'Relazione finale del docente di sostegno',
+    sottotitolo:'Verifica del percorso rispetto al PEI – D.I. 182/2020 mod. D.I. 153/2023',
+    descrizione:'Organizzazione del sostegno, obiettivi del PEI raggiunti e proposte di continuità',
+    argomento:'relazioni',
+    scuole:['I', 'P', 'S'],
+    file:'Relazione_finale_sostegno',
+    blocchi:(s) => [
+      ...H.testata(s, [
+        {t:'testo', id:'alunno', label:`${AL_CAP(s)} (codice)`},
+        {t:'testo', id:'classe', label:CLASSE(s)}]),
+      {t:'riga', campi:[
+        {t:'testo', id:'docente', label:'Docente di sostegno', w:6},
+        {t:'num', id:'ore_sost', label:'Ore settimanali di sostegno', w:3},
+        {t:'num', id:'ore_aec', label:'Ore di assistenza all’autonomia', w:3}]},
+      {t:'riga', campi:[
+        {t:'data', id:'pei_data', label:'PEI approvato dal GLO il', w:4},
+        {t:'data', id:'ver_int', label:'Verifica intermedia del', w:4},
+        {t:'data', id:'ver_fin', label:'Verifica finale del GLO del', w:4}]},
+      H.privacy(),
+      {t:'nota', testo:'Relazione riservata: si allega al fascicolo personale e al verbale del GLO finale. Nessuna diagnosi, solo riferimenti al PEI.'},
+
+      {t:'h', testo:'Organizzazione dell’intervento'},
+      {t:'tabella', id:'organizzazione', col:[{h:'Modalità', w:4}, {h:'Ore settimanali o prevalenza', w:3}, {h:'Attività svolte', w:5, tipo:'area'}],
+        fisse:[`In ${CLASSE(s).toLowerCase()} con il gruppo`, 'In piccolo gruppo', 'Individuale fuori dall’aula', 'Laboratori e progetti']},
+      {t:'area', id:'frequenza', label:'Frequenza e partecipazione alla vita scolastica (uscite, progetti, eventi)', righe:2},
+
+      {t:'h', testo:'Obiettivi del PEI'},
+      {t:'matrice', id:'livelli', label:'Gli obiettivi del PEI sono stati raggiunti in modo', voci:[...DIM, s === 'I' ? 'Obiettivi educativo-didattici (campi di esperienza)' : 'Obiettivi didattici'],
+        opz:['parziale', 'sufficiente', 'adeguato', 'soddisfacente']},
+      {t:'tabella', id:'dimensioni', col:[{h:'Dimensione', w:3}, {h:'Obiettivi raggiunti', w:4.5, tipo:'area'}, {h:'Obiettivi da riproporre e motivazione', w:4.5, tipo:'area'}],
+        fisse:DIM},
+      {t:'area', id:'didattica', label:s === 'I' ? 'Progressi nei campi di esperienza' : 'Percorso didattico: discipline e obiettivi (comuni, semplificati o differenziati) e valutazione riferita al PEI', righe:3},
+
+      {t:'h', testo:'Strategie e strumenti'},
+      {t:'area', id:'strategie', label:'Strategie e metodologie risultate efficaci', righe:3},
+      {t:'area', id:'strumenti', label:'Strumenti, ausili e materiali utilizzati', righe:2},
+      {t:'area', id:'criticita', label:'Criticità emerse e modalità di gestione', righe:2},
+
+      {t:'h', testo:'Rapporti'},
+      {t:'tabella', id:'rapporti', col:[{h:'Con', w:3}, {h:'Modalità e frequenza', w:3}, {h:'Osservazioni', w:6, tipo:'area'}],
+        fisse:[TEAM(s), 'Famiglia', 'Servizi socio-sanitari', 'Assistente all’autonomia e alla comunicazione', 'Compagni']},
+
+      {t:'h', testo:'Proposte per l’anno successivo'},
+      {t:'scelta', id:'passaggio', label:'Nel prossimo anno', col:1, opz:[
+        `prosegue nella stessa ${s === 'I' ? 'scuola' : 'scuola e nel gruppo classe'}`,
+        s === 'S' ? 'passa alla scuola secondaria di II grado o all’IeFP' : 'passa al grado scolastico successivo']},
+      {t:'area', id:'continuita', label:'Continuità: strategie da mantenere, accorgimenti per l’accoglienza e passaggio di informazioni', righe:3},
+      {t:'area', id:'proposte', label:'Proposte (obiettivi prioritari, organizzazione, risorse)', righe:3},
+      {t:'nota', testo:'Il fabbisogno di ore di sostegno e di assistenza si propone nel PEI provvisorio o nel verbale del GLO finale, non in questa relazione.'},
+      {t:'riga', campi:[{t:'testo', id:'luogo', label:'Luogo', w:6, def:'Orzinuovi'}]},
+      {t:'firme', ruoli:['Il/La docente di sostegno']},
+    ],
+  });
+
+  /* =====================================================================
+     7. PIANO DI LAVORO ANNUALE DEL DOCENTE
+     ===================================================================== */
+  registra({
+    id:'piano-lavoro',
+    titolo:'Piano di lavoro annuale',
+    sottotitolo:'Programmazione disciplinare del docente – Indicazioni nazionali; D.M. 221/2025 per le classi prime dal 2026/27',
+    descrizione:'Situazione di partenza, obiettivi, contenuti per periodo, metodi e valutazione',
+    argomento:'relazioni',
+    scuole:['P', 'S'],
+    file:'Piano_lavoro_annuale',
+    blocchi:(s) => {
+      const RIF_NUOVE = 'Nuove Indicazioni nazionali (D.M. 221/2025) – classe prima';
+      const RIF_2012 = 'Indicazioni nazionali 2012 e Nuovi scenari 2018 – classi successive';
+      return [
+        ...H.testata(s, [{t:'testo', id:'classe', label:'Classe'}]),
+        {t:'riga', campi:[
+          {t:'testo', id:'docente', label:'Docente', w:5},
+          {t:'testo', id:'disciplina', label:'Disciplina', w:5},
+          {t:'num', id:'ore', label:'Ore settimanali', w:2}]},
+        {t:'scelta', id:'riferimento', label:'Documento di riferimento', col:1, opz:[RIF_NUOVE, RIF_2012]},
+        {t:'nota', testo:'Dal 2026/27 le Nuove Indicazioni (D.M. 221/2025, Nota MIM 1312/2026) si applicano alle classi prime; le altre classi proseguono con le Indicazioni 2012 fino al completamento graduale.'},
+
+        {t:'h', testo:'Situazione di partenza'},
+        {t:'multi', id:'rilevazione', label:'Strumenti di rilevazione', col:3, altro:true, opz:[
+          'Prove d’ingresso', 'Osservazioni sistematiche', 'Colloqui', 'Informazioni dal grado precedente', 'Esiti dell’anno precedente']},
+        {t:'area', id:'partenza', label:'Descrizione della classe (partecipazione, metodo di lavoro, prerequisiti)', righe:3},
+        {t:'tabella', id:'fasce', label:'Fasce di livello',
+          col:[{h:'Fascia', w:3}, {h:'N. alunni', w:2}, {h:'Caratteristiche', w:7, tipo:'area'}], fisse:['Avanzato', 'Intermedio', 'Base', 'Iniziale']},
+
+        {t:'h', testo:'Traguardi e obiettivi'},
+        {t:'se', campo:'riferimento', vale:RIF_NUOVE, blocchi:[
+          {t:'testofisso', testo:s === 'S'
+            ? 'La progettazione fa riferimento alle competenze attese al termine della classe terza e agli obiettivi di apprendimento delle Nuove Indicazioni nazionali (D.M. 221/2025).'
+            : 'La progettazione fa riferimento ai traguardi per lo sviluppo delle competenze e agli obiettivi di apprendimento delle Nuove Indicazioni nazionali (D.M. 221/2025).'}]},
+        {t:'se', campo:'riferimento', vale:RIF_2012, blocchi:[
+          {t:'testofisso', testo:'La progettazione fa riferimento ai traguardi per lo sviluppo delle competenze e agli obiettivi di apprendimento delle Indicazioni nazionali 2012, integrati dai Nuovi scenari 2018 e dal curricolo d’istituto.'}]},
+        {t:'area', id:'traguardi', label:s === 'S' ? 'Competenze attese / traguardi di riferimento' : 'Traguardi per lo sviluppo delle competenze', righe:3},
+        {t:'area', id:'obiettivi', label:'Obiettivi di apprendimento dell’anno', righe:4},
+
+        {t:'h', testo:'Contenuti per periodo'},
+        {t:'tabella', id:'contenuti', col:[{h:'Periodo', w:2}, {h:'Nuclei / contenuti', w:3.5, tipo:'area'}, {h:'Obiettivi', w:3.25, tipo:'area'}, {h:'Attività', w:3.25, tipo:'area'}],
+          fisse:['Settembre – ottobre', 'Novembre – dicembre', 'Gennaio – febbraio', 'Marzo – aprile', 'Maggio – giugno']},
+        {t:'area', id:'uda', label:'Unità di apprendimento interdisciplinari e compiti di realtà', righe:2},
+
+        {t:'h', testo:'Metodologie e strumenti'},
+        {t:'multi', id:'metodologie', label:'Metodologie', col:3, altro:true, opz:[
+          'Lezione frontale e dialogata', 'Apprendimento cooperativo', 'Didattica laboratoriale', 'Tutoraggio tra pari',
+          'Problem solving', 'Classe capovolta', 'Compiti di realtà', 'Uscite didattiche', 'Didattica digitale']},
+        {t:'multi', id:'strumenti', label:'Strumenti', col:3, altro:true, opz:[
+          'Libro di testo', 'Materiali digitali', 'LIM / monitor interattivo', 'Schede e dispense', 'Laboratori', 'Mappe e schemi']},
+
+        {t:'h', testo:'Verifiche e valutazione'},
+        {t:'multi', id:'verifiche', label:'Tipologie di verifica', col:3, altro:true, opz:[
+          'Prove scritte', 'Prove orali', 'Prove strutturate', 'Prove pratiche', 'Compiti autentici', 'Osservazioni sistematiche']},
+        {t:'riga', campi:[{t:'num', id:'n_verifiche', label:'Numero minimo di verifiche per quadrimestre', w:6}]},
+        {t:'testofisso', testo:s === 'P'
+          ? 'La valutazione periodica e finale è espressa con giudizi sintetici (Ottimo, Distinto, Buono, Discreto, Sufficiente, Non sufficiente) correlati ai livelli di apprendimento (L. 150/2024, O.M. 3/2025), secondo i criteri deliberati dal Collegio dei docenti.'
+          : 'La valutazione periodica e finale è espressa in decimi (D.Lgs. 62/2017 mod. L. 150/2024), secondo i criteri e le griglie deliberati dal Collegio dei docenti.'},
+        {t:'area', id:'criteri', label:'Criteri specifici della disciplina', righe:2},
+
+        {t:'h', testo:'Educazione civica'},
+        {t:'riga', campi:[{t:'num', id:'civica_ore', label:'Ore svolte dal docente (su 33 annue)', w:6}]},
+        {t:'multi', id:'civica_nuclei', label:'Nuclei concettuali (Linee guida D.M. 183/2024)', col:1, opz:[
+          'Costituzione', 'Sviluppo economico e sostenibilità', 'Cittadinanza digitale']},
+        {t:'area', id:'civica_temi', label:'Tematiche e attività', righe:2},
+
+        {t:'h', testo:'Inclusione, recupero e potenziamento'},
+        {t:'area', id:'inclusione', label:'Adattamenti per alunni con PEI o PDP (rinvio ai documenti agli atti)', righe:2},
+        {t:'area', id:'recupero', label:'Recupero e consolidamento', righe:2},
+        {t:'area', id:'potenziamento', label:'Potenziamento e valorizzazione', righe:2},
+        H.privacy(),
+        {t:'riga', campi:[{t:'testo', id:'luogo', label:'Luogo', w:6, def:'Orzinuovi'}]},
+        {t:'firme', ruoli:['Il/La docente']},
+      ];
+    },
   });
 })();
 
