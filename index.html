@@ -510,29 +510,43 @@ function disegnaForm(root){
     root.append(el('div', {class:'legenda', html:'<b>*</b> ' + (spec ? esc(spec) : 'Elementi essenziali del verbale: se mancano, il verbale o le deliberazioni possono essere invalidi o impugnabili.') + ' Sotto ciascuno è indicato il riferimento normativo; al salvataggio l\u2019app segnala quelli non compilati.'}));
   }
   let sez = null, grid = null;
-  const nuovaSez = (titolo) => {
+  // conds: condizioni "se" annidate (tutte devono valere). Ogni titolo apre una scheda propria,
+  // anche dentro un blocco condizionale: la scheda eredita le condizioni e si nasconde con esse.
+  const nuovaSez = (titolo, conds) => {
     sez = el('section', {class:'sez'}); if (titolo) sez.append(el('h3', {}, titolo));
+    if (conds.length) sez.dataset.se = JSON.stringify(conds);
     grid = el('div', {class:'g'}); sez.append(grid); root.append(sez);
   };
-  const disegna = (blocchi, dest) => {
+  // restituisce la griglia corrente dopo aver disegnato; 'aperte' segnala se sono state create schede
+  const disegna = (blocchi, dest, conds) => {
+    let aperte = false;
     for (const b of blocchi){
-      if (b.t === 'h'){ nuovaSez(b.testo); dest = grid; continue; }
-      if (!dest){ nuovaSez(null); dest = grid; }
+      if (b.t === 'h'){ nuovaSez(b.testo, conds); dest = grid; aperte = true; continue; }
       if (b.t === 'se'){
-        const box = el('div', {class:'g', style:'grid-column:1/-1', 'data-se':JSON.stringify([b.campo, b.vale])});
-        dest.append(box);
-        // i titoli dentro un "se" aprono sotto-sezioni visive
-        let sub = box;
-        for (const x of b.blocchi){
-          if (x.t === 'h'){ sub = el('div', {class:'g', style:'grid-column:1/-1;margin-top:8px'}); box.append(el('h4', {style:'grid-column:1/-1;margin:6px 0 0;color:var(--blu);font-size:14px;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--line);padding-top:12px'}, x.testo), sub); }
-          else disegna([x], sub);
+        const nc = [...conds, [b.campo, b.vale]];
+        if (b.blocchi[0] && b.blocchi[0].t === 'h'){
+          // il blocco inizia con un titolo: le sue schede sono condizionate, nessun contenitore
+          disegna(b.blocchi, null, nc);
+          aperte = true; dest = null;
+        } else if (!dest){
+          // serve una scheda senza titolo: la si condiziona come il blocco
+          nuovaSez(null, nc);
+          const r = disegna(b.blocchi, grid, nc);
+          aperte = true; dest = null;
+        } else {
+          const box = el('div', {class:'g', style:'grid-column:1/-1', 'data-se':JSON.stringify(nc)});
+          dest.append(box);
+          const r = disegna(b.blocchi, box, nc);
+          if (r.aperte){ aperte = true; dest = null; } // dopo schede condizionali, il contenuto successivo apre una scheda nuova
         }
         continue;
       }
-      dest.append(campo(b));
+      if (!dest){ nuovaSez(null, conds); dest = grid; }
+      const c = campo(b); if (c) dest.append(c);
     }
+    return {dest, aperte};
   };
-  disegna(BLOCCHI, null);
+  disegna(BLOCCHI, null, []);
   aggiornaDinamici();
 }
 function span(b){ return `grid-column:span ${Math.round(b.w || 12)}`; }
@@ -727,7 +741,7 @@ function condizione(campoId, vale){
 }
 function aggiornaDinamici(){
   document.querySelectorAll('[data-fisso]').forEach(d => d.innerHTML = componi(esc(d.dataset.fisso), true));
-  document.querySelectorAll('[data-se]').forEach(d => { const [c, v] = JSON.parse(d.dataset.se); d.classList.toggle('nascosto', !condizione(c, v)); });
+  document.querySelectorAll('[data-se]').forEach(d => { const cs = JSON.parse(d.dataset.se); d.classList.toggle('nascosto', !cs.every(([c, v]) => condizione(c, v))); });
 }
 
 /* =====================================================================
@@ -766,7 +780,16 @@ function creaPDF(man = []){
       font('bold', 10.5, acc); doc.text(pulisci(SCUOLE[SCU].nome), PDF.M + 23, 18.5);
       font('normal', 7.5, GRIGIO); doc.text(pulisci(SCUOLA_SUB), PDF.M + 23, 23);
       const as = STATO.as ? (SCU === 'N' ? 'Anno educativo ' : 'Anno scolastico ') + STATO.as : '';
-      font('normal', 8.5, GRIGIO); if (as) doc.text(pulisci(as), PDF.M + PDF.W, 13, {align:'right'});
+      font('normal', 8.5, GRIGIO); if (as) doc.text(pulisci(as), PDF.M + PDF.W, 11, {align:'right'});
+      /* Riquadro per il protocollo: lasciato vuoto, lo compila la segreteria
+         (a mano, con timbro o con la segnatura del registro) dopo la protocollazione. */
+      const bx = PDF.M + PDF.W - 58, by = 13.5, bw = 58, bh = 12.5;
+      doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.rect(bx, by, bw, bh);
+      font('bold', 6.5, GRIGIO); doc.text('PROTOCOLLO (a cura della segreteria)', bx + 2, by + 3);
+      font('normal', 8, INK);
+      doc.text('Prot. n.', bx + 2, by + 7.3); doc.text('del', bx + 2, by + 11.2);
+      doc.setDrawColor(...GRIGIO); doc.setLineWidth(0.2);
+      doc.line(bx + 13, by + 7.6, bx + bw - 2, by + 7.6); doc.line(bx + 8, by + 11.5, bx + bw - 2, by + 11.5);
       doc.setDrawColor(...acc); doc.setLineWidth(0.6); doc.line(PDF.M, 28.5, PDF.M + PDF.W, 28.5);
       y = 34;
       const tl = split(MOD.titolo.toUpperCase(), PDF.W, 12.5, 'bold');
@@ -1453,7 +1476,7 @@ function scarica(forza){
     titolo:'Verbale di incontro con genitori e specialisti',
     descrizione:'Docenti, famiglia, UONPIA, logopedista, psicologo, servizi sociali',
     blocchi:(s) => [
-      ...H.testata(s, [{t:'testo', id:'prot', label:'Prot. n.'}, {t:'testo', id:'alunno', label:ALUNNO[s] + ' (iniziali)'}, {t:'testo', id:'sezione', label:SEZ[s]}]),
+      ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s] + ' (iniziali)'}, {t:'testo', id:'sezione', label:SEZ[s]}]),
       {t:'multi', id:'tipo', label:'Incontro con', opz:['solo docenti', 'docenti e genitori', 'esperti esterni'], altro:true, col:4},
       {t:'riga', campi:[{t:'ora', id:'ora_inizio', label:'Ora inizio', w:3}, {t:'ora', id:'ora_fine', label:'Ora fine', w:3},
         {t:'testo', id:'autorizzazione', label:'Autorizzazione della famiglia allo scambio di informazioni (data / prot.)', w:6}]},
@@ -3561,8 +3584,7 @@ function scarica(forza){
     blocchi:(s) => [
       {t:'h', testo:'Intestazione'},
       {t:'riga', campi:[
-        {t:'testo', id:'destinatario', label:'Destinatario (facoltativo)', w:8, ph:'es. ' + ALCOORD[s].replace(/^al(la)? /, '')},
-        {t:'testo', id:'prot', label:'Prot. n. (facoltativo)', w:4}]},
+        {t:'testo', id:'destinatario', label:'Destinatario (facoltativo)', w:12, ph:'es. ' + ALCOORD[s].replace(/^al(la)? /, '')}]},
       {t:'testo', id:'oggetto', label:'Oggetto'},
       {t:'h', testo:'Testo'},
       {t:'nota', testo:'Suddividi il testo in sezioni con un sottotitolo facoltativo (es. Premessa, Situazione, Proposte); puoi aggiungerle, riordinarle ed eliminarle. Un sottotitolo vuoto non viene stampato.'},
@@ -3804,7 +3826,7 @@ function scarica(forza){
     blocchi:(s) => {
       const inf = s === 'I';
       return [
-        ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s]}, {t:'testo', id:'prot', label:'Prot. n.'}]),
+        ...H.testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s]}]),
         {t:'riga', campi:[
           {t:'testo', id:'eta', label:'Età', w:3},
           {t:'testo', id:'provenienza', label:'Paese di provenienza', w:3},
@@ -4150,142 +4172,258 @@ function scarica(forza){
   registra({
     id:'pdp-modello',
     titolo:'Piano Didattico Personalizzato',
-    sottotitolo:'DSA: L. 170/2010, D.M. 5669/2011, Linee guida 2011 – BES e NAI: Dir. 27/12/2012, C.M. 8/2013, Linee guida alunni stranieri 2014',
-    descrizione:'Il PDP completo per DSA, altri BES e alunni neo arrivati in Italia',
+    sottotitolo:'PDP per BES – DSA con certificazione, diagnosi e decisione scolastica collegiale (L. 170/2010; D.M. 5669/2011 e Linee guida 12/07/2011; Dir. 27/12/2012; C.M. 8/2013)',
+    descrizione:'Modello della scuola: DSA, altri BES, BES senza documentazione e alunni neo arrivati',
     argomento:'pdp',
     scuole:['P', 'S'],
     file:'PDP',
+    /* Impianto: modello PDP della Scuola S. Paola Elisabetta Cerioli (PDP.pdf, 14 pp.), integrato con
+       tipologia del bisogno, sezione NAI, osservazioni dei docenti sulla relazione dello specialista,
+       lingue straniere ed esame di Stato per la secondaria. */
     blocchi:(s) => {
       const organo = s === 'S' ? 'Consiglio di classe' : 'Team docenti';
-      const out = [
-        ...H.testata(s, [
-          {t:'testo', id:'alunno', label:'Alunno/a'},
-          {t:'testo', id:'classe', label:'Classe'}]),
-        {t:'riga', campi:[
-          {t:'testo', id:'nascita', label:'Luogo e data di nascita', w:6},
-          {t:'testo', id:'referente', label:s === 'S' ? 'Coordinatore di classe' : 'Docente prevalente', w:6}]},
-        {t:'nota', testo:'Il PDP è un documento riservato con dati relativi alla salute (art. 9 GDPR): si conserva nel fascicolo personale; non si pubblica in aree del registro visibili alla classe. Non trascrivere diagnosi né codici ICD.'},
+      const LINGUE = s === 'S' ? 'Lingue straniere (inglese e spagnolo)' : 'Lingua inglese';
+      const DIFF = s === 'S'
+        ? ['Italiano', 'Storia', 'Geografia', 'Matematica', 'Scienze', LINGUE, 'Altre discipline']
+        : ['Italiano', 'Storia', 'Geografia', 'Matematica', 'Scienze', LINGUE, 'Altre discipline'];
+      const Q4 = ['Molto adeguata', 'Adeguata', 'Poco adeguata', 'Non adeguata'];
+      const Q4m = ['Molto adeguati', 'Adeguati', 'Poco adeguati', 'Non adeguati'];
+      const STM = ['Spesso', 'Talvolta', 'Mai'];
+      const APN = ['Adeguata', 'Parziale', 'Non adeguata'];
+      const diagnosi = (id, label) => ({t:'area', id, label:'Dati dalla diagnosi specialistica – ' + label, righe:2,
+        nota:'Solo dati rilevabili nella diagnosi, se presenti, in forma funzionale.'});
+      const DISP = [
+        'D1 – Dispensa dalla lettura ad alta voce in classe',
+        'D2 – Dispensa dall’uso dei quattro caratteri di scrittura nelle prime fasi dell’apprendimento',
+        'D3 – Dispensa dall’uso del corsivo e dello stampato minuscolo',
+        'D4 – Dispensa dalla scrittura sotto dettatura di testi e/o appunti',
+        'D5 – Dispensa dal ricopiare testi o espressioni matematiche dalla lavagna',
+        'D6 – Dispensa dallo studio mnemonico delle tabelline, delle forme verbali e delle poesie',
+        'D7 – Dispensa dall’utilizzo dei tempi standard',
+        'D8 – Riduzione delle consegne senza modificare gli obiettivi',
+        'D9 – Dispensa da un eccessivo carico di compiti con riadattamento e riduzione delle pagine da studiare, senza modificare gli obiettivi',
+        'D10 – Dispensa dalla sovrapposizione di compiti e interrogazioni di più materie',
+        'D11 – Dispensa parziale dallo studio della lingua straniera in forma scritta, valutata in percentuale minore rispetto all’orale, senza considerare errori ortografici e di spelling',
+        'D12 – Integrazione dei libri di testo con appunti su supporto registrato, digitalizzato o cartaceo stampato, sintesi vocale, mappe, schemi, formulari',
+        'D13 – Accordo sulle modalità e tempi delle verifiche scritte con possibilità di utilizzare supporti multimediali',
+        'D14 – Accordo sui tempi e sulle modalità delle interrogazioni',
+        'D15 – Nelle verifiche, riduzione e adattamento del numero degli esercizi senza modificare gli obiettivi',
+        'D16 – Nelle verifiche scritte, domande a risposta multipla (con possibile completamento orale); riduzione al minimo delle domande a risposta aperta',
+        'D17 – Lettura delle consegne e/o prove su supporto digitalizzato leggibili dalla sintesi vocale',
+        'D18 – Parziale sostituzione o completamento delle verifiche scritte con prove orali, con schemi e/o mappe durante l’interrogazione',
+        'D19 – Controllo, da parte dei docenti, della gestione del diario (corretta trascrizione di compiti e avvisi)',
+        'D20 – Valutazione dei procedimenti e non dei calcoli nella risoluzione dei problemi',
+        'D21 – Valutazione del contenuto e non degli errori ortografici',
+        'D22 – Altro (specificare nelle note)'];
+      const COMP = [
+        'C1 – Utilizzo di computer e tablet (possibilmente con stampante)',
+        'C2 – Programmi di videoscrittura con correttore ortografico (possibilmente vocale) e sintesi vocale (anche per le lingue straniere)',
+        'C3 – Risorse audio (file audio digitali, audiolibri, ecc.)',
+        'C4 – Registratore digitale e altri strumenti di registrazione per uso personale',
+        'C5 – Ausili per il calcolo (tavola pitagorica, linee dei numeri, ecc.) ed eventualmente calcolatrice (possibilmente vocale) con foglio di calcolo',
+        'C6 – Schemi, tabelle, mappe e diagrammi di flusso come supporto durante compiti e verifiche scritte',
+        'C7 – Formulari, schemi e/o mappe delle discipline scientifiche come supporto durante compiti e verifiche scritte',
+        'C8 – Mappe e schemi durante le interrogazioni, anche su supporto digitale, per facilitare il recupero delle informazioni',
+        'C9 – Dizionari digitali (risorse online)',
+        'C10 – Software didattici e compensativi (free e/o commerciali)',
+        'C11 – Altro (specificare nelle note)'];
+      const colMisure = [{h:'Misura', w:7}, {h:'Proposta', w:1.2, tipo:'x'}, {h:'Adottata', w:1.2, tipo:'x'}, {h:'Discipline / note', w:2.6}];
 
-        {t:'h', testo:'Tipologia del bisogno educativo speciale'},
-        {t:'scelta', id:'tipologia', label:'Il PDP è redatto per', col:1, opz:[TIP.DSA, TIP.DOC, TIP.NODOC, TIP.NAI]},
+      return [
+        {t:'h', testo:'Parti da compilare'},
+        {t:'multi', id:'fase', label:'Il documento comprende', col:2,
+          opz:['Stesura del piano', 'Osservazioni alla conclusione dell’anno scolastico'], def:['Stesura del piano']},
+        {t:'nota', testo:'Il PDP è un documento riservato con dati relativi alla salute (art. 9 GDPR): si conserva nel fascicolo personale e non si pubblica in aree del registro visibili alla classe. Va redatto entro il primo trimestre o entro tre mesi dalla consegna della certificazione.'},
 
-        {t:'se', campo:'tipologia', vale:[TIP.DSA, TIP.DOC], blocchi:[
-          {t:'h', testo:'Documentazione agli atti'},
+        {t:'se', campo:'fase', vale:'Stesura del piano', blocchi:[
+          {t:'h', testo:'Dati anagrafici'},
           {t:'riga', campi:[
-            {t:'scelta', id:'doc_tipo', label:'Tipo di documento', w:12, opz:[
-              'Certificazione DSA (L. 170/2010, Accordo Stato-Regioni 25/7/2012)', 'Relazione clinica / specialistica', 'Aggiornamento della certificazione'], altro:true}]},
+            {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico()},
+            {t:'testo', id:'alunno', label:'Nome e cognome', w:5, obbl:true, rif:'Identificazione dell’alunno'},
+            {t:'testo', id:'nascita', label:'Luogo e data di nascita', w:4}]},
           {t:'riga', campi:[
-            {t:'testo', id:'doc_ente', label:'Redatto da (servizio pubblico / struttura accreditata / specialista)', w:6},
-            {t:'data', id:'doc_data', label:'Data del documento', w:3},
-            {t:'testo', id:'doc_prot', label:'Prot. di acquisizione', w:3}]},
-          {t:'nota', testo:'Indicare solo gli estremi del documento: il contenuto clinico resta nel fascicolo riservato. Il PDP per DSA va redatto entro il primo trimestre o entro tre mesi dalla consegna della certificazione.'}]},
+            {t:'testo', id:'classe', label:'Classe', w:3},
+            {t:'testo', id:'referente', label:s === 'S' ? 'Coordinatore di classe' : 'Docente prevalente / coordinatore', w:5},
+            {t:'testo', id:'ripetenze', label:'Eventuali ripetenze (a.s. – scuola)', w:4}]},
+          {t:'nota', testo:'Minimizzazione dei dati (art. 5 GDPR): indirizzo, recapiti e composizione del nucleo familiare non si riportano nel PDP; sono disponibili in segreteria.'},
 
-        {t:'se', campo:'tipologia', vale:TIP.NODOC, blocchi:[
-          {t:'h', testo:'Individuazione da parte del ' + organo},
+          {t:'h', testo:'Tipologia del bisogno educativo speciale'},
+          {t:'scelta', id:'tipologia', label:'Il PDP è redatto per', col:1, opz:[TIP.DSA, TIP.DOC, TIP.NODOC, TIP.NAI], obbl:true,
+            rif:'L. 170/2010 (DSA); Dir. 27/12/2012 e C.M. 8/2013 (altri BES)'},
+
+          {t:'se', campo:'tipologia', vale:[TIP.DSA, TIP.DOC], blocchi:[
+            {t:'h', testo:'Servizio sanitario'},
+            {t:'nota', testo:'Diagnosi – relazione multiprofessionale (o diagnosi rilasciata da privati, in attesa di ratifica e certificazione da parte del Servizio sanitario nazionale).'},
+            {t:'riga', campi:[
+              {t:'testo', id:'diag_da', label:'Redatta da', w:5, obbl:true, rif:'Estremi della certificazione (L. 170/2010, art. 3; Accordo Stato-Regioni 25/7/2012)'},
+              {t:'data', id:'diag_data', label:'In data', w:3, obbl:true, rif:'Estremi della certificazione'},
+              {t:'testo', id:'diag_prot', label:'Prot. di acquisizione agli atti', w:4}]},
+            {t:'nota', testo:'Si riportano solo gli estremi del documento, senza codici diagnostici né descrizioni cliniche: la certificazione resta agli atti nel fascicolo riservato (minimizzazione, art. 5 GDPR).'},
+            {t:'area', id:'aggiornamenti', label:'Aggiornamenti diagnostici', righe:2},
+            {t:'area', id:'altre_relazioni', label:'Altre relazioni cliniche', righe:2},
+            {t:'area', id:'riabilitativi', label:'Interventi riabilitativi', righe:2},
+            {t:'h', testo:'Altro servizio'},
+            {t:'riga', campi:[
+              {t:'testo', id:'altro_doc', label:'Documentazione presentata alla scuola', w:6},
+              {t:'testo', id:'altro_da', label:'Redatta da', w:3},
+              {t:'data', id:'altro_data', label:'In data', w:3}]},
+            {t:'nota', testo:'Allegare la relazione (conservata nel fascicolo riservato).'},
+            {t:'h', testo:'Osservazioni dei docenti rispetto alla relazione dello specialista'},
+            {t:'nota', testo:'Confronto tra quanto indicato nella relazione e quanto osservato in classe: conferme, aspetti emersi solo a scuola, punti di forza, indicazioni da adattare al contesto. Descrivere comportamenti e prestazioni osservati (quando, in quale attività), senza riformulare contenuti clinici né esprimere valutazioni diagnostiche.'},
+            {t:'area', id:'oss_relazione', label:'Riscontri in classe rispetto alla relazione', righe:4},
+            {t:'area', id:'oss_forza', label:'Punti di forza e strategie che risultano efficaci', righe:3},
+            {t:'area', id:'oss_adattamenti', label:'Indicazioni della relazione da adattare al contesto scolastico (e motivazione)', righe:3}]},
+
+          {t:'se', campo:'tipologia', vale:TIP.NODOC, blocchi:[
+            {t:'h', testo:'Decisione scolastica collegiale'},
+            {t:'riga', campi:[
+              {t:'data', id:'ind_data', label:'Delibera del ' + organo + ' del', w:4, nopdf:true, obbl:true, rif:'C.M. 8/2013: decisione motivata a verbale'},
+              {t:'testo', id:'ind_verbale', label:'Verbale n.', w:3, nopdf:true, obbl:true, rif:'C.M. 8/2013'},
+              {t:'testo', id:'ind_prot', label:'Eventuale relazione agli atti (prot.)', w:5}]},
+            {t:'testofisso', testo:`Il ${organo}, con delibera del {ind_data} (verbale n. {ind_verbale}), ha individuato bisogni educativi speciali sulla base di elementi oggettivi e di considerazioni pedagogiche e didattiche, motivando a verbale la decisione di predisporre il presente piano (C.M. 8/2013). Le misure hanno carattere transitorio.`},
+            {t:'multi', id:'area_svantaggio', label:'Area dello svantaggio', col:3, altro:true, opz:['Socio-economico', 'Linguistico-culturale', 'Relazionale / comportamentale']}]},
+
+          {t:'se', campo:'tipologia', vale:TIP.NAI, blocchi:[
+            {t:'h', testo:'Alunno/a neo arrivato/a: percorso e competenze linguistiche'},
+            {t:'riga', campi:[
+              {t:'data', id:'nai_arrivo', label:'Arrivo in Italia', w:3},
+              {t:'data', id:'nai_iscr', label:'Iscrizione alla scuola', w:3},
+              {t:'num', id:'nai_anni', label:'Anni di scolarità pregressa', w:3},
+              {t:'scelta', id:'nai_livello', label:'Italiano L2 (QCER)', w:3, opz:['pre-A1', 'A1', 'A2', 'B1', 'B2']}]},
+            {t:'testo', id:'nai_lingue', label:'Lingua madre e altre lingue conosciute'},
+            {t:'multi', id:'nai_risorse', label:'Risorse attivate', col:2, altro:true, opz:[
+              'Laboratorio di italiano L2 per comunicare', 'Laboratorio di italiano L2 per lo studio', 'Mediatore linguistico-culturale',
+              'Tutor tra pari', 'Materiali bilingui e glossari', 'Docente di italiano L2 (D.L. 71/2024)']},
+            {t:'testofisso', testo:'Il piano ha carattere transitorio ed è rivisto man mano che cresce la competenza in italiano; i contenuti disciplinari sono selezionati per nuclei essenziali (Linee guida alunni stranieri 2014; Orientamenti interculturali 2022).'}]},
+
+          {t:'h', testo:'Consiglio di classe – Team docenti'},
           {t:'riga', campi:[
-            {t:'data', id:'ind_data', label:'Delibera del ' + organo + ' del', w:4, nopdf:true},
-            {t:'testo', id:'ind_verbale', label:'Verbale n.', w:3, nopdf:true},
-            {t:'testo', id:'ind_prot', label:'Eventuale relazione agli atti (prot.)', w:5}]},
-          {t:'testofisso', testo:`Il ${organo}, con delibera del {ind_data} (verbale n. {ind_verbale}), ha individuato bisogni educativi speciali sulla base di elementi oggettivi e di considerazioni pedagogiche e didattiche, motivando a verbale la decisione di predisporre il presente piano (C.M. 8/2013). Le misure hanno carattere transitorio.`},
-          {t:'multi', id:'area_svantaggio', label:'Area dello svantaggio', col:3, altro:true, opz:['Socio-economico', 'Linguistico-culturale', 'Relazionale / comportamentale']}]},
-
-        {t:'se', campo:'tipologia', vale:TIP.NAI, blocchi:[
-          {t:'h', testo:'Percorso scolastico e competenze linguistiche'},
+            {t:'testo', id:'rel_cdc_da', label:'Relazione redatta da', w:8},
+            {t:'data', id:'rel_cdc_data', label:'In data', w:4}]},
+          {t:'matrice', id:'bisogni', label:'Dopo un primo periodo di osservazione sono emersi i seguenti bisogni – difficoltà di apprendimento in:', voci:DIFF, opz:['Sì', 'No']},
+          {t:'matrice', id:'metodo', label:'Metodo di lavoro', voci:['Sa organizzare il lavoro da solo', 'Se aiutato, sa organizzare il lavoro'], opz:['Sì', 'A volte', 'No']},
           {t:'riga', campi:[
-            {t:'data', id:'nai_arrivo', label:'Arrivo in Italia', w:3},
-            {t:'data', id:'nai_iscr', label:'Iscrizione alla scuola', w:3},
-            {t:'num', id:'nai_anni', label:'Anni di scolarità pregressa', w:3},
-            {t:'testo', id:'nai_classe', label:'Classe di inserimento', w:3}]},
+            {t:'testo', id:'disc_pref', label:'Punti di forza – discipline preferite', w:6},
+            {t:'testo', id:'att_pref', label:'Punti di forza – attività preferite', w:6}]},
+          {t:'multi', id:'compagni', label:'Punti di forza nel gruppo classe: presenza di un compagno o di un gruppo di compagni di riferimento', col:3,
+            opz:['Per le attività disciplinari', 'Per il gioco', 'Per le attività extrascolastiche']},
+          {t:'matrice', id:'impegno', label:'Impegno nel lavoro, esecuzione dei compiti e studio', voci:['A casa', 'A scuola'], opz:['Costante', 'Saltuario']},
+
+          {t:'h', testo:'Osservazione dell’alunno/a'},
+          {t:'matrice', id:'motivazione', label:'Motivazione', voci:['Partecipazione al dialogo educativo', 'Consapevolezza delle proprie difficoltà', 'Consapevolezza dei propri punti di forza', 'Autostima'], opz:Q4},
+          {t:'matrice', id:'atteggiamenti', label:'Atteggiamenti e comportamenti riscontrabili a scuola', voci:['Regolarità della frequenza scolastica', 'Accettazione e rispetto delle regole', 'Rispetto degli impegni', 'Accettazione consapevole degli strumenti compensativi e delle misure dispensative', 'Autonomia nel lavoro'], opz:Q4m},
+          {t:'matrice', id:'strategie_alunno', label:'Strategie utilizzate dall’alunno/a nello studio', voci:['Sottolinea, identifica parole chiave, ecc.', 'Costruisce schemi, mappe, diagrammi', 'Utilizza strumenti informatici (computer, correttore ortografico, software, ecc.)', 'Utilizza strategie di memorizzazione (immagini, colori, riquadrature, ecc.)'], opz:['Efficace', 'Da potenziare']},
+          {t:'area', id:'oss_altro', label:'Altro (motivazione, comportamenti, strategie)', righe:2},
+          {t:'multi', id:'lingue_oss', label:'Apprendimento delle lingue straniere', col:2, opz:[
+            'Pronuncia difficoltosa', 'Difficoltà di acquisizione degli automatismi grammaticali di base', 'Difficoltà nella scrittura',
+            'Difficoltà nell’acquisizione del nuovo lessico', 'Notevoli differenze tra comprensione del testo scritto e orale', 'Notevoli differenze tra produzione scritta e orale']},
+
+          {t:'h', testo:'Informazioni generali fornite dalla famiglia e/o dall’alunno/a'},
+          {t:'area', id:'info_famiglia', label:'Interessi, difficoltà, attività in cui si sente capace, aspettative, richieste', righe:4},
+          {t:'area', id:'info_altro', label:'Altro', righe:2},
+
+          {t:'h', testo:'Descrizione delle abilità e dei comportamenti'},
+          {t:'nota', testo:'Per ogni abilità: a sinistra i dati rilevabili nella diagnosi (se presenti), a destra quanto rilevato direttamente dagli insegnanti in classe.'},
+          diagnosi('diag_lettura', 'lettura'),
           {t:'riga', campi:[
-            {t:'testo', id:'nai_lingue', label:'Lingua madre e altre lingue conosciute', w:6},
-            {t:'scelta', id:'nai_livello', label:'Livello di italiano L2 (QCER)', w:6, opz:['pre-A1', 'A1', 'A2', 'B1', 'B2']}]},
-          {t:'area', id:'nai_percorso', label:'Percorso scolastico pregresso (documentazione disponibile, discipline studiate)', righe:2},
-          {t:'multi', id:'nai_risorse', label:'Risorse attivate', col:2, altro:true, opz:[
-            'Laboratorio di italiano L2 per comunicare', 'Laboratorio di italiano L2 per lo studio', 'Mediatore linguistico-culturale',
-            'Tutor tra pari', 'Materiali bilingui e glossari', 'Docente di italiano L2 (D.L. 71/2024)']},
+            {t:'scelta', id:'lett_vel', label:'Lettura – velocità', w:4, opz:['Molto lenta', 'Lenta', 'Scorrevole']},
+            {t:'scelta', id:'lett_corr', label:'Lettura – correttezza', w:4, opz:['Adeguata', 'Non adeguata (confonde, inverte, sostituisce, omette lettere o sillabe)']},
+            {t:'scelta', id:'lett_comp', label:'Lettura – comprensione', w:4, opz:['Completa – analitica', 'Globale', 'Essenziale', 'Scarsa']}]},
+          diagnosi('diag_scrittura', 'scrittura'),
           {t:'riga', campi:[
-            {t:'num', id:'nai_ore', label:'Ore settimanali di italiano L2', w:4},
-            {t:'testo', id:'nai_durata', label:'Durata prevista del percorso', w:8}]},
-          {t:'testofisso', testo:'Il piano ha carattere transitorio ed è rivisto man mano che cresce la competenza in italiano. Nella fase iniziale la priorità è l’apprendimento dell’italiano per comunicare; i contenuti disciplinari sono selezionati per nuclei essenziali (Linee guida per l’accoglienza e l’integrazione degli alunni stranieri 2014; Orientamenti interculturali 2022).'},
-          {t:'tabella', id:'nai_valutazione', label:'Valutazione nel primo periodo',
-            col:[{h:'Disciplina', w:3}, {h:'Modalità', w:3}, {h:'Contenuti essenziali / obiettivi minimi', w:6, tipo:'area'}],
-            fisse:DISCIPLINE[s], init:DISCIPLINE[s].map(() => ['', 'riferita al PDP', ''])},
-          {t:'nota', testo:'Modalità: «riferita al PDP», oppure, se l’inserimento è molto recente, valutazione rinviata con motivazione («in corso di prima alfabetizzazione»). All’esame di Stato le prove non si differenziano: si possono usare gli strumenti compensativi già impiegati nell’anno.'}]},
+            {t:'scelta', id:'scr_dett', label:'Scrittura sotto dettatura', w:4, opz:['Corretta', 'Poco corretta', 'Scorretta']},
+            {t:'multi', id:'scr_errori', label:'Tipologia di errori', w:4, opz:['Fonologici', 'Fonetici', 'Non fonologici']},
+            {t:'scelta', id:'scr_ortografia', label:'Correttezza ortografica', w:4, opz:APN}]},
+          {t:'matrice', id:'produzione', label:'Produzione autonoma', voci:['Aderenza alla consegna', 'Corretta struttura morfosintattica', 'Corretta struttura testuale (narrativo, descrittivo, regolativo, ecc.)'], opz:STM},
+          {t:'riga', campi:[
+            {t:'scelta', id:'punteggiatura', label:'Uso della punteggiatura', w:4, opz:APN},
+            {t:'scelta', id:'grafia', label:'Grafia – leggibile', w:4, opz:['Sì', 'Poco', 'No']},
+            {t:'multi', id:'tratto', label:'Grafia – tratto', w:4, opz:['Premuto', 'Leggero', 'Ripassato', 'Incerto']}]},
+          diagnosi('diag_grafia', 'grafia'),
+          diagnosi('diag_calcolo', 'calcolo'),
+          {t:'matrice', id:'calcolo_a', label:'Calcolo', voci:['Difficoltà visuospaziali (quantificazione automatizzata)', 'Errori di processamento numerico (aspetti cardinali e ordinali, corrispondenza tra numero e quantità)'], opz:STM},
+          {t:'matrice', id:'calcolo_b', voci:['Recupero di fatti numerici (tabelline)', 'Automatizzazione dell’algoritmo procedurale', 'Uso degli algoritmi di base del calcolo (scritto e a mente)', 'Capacità di problem solving', 'Comprensione del testo di un problema'], opz:['Adeguata', 'Parziale', 'Non raggiunta']},
+          {t:'area', id:'varie', label:'Varie ed eventuali', righe:2},
 
-        {t:'se', campo:'tipologia', vale:TIP.DSA, blocchi:[
-          {t:'h', testo:'Funzionamento nelle abilità strumentali'},
-          {t:'nota', testo:'Sintetizzare in termini funzionali quanto emerge dalla documentazione (es. velocità e correttezza) e affiancare le osservazioni dei docenti in classe.'},
-          {t:'tabella', id:'abilita', col:[{h:'Abilità', w:2.5}, {h:'Elementi dalla documentazione (sintesi funzionale)', w:4.75, tipo:'area'}, {h:'Osservazioni dei docenti', w:4.75, tipo:'area'}],
-            fisse:['Lettura (velocità, correttezza, comprensione)', 'Scrittura (grafia, ortografia)', 'Produzione del testo', 'Calcolo e procedure', 'Lingue straniere', 'Altro (memoria, attenzione, organizzazione)']}]},
+          {t:'h', testo:'Altre caratteristiche del processo di apprendimento'},
+          diagnosi('diag_processo', 'proprietà linguistica, memoria, attenzione, affaticabilità, prassie'),
+          {t:'multi', id:'ling', label:'Proprietà linguistica', col:1, opz:['Difficoltà nella strutturazione della frase', 'Difficoltà nell’esposizione orale', 'Difficoltà nel reperimento lessicale']},
+          {t:'multi', id:'memoria', label:'Memoria – difficoltà in', col:1, opz:['Categorizzazioni', 'Formule, strutture grammaticali, algoritmi (tabelline, nomi, date)', 'Sequenze e procedure']},
+          {t:'riga', campi:[
+            {t:'multi', id:'attenzione', label:'Attenzione – difficoltà', w:6, opz:['Visuo-spaziale', 'Intensiva', 'Selettiva']},
+            {t:'scelta', id:'affaticabilita', label:'Affaticabilità', w:6, opz:['Sì', 'Poco', 'No']}]},
+          {t:'multi', id:'prassie', label:'Prassie', col:1, opz:['Difficoltà di esecuzione', 'Difficoltà di programmazione e progettazione', 'Difficoltà di pianificazione']},
+          {t:'area', id:'processo_altro', label:'Altro', righe:2},
 
-        {t:'h', testo:'Caratteristiche del processo di apprendimento'},
-        {t:'tabella', id:'processo', col:[{h:'Aspetto', w:4}, {h:'Osservazioni', w:8, tipo:'area'}],
-          fisse:['Attenzione e concentrazione', 'Memorizzazione e recupero delle informazioni', 'Organizzazione e pianificazione del lavoro',
-            'Tempi di esecuzione', 'Comprensione delle consegne orali e scritte', 'Autonomia nello studio', 'Motivazione, relazione e partecipazione']},
-        {t:'multi', id:'punti_forza', label:'Punti di forza e canali preferenziali', col:3, altro:true, opz:[
-          'Canale visivo', 'Canale uditivo', 'Canale cinestesico', 'Interesse per le attività pratiche', 'Buone capacità orali', 'Collaborazione con i compagni']},
-        {t:'area', id:'consapevolezza', label:s === 'S' ? 'Consapevolezza del proprio modo di apprendere e strategie di studio' : 'Strategie utilizzate dall’alunno/a nello studio', righe:2},
+          {t:'h', testo:'Misure dispensative e interventi di individualizzazione'},
+          {t:'testofisso', testo:'Gli insegnanti, per stimolare l’autostima ed evitare frustrazioni, operano ponendo particolare attenzione alle specifiche difficoltà, affinché l’alunno/a sia messo/a in condizioni di raggiungere il successo formativo. A tale scopo favoriscono l’attivazione degli strumenti compensativi e delle misure dispensative ritenuti adeguati, riportati nelle tabelle seguenti (L. 170/2010 e Linee guida 12/07/2011).'},
+          {t:'tabella', id:'dispensative', col:colMisure, fisse:DISP},
+          {t:'testofisso', testo:'Per molti allievi (DSA o svantaggio) la dispensa da un obiettivo di apprendimento deve rappresentare l’ultima opzione.'},
+          {t:'nota', testo:'Per i BES senza documentazione e per gli alunni neo arrivati privilegiare strumenti compensativi e strategie: le misure dispensative sono eccezionali e transitorie.'},
 
-        {t:'h', testo:'Strategie didattiche'},
-        {t:'multi', id:'strategie', col:2, altro:true, opz:[
-          'Anticipare l’argomento e fornire la mappa della lezione', 'Usare mediatori visivi (schemi, immagini, mappe)',
-          'Suddividere i compiti in fasi e consegne brevi', 'Apprendimento cooperativo e tutoraggio tra pari',
-          'Didattica laboratoriale e compiti autentici', 'Verificare la comprensione delle consegne',
-          'Valorizzare i contenuti rispetto alla forma', 'Promuovere l’uso autonomo degli strumenti compensativi',
-          'Gratificare i progressi e sostenere l’autostima', 'Concordare il carico dei compiti a casa']},
+          {t:'h', testo:'Strumenti compensativi'},
+          {t:'tabella', id:'compensativi', col:colMisure, fisse:COMP},
+          {t:'testofisso', testo:'Molti strumenti compensativi non sono un ausilio eccezionale o alternativo a quelli della didattica ordinaria: possono arricchire e differenziare la didattica per tutta la classe (mappe, organizzatori concettuali, strumenti informatici). Si documentano qui sotto i miglioramenti della didattica per tutti.'},
+          {t:'area', id:'oss_strumenti', label:'Eventuali osservazioni in entrata e in uscita sull’uso degli strumenti compensativi e sulle misure dispensative', righe:3},
 
-        {t:'h', testo:'Strumenti compensativi e misure dispensative'},
-        {t:'multi', id:'compensativi', label:'Strumenti compensativi comuni', col:2, altro:true, opz:[
-          'Tabelle, formulari e schemi', 'Mappe concettuali e mentali', 'Calcolatrice', 'Sintesi vocale e audiolibri',
-          'Libri di testo digitali', 'Computer o tablet con correttore ortografico', 'Registrazione delle lezioni (con consenso)',
-          'Dizionari digitali', 'Tavola pitagorica', 'Testi con carattere ad alta leggibilità']},
-        {t:'multi', id:'dispensative', label:'Misure dispensative comuni', col:2, altro:true, opz:[
-          'Lettura ad alta voce davanti alla classe', 'Scrittura sotto dettatura di testi lunghi', 'Copiatura dalla lavagna',
-          'Studio mnemonico di tabelline, formule, definizioni', 'Rispetto dei tempi standard nelle verifiche',
-          'Più verifiche nella stessa giornata', 'Uso del corsivo o dello stampato minuscolo', 'Quantità eccessiva di compiti a casa']},
-        {t:'nota', testo:'Le misure dispensative non riducono gli obiettivi di apprendimento: esonerano da prestazioni che la difficoltà rende particolarmente onerose. Per i BES senza documentazione privilegiare strumenti compensativi e strategie; le misure dispensative sono eccezionali e transitorie.'},
-        {t:'tabella', id:'discipline', label:'Misure per disciplina',
-          col:[{h:'Disciplina', w:2}, {h:'Strumenti compensativi', w:3.3, tipo:'area'}, {h:'Misure dispensative', w:3.3, tipo:'area'}, {h:'Modalità di verifica e valutazione', w:3.4, tipo:'area'}],
-          fisse:DISCIPLINE[s]},
+          {t:'h', testo:'Indicazioni generali per la verifica e la valutazione'},
+          {t:'multi', id:'ind_valutazione', label:'Per la verifica / valutazione', col:1, opz:[
+            'Valorizzare il processo di apprendimento dell’allievo/a e non valutare solo il prodotto/risultato',
+            'Predisporre verifiche scalari', 'Programmare e concordare con l’alunno/a le verifiche',
+            'Prevedere verifiche orali a compensazione di quelle scritte (soprattutto per la lingua straniera) ove necessario',
+            'Far usare strumenti e mediatori didattici nelle prove sia scritte sia orali',
+            'Favorire un clima di classe sereno e tranquillo, anche dal punto di vista dell’ambiente fisico (rumori, luci, ecc.)',
+            'Rassicurare sulle conseguenze delle valutazioni']},
+          {t:'multi', id:'ind_scritte', label:'Per le prove scritte', col:1, opz:[
+            'Predisporre verifiche scritte accessibili, brevi, strutturate e scalari', 'Facilitare la decodifica della consegna e del testo',
+            'Valutare tenendo conto maggiormente del contenuto rispetto alla forma', 'Introdurre prove informatizzate',
+            'Programmare tempi più lunghi per l’esecuzione delle prove']},
+          {t:'multi', id:'ind_orali', label:'Per le prove orali', col:1, opz:[
+            'Gestione dei tempi nelle verifiche orali', 'Valorizzazione del contenuto nell’esposizione orale, tenendo conto di eventuali difficoltà espositive',
+            'Prevedere verifiche orali a compensazione di quelle scritte, ove necessario, soprattutto nella lingua straniera']},
+          ...(s === 'S' ? [
+            {t:'scelta', id:'lingue', label:'Lingue straniere', col:1, opz:[
+              'Nessuna misura oltre a quelle indicate',
+              'Dispensa dalle prove scritte con prove orali compensative (art. 6 c. 5 D.M. 5669/2011)',
+              'Esonero dall’insegnamento con percorso didattico differenziato (art. 6 c. 6 D.M. 5669/2011)'],
+              nota:'Dispensa ed esonero solo per DSA, su richiesta della famiglia e con certificazione che lo preveda. L’esonero comporta prove d’esame differenziate.'},
+            {t:'area', id:'esame', label:'Indicazioni per l’esame di Stato (classe terza): tempi, strumenti, prove orali sostitutive', righe:2}] : []),
 
-        {t:'h', testo:'Criteri e modalità di verifica e valutazione'},
-        {t:'multi', id:'verifica', col:2, altro:true, opz:[
-          'Verifiche programmate e concordate', 'Tempi aggiuntivi (fino al 30%) o riduzione quantitativa della prova',
-          'Prove strutturate (scelta multipla, vero/falso, completamento)', 'Compensazione orale delle prove scritte',
-          'Lettura delle consegne da parte del docente', 'Uso degli strumenti compensativi durante le verifiche',
-          'Valutazione del contenuto e non della forma (ortografia, grafia)', 'Valutazione dei progressi rispetto al punto di partenza']},
-        ...(s === 'S' ? [
-          {t:'scelta', id:'lingue', label:'Lingue straniere', col:1, opz:[
-            'Nessuna misura specifica oltre a quelle indicate per disciplina',
-            'Dispensa dalle prove scritte con prove orali compensative (art. 6 c. 5 D.M. 5669/2011)',
-            'Esonero dall’insegnamento con percorso didattico differenziato (art. 6 c. 6 D.M. 5669/2011)'],
-           nota:'Dispensa ed esonero sono possibili solo per DSA, su richiesta della famiglia e con certificazione che lo preveda. L’esonero comporta prove d’esame differenziate.'},
-          {t:'area', id:'esame', label:'Indicazioni per l’esame di Stato (classe terza): tempi, strumenti, prove orali sostitutive', righe:2}] : []),
-        {t:'area', id:'valutazione_note', label:'Ulteriori criteri di valutazione', righe:2},
+          {t:'h', testo:'Patto educativo'},
+          {t:'testofisso', testo:'Si concorda con la famiglia e con l’alunno/a quanto segue.'},
+          {t:'multi', id:'studio', label:'Nelle attività di studio l’allievo/a', col:1, altro:true, opz:[
+            'È seguito/a da un tutor nelle discipline indicate', 'È seguito/a dai familiari', 'Ricorre all’aiuto dei compagni', 'Utilizza strumenti compensativi']},
+          {t:'riga', campi:[
+            {t:'testo', id:'tutor_disc', label:'Tutor: discipline', w:6},
+            {t:'scelta', id:'tutor_cad', label:'Tutor: cadenza', w:6, opz:['Quotidiana', 'Settimanale', 'Bisettimanale', 'Quindicinale']}]},
+          {t:'multi', id:'casa', label:'Strumenti da utilizzare nel lavoro a casa', col:2, altro:true, opz:[
+            'Strumenti informatici (pc, videoscrittura con correttore ortografico, ecc.)', 'Tecnologia di sintesi vocale', 'Appunti scritti al pc',
+            'Registrazioni digitali', 'Materiali multimediali (video, simulazioni, ecc.)', 'Testi semplificati e/o ridotti', 'Fotocopie',
+            'Schemi e mappe', 'Interventi di un tutor privato', 'Interventi di un familiare']},
+          {t:'multi', id:'attivita', label:'Attività scolastiche individualizzate programmate', col:2, altro:true, opz:[
+            'Attività di recupero', 'Attività di consolidamento e/o di potenziamento', 'Attività di laboratorio',
+            'Attività a classi aperte (per piccoli gruppi)', 'Attività curricolari all’esterno dell’ambiente scolastico',
+            'Tutoring da parte dei compagni di classe', 'Apprendimento cooperativo', 'Recupero/sostegno linguistico con operatori esterni alla scuola']},
+          {t:'testofisso', testo:'Le parti coinvolte si impegnano a rispettare quanto condiviso e concordato nel presente PDP, per il successo formativo dell’alunno/a.'},
 
-        {t:'h', testo:'Patto con la famiglia'},
-        {t:'testofisso', testo:s === 'S'
-          ? 'La scuola si impegna ad applicare le misure del piano, a informare la famiglia sull’andamento e a rivedere il PDP quando necessario; la famiglia si impegna a sostenere l’uso degli strumenti compensativi, a curare l’organizzazione del materiale e a partecipare ai colloqui di verifica; l’alunno/a si impegna a utilizzare gli strumenti concordati, a segnalare le difficoltà e a organizzare lo studio.'
-          : 'La scuola si impegna ad applicare le misure del piano, a informare la famiglia sull’andamento e a rivedere il PDP quando necessario; la famiglia si impegna a sostenere l’uso degli strumenti compensativi, a curare l’organizzazione del materiale e a partecipare ai colloqui di verifica.'},
-        {t:'tabella', id:'patto', label:'Impegni specifici', col:[{h:'Chi', w:3}, {h:'Impegni', w:9, tipo:'area'}],
-          fisse:['Scuola', 'Famiglia', ...(s === 'S' ? ['Alunno/a'] : [])]},
-        {t:'area', id:'compiti', label:'Accordi sui compiti a casa (quantità, tempi, strumenti, chi aiuta)', righe:2},
-        ...(s === 'S' ? [{t:'nota', testo:'L’alunno/a partecipa alla condivisione del piano e lo sottoscrive per la parte che lo/la riguarda, per favorire la consapevolezza del proprio stile di apprendimento.'}] : []),
+          {t:'h', testo:'Approvazione e firme'},
+          {t:'riga', campi:[
+            {t:'data', id:'approvazione', label:'Approvato dal ' + organo + ' il', w:6, nopdf:true, obbl:true, rif:'Il PDP è deliberato dal ' + organo + ' (L. 170/2010; C.M. 8/2013)'},
+            {t:'data', id:'data', label:'Data di sottoscrizione', w:6, oggi:true}]},
+          {t:'testofisso', testo:`Il presente piano è approvato dal ${organo} il {approvazione} e condiviso con la famiglia; è valido per l’a.s. {as}.`},
+          {t:'nota', testo:'Documentare la condivisione con il verbale «Condivisione del PDP». Il PDP resta valido anche senza firma della famiglia, purché la condivisione sia documentata.'},
+          firmeDocenti('firme_docenti', 'Firme dei docenti'),
+          {t:'firme', ruoli:['La madre', 'Il padre', ...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']}]},
 
-        {t:'h', testo:'Approvazione e verifiche'},
-        {t:'riga', campi:[
-          {t:'data', id:'approvazione', label:'Approvato dal ' + organo + ' il', w:4, nopdf:true},
-          {t:'data', id:'monitoraggio', label:'Monitoraggio intermedio entro', w:4, nopdf:true},
-          {t:'data', id:'verifica_finale', label:'Verifica finale entro', w:4, nopdf:true}]},
-        {t:'testofisso', testo:`Il presente piano è approvato dal ${organo} il {approvazione}, condiviso con la famiglia e valido per l’a.s. {as}. Il monitoraggio intermedio è previsto entro il {monitoraggio} e la verifica finale entro il {verifica_finale}.`},
-        {t:'nota', testo:'Documentare la condivisione con il verbale «Condivisione del PDP». Il PDP resta valido anche senza firma della famiglia, purché la condivisione sia documentata.'},
-        firmeDocenti('firme_docenti', `Firme del ${organo}`),
-        {t:'firme', ruoli:[
-          'Il Coordinatore didattico',
-          'Il genitore / esercente la responsabilità genitoriale', 'Il genitore / esercente la responsabilità genitoriale',
-          ...(s === 'S' ? ['L’alunno/a'] : [])]},
+        {t:'se', campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico', blocchi:[
+          {t:'h', testo:'Osservazioni alla conclusione dell’anno scolastico'},
+          {t:'riga', campi:[
+            {t:'testo', id:'alunno_fine', label:'Alunno/a', w:6},
+            {t:'data', id:'data_fine', label:'Data', w:6}]},
+          {t:'area', id:'oss_fine', label:'Efficacia delle misure adottate, progressi, criticità e indicazioni per l’anno successivo', righe:6},
+          firmeDocenti('firme_docenti_fine', 'Firme dei docenti'),
+          {t:'firme', id:'firme_fine', ruoli:['La madre', 'Il padre', ...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']}]},
       ];
-      return out;
     },
   });
 
