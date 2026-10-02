@@ -397,6 +397,8 @@ function el(tag, attrs = {}, ...figli){
   return e;
 }
 const SVG = {
+  lucchetto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+  riprendi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>',
   info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
   cerca:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   indietro:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>',
@@ -433,6 +435,7 @@ function home(){
     html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>'},
     el('div', {}, el('b', {}, 'Carta intestata: impagina un documento già preparato'),
       el('span', {}, 'Soluzione di emergenza per un PDF che hai già scritto con Word, Pages o Google Documenti: aggiunge l’intestazione della scuola. Per i documenti nuovi usa i moduli qui sotto, che guidano la compilazione e controllano gli elementi obbligatori.'))));
+  w.append(el('div', {style:'display:flex;justify-content:flex-end;margin:-8px 0 14px'}, el('button', {class:'btn', onclick:riprendiBozza, html:SVG.riprendi + 'Riprendi una bozza salvata'})));
   w.append(el('div', {class:'filtri'}, seg, el('div', {class:'cerca', html:SVG.cerca}, inp)));
   const lista = el('div');
   w.append(lista);
@@ -480,7 +483,13 @@ function apri(id, s){
       el('div', {class:'meta'}, el('span', {class:'bdg ' + s, style:'cursor:default;margin-right:6px'}, SCUOLE[s].breve), MOD.sottotitolo || '')),
     el('label', {class:'chk-inline', title:'Se attivo, nel PDF vengono omesse le voci non compilate e le opzioni non spuntate'},
       el('input', {type:'checkbox', id:'compatto', checked:true}), 'PDF compatto'),
+    MOD.protocollo
+      ? el('span', {class:'chk-inline', title:'Per PEI e PDP il numero di protocollo è obbligatorio: il riquadro è sempre stampato'},
+          el('input', {type:'checkbox', id:'protocollo', checked:true, disabled:true}), 'Protocollo obbligatorio')
+      : el('label', {class:'chk-inline', title:'Aggiunge nella prima pagina il riquadro "Prot. n. … del …" per la segreteria (facoltativo per questo documento)'},
+          el('input', {type:'checkbox', id:'protocollo'}), 'Spazio protocollo'),
     el('button', {class:'btn', onclick:svuota, html:SVG.pulisci + 'Svuota'}),
+    el('button', {class:'btn', onclick:() => salvaBozza(), title:'Salva il lavoro in un file cifrato con password, da riaprire più tardi', html:SVG.lucchetto + 'Salva bozza'}),
     el('button', {class:'btn', onclick:anteprima, html:SVG.occhio + 'Anteprima'}),
     el('button', {class:'btn pri', onclick:() => scarica(), html:SVG.scarica + 'Salva PDF'})));
   const form = el('div', {class:'form', style:`--acc:${SCUOLE[s].col}`});
@@ -837,6 +846,9 @@ function creaPDF(man = []){
       font('normal', 8.5, GRIGIO); if (as) doc.text(pulisci(as), PDF.M + PDF.W, 11, {align:'right'});
       /* Riquadro per il protocollo: lasciato vuoto, lo compila la segreteria
          (a mano, con timbro o con la segnatura del registro) dopo la protocollazione. */
+      // obbligatorio solo per PEI e PDP (MOD.protocollo); per gli altri documenti a scelta del docente
+      const conProt = MOD.protocollo || !!($('#protocollo') && $('#protocollo').checked);
+      if (conProt){
       const bx = PDF.M + PDF.W - 58, by = 13.5, bw = 58, bh = 12.5;
       doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.rect(bx, by, bw, bh);
       font('bold', 6.5, GRIGIO); doc.text('PROTOCOLLO (a cura della segreteria)', bx + 2, by + 3);
@@ -844,6 +856,7 @@ function creaPDF(man = []){
       doc.text('Prot. n.', bx + 2, by + 7.3); doc.text('del', bx + 2, by + 11.2);
       doc.setDrawColor(...GRIGIO); doc.setLineWidth(0.2);
       doc.line(bx + 13, by + 7.6, bx + bw - 2, by + 7.6); doc.line(bx + 8, by + 11.5, bx + bw - 2, by + 11.5);
+      }
       doc.setDrawColor(...acc); doc.setLineWidth(0.6); doc.line(PDF.M, 28.5, PDF.M + PDF.W, 28.5);
       y = 34;
       const tl = split(MOD.titolo.toUpperCase(), PDF.W, 12.5, 'bold');
@@ -1153,7 +1166,7 @@ function caricaPdfLib(){
 let CI = null; // stato della sezione carta intestata (solo in memoria)
 function cartaIntestata(scuola){
   MOD = null; azzera();
-  CI = {scuola:scuola || null, file:null, bytes:null, titolo:'', protocollo:true, pagineInt:'prima', nPag:0};
+  CI = {scuola:scuola || null, file:null, bytes:null, titolo:'', protocollo:false, pagineInt:'prima', nPag:0};
   const app = $('#app'); app.innerHTML = '';
   caricaPdfLib().catch(() => {});
   const bar = el('div', {class:'bar'}, el('div', {class:'wrap'},
@@ -1220,14 +1233,14 @@ function cartaIntestata(scuola){
   // 3. opzioni
   const inTitolo = el('input', {type:'text', placeholder:'es. Relazione sull’uscita didattica al Vittoriale', value:''});
   inTitolo.addEventListener('input', () => { CI.titolo = inTitolo.value; });
-  const cbProt = el('input', {type:'checkbox', checked:true}); cbProt.addEventListener('change', () => { CI.protocollo = cbProt.checked; });
+  const cbProt = el('input', {type:'checkbox'}); cbProt.addEventListener('change', () => { CI.protocollo = cbProt.checked; });
   const selPag = el('select', {}, el('option', {value:'prima'}, 'Completa sulla prima pagina, ridotta sulle successive'), el('option', {value:'tutte'}, 'Completa su tutte le pagine'));
   selPag.addEventListener('change', () => { CI.pagineInt = selPag.value; });
   form.append(el('section', {class:'sez'}, el('h3', {}, '3. Opzioni'), el('div', {class:'g'},
     el('div', {class:'f', style:'grid-column:span 12'}, el('label', {}, 'Titolo del documento (compare nelle pagine successive e nel nome del file)'), inTitolo),
     el('div', {class:'f', style:'grid-column:span 7'}, el('label', {}, 'Intestazione'), selPag),
     el('div', {class:'f', style:'grid-column:span 5'}, el('span', {class:'lbl'}, 'Protocollo'),
-      el('label', {class:'chk-inline', style:'font-size:14px;color:var(--ink)'}, cbProt, 'Riquadro "Prot. n. … del …" per la segreteria')))));
+      el('label', {class:'chk-inline', style:'font-size:14px;color:var(--ink)'}, cbProt, 'Riquadro "Prot. n. … del …" per la segreteria (facoltativo; obbligatorio se il documento è un PEI o un PDP)')))));
   window.scrollTo(0, 0);
 }
 
@@ -1335,7 +1348,7 @@ function slug(t, max = 40){
 }
 function nomeStandard(p){
   const parti = [p.data || oggiISO(), slug(p.grado, 12), slug(p.doc, 40), slug(String(p.classe || '').replace(/[ªº°\s]/g, ''), 12), slug(p.autore, 30)].filter(Boolean);
-  return parti.join('_') + (p.bozza ? '_BOZZA' : '') + '.pdf';
+  return parti.join('_') + (p.bozza ? '_BOZZA' : '') + (p.ext || '.pdf');
 }
 function pulisciAutore(v){
   return String(v).replace(/\b(prof\.?ssa|prof\.?|ins\.?|insegnante|dott\.?ssa|dott\.?|sig\.?ra|sig\.?|maestra|maestro)\s*/gi, '')
@@ -1365,7 +1378,7 @@ function dialogoNome(p, conferma){
   ricalcola();
   const f = (lab, i, span) => el('div', {class:'f', style:`grid-column:span ${span}`}, el('label', {}, lab), i);
   const m = el('div', {class:'modal'}, el('div', {class:'box small', style:'width:min(640px,100%)'},
-    el('h3', {}, 'Nome del file'),
+    el('h3', {}, p.titolo || 'Nome del file'),
     el('p', {style:'font-size:13.5px;color:var(--muted)'}, 'Criterio unico della scuola: data_grado_documento_classe_autore. Non inserire nomi di alunni.'),
     el('div', {class:'g', style:'margin-bottom:12px'},
       f('Autore (cognome e nome) *', inAut, 6), f('Data del documento', inData, 3), f('Classe / sezione', inClasse, 3),
@@ -1375,11 +1388,136 @@ function dialogoNome(p, conferma){
       el('button', {class:'btn pri', html:SVG.scarica + 'Salva PDF', onclick:() => {
         if (!inAut.value.trim()){ inAut.focus(); inAut.style.borderColor = 'var(--ambra)'; toast('Indica l’autore del documento.'); return; }
         let n = inNome.value.trim().replace(/[\\/:*?"<>|]+/g, '-');
-        if (!/\.pdf$/i.test(n)) n += '.pdf';
+        const ext = p.ext || '.pdf';
+        if (!n.toLowerCase().endsWith(ext)) n = n.replace(/\.[a-z]{2,5}$/i, '') + ext;
         m.remove(); conferma(n);
       }}))));
   document.body.append(m);
   setTimeout(() => (inAut.value ? inNome : inAut).focus(), 50);
+}
+
+/* =====================================================================
+   BOZZA CIFRATA (lavori lunghi in piu' sessioni)
+   L'app non conserva nulla: la bozza e' un FILE che il docente scarica e custodisce.
+   Contenuto cifrato con AES-256-GCM; chiave derivata dalla password con PBKDF2-SHA-256
+   (600.000 iterazioni, sale casuale 16 byte, IV casuale 12 byte). In chiaro nel file restano
+   solo i parametri crittografici: modulo, grado e dati sono tutti dentro il testo cifrato.
+   La password non viene mai salvata: se si perde, la bozza non e' recuperabile.
+   Base64 con ciclo sui byte (mai String.fromCharCode.apply: stack overflow su Safari).
+   ===================================================================== */
+const BOZZA_ITER = 600000;
+function b64(buf){ const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+function deb64(t){ const s = atob(t); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+async function chiave(password, sale){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', hash:'SHA-256', salt:sale, iterations:BOZZA_ITER}, base, {name:'AES-GCM', length:256}, false, ['encrypt', 'decrypt']);
+}
+function passwordValida(p){ return p.length >= 10 && /[A-Za-z]/.test(p) && /\d/.test(p); }
+function cryptoDisponibile(){
+  if (window.crypto && crypto.subtle) return true;
+  alert('Il salvataggio cifrato richiede una connessione sicura (https). Apri l’app dal suo indirizzo ufficiale.');
+  return false;
+}
+function salvaBozza(){
+  if (!cryptoDisponibile()) return;
+  const p1 = el('input', {type:'password', autocomplete:'new-password', placeholder:'almeno 10 caratteri, con lettere e numeri'});
+  const p2 = el('input', {type:'password', autocomplete:'new-password', placeholder:'ripeti la password'});
+  const msg = el('div', {class:'aiuto', style:'min-height:18px'});
+  const m = el('div', {class:'modal'}, el('div', {class:'box small', style:'width:min(560px,100%)'},
+    el('h3', {}, 'Salva bozza cifrata'),
+    el('p', {style:'font-size:14px'}, 'Il lavoro viene salvato in un file protetto da password, da riaprire con «Riprendi una bozza salvata». L’app non conserva né la bozza né la password.'),
+    el('div', {class:'g', style:'margin-bottom:6px'},
+      el('div', {class:'f', style:'grid-column:span 6'}, el('label', {}, 'Password'), p1),
+      el('div', {class:'f', style:'grid-column:span 6'}, el('label', {}, 'Conferma password'), p2)),
+    msg,
+    el('ul', {class:'rif', style:'margin:8px 0 14px'},
+      el('li', {}, 'Se dimentichi la password la bozza non è recuperabile.'),
+      el('li', {}, 'Conserva il file solo su dispositivi o spazi della scuola; non inviarlo via email o chat.'),
+      el('li', {}, 'Dopo aver salvato il PDF definitivo, elimina la bozza.')),
+    el('div', {class:'az'},
+      el('button', {class:'btn', onclick:() => m.remove()}, 'Annulla'),
+      el('button', {class:'btn pri', html:SVG.lucchetto + 'Continua', onclick:() => {
+        if (!passwordValida(p1.value)){ msg.textContent = 'La password deve avere almeno 10 caratteri, con lettere e numeri.'; msg.style.color = 'var(--ambra)'; p1.focus(); return; }
+        if (p1.value !== p2.value){ msg.textContent = 'Le due password non coincidono.'; msg.style.color = 'var(--ambra)'; p2.focus(); return; }
+        const pw = p1.value; m.remove();
+        dialogoNome({titolo:'Nome del file di bozza', ext:'.bozza', data:STATO.data || oggiISO(), grado:SCUOLE[SCU].breve, doc:(MOD.file || MOD.id).replace(/_/g, '-'),
+          classe:classeProposta(), autore:autoreProposto()}, nome => cifraEScarica(pw, nome));
+      }}))));
+  document.body.append(m);
+  setTimeout(() => p1.focus(), 50);
+}
+async function cifraEScarica(password, nome){
+  try {
+    const sale = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const dati = {app:'modulistica-sacrafamiglia', versione:1, modulo:MOD.id, scuola:SCU, salvata:new Date().toISOString(),
+      compatto:$('#compatto') ? $('#compatto').checked : true, protocollo:$('#protocollo') ? $('#protocollo').checked : false, stato:STATO};
+    const k = await chiave(password, sale);
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify(dati)));
+    const file = JSON.stringify({formato:'bozza-modulistica-sf', v:1, kdf:'PBKDF2-SHA256', iter:BOZZA_ITER, sale:b64(sale), iv:b64(iv), dati:b64(ct)});
+    salvaFile(new Blob([file], {type:'application/octet-stream'}), nome);
+    SPORCO = false;
+    const m = el('div', {class:'modal'}, el('div', {class:'box small'},
+      el('h3', {}, 'Bozza salvata'),
+      el('p', {}, IOS ? `Il file "${nome}" è nell’app File, cartella Download.` : `Il file "${nome}" è stato scaricato sul dispositivo.`),
+      el('p', {}, 'Per continuare più tardi: pagina iniziale › «Riprendi una bozza salvata», scegli il file e inserisci la password.'),
+      el('div', {class:'az'},
+        el('button', {class:'btn', onclick:() => m.remove()}, 'Continua a compilare'),
+        el('button', {class:'btn pri', onclick:() => { m.remove(); home(); }}, 'Chiudi il modulo'))));
+    document.body.append(m);
+  } catch (e){ alert('Non è stato possibile cifrare la bozza: ' + e.message); }
+}
+function riprendiBozza(){
+  if (!cryptoDisponibile()) return;
+  const inFile = el('input', IOS ? {type:'file'} : {type:'file', accept:'.bozza'});
+  const pw = el('input', {type:'password', autocomplete:'current-password', placeholder:'password della bozza'});
+  const msg = el('div', {class:'aiuto', style:'min-height:18px'});
+  const m = el('div', {class:'modal'}, el('div', {class:'box small', style:'width:min(560px,100%)'},
+    el('h3', {}, 'Riprendi una bozza salvata'),
+    el('p', {style:'font-size:14px'}, 'Scegli il file .bozza e inserisci la password con cui l’hai salvato. Il file viene letto solo in questa pagina.'),
+    el('div', {class:'g', style:'margin-bottom:6px'},
+      el('div', {class:'f', style:'grid-column:span 12'}, el('label', {}, 'File di bozza'), inFile),
+      el('div', {class:'f', style:'grid-column:span 12'}, el('label', {}, 'Password'), pw)),
+    msg,
+    el('div', {class:'az'},
+      el('button', {class:'btn', onclick:() => m.remove()}, 'Annulla'),
+      el('button', {class:'btn pri', html:SVG.riprendi + 'Apri la bozza', onclick:async () => {
+        const f = inFile.files[0];
+        const errore = t => { msg.textContent = t; msg.style.color = 'var(--ambra)'; };
+        if (!f) return errore('Scegli il file di bozza.');
+        if (!pw.value) return errore('Inserisci la password.');
+        let busta;
+        try { busta = JSON.parse(await f.text()); if (busta.formato !== 'bozza-modulistica-sf') throw 0; }
+        catch (e){ return errore('Il file scelto non è una bozza di questa app.'); }
+        let dati;
+        try {
+          errore('Apertura in corso…'); msg.style.color = 'var(--muted)';
+          const k = await chiave(pw.value, deb64(busta.sale));
+          const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:deb64(busta.iv)}, k, deb64(busta.dati));
+          dati = JSON.parse(new TextDecoder().decode(pt));
+        } catch (e){ return errore('Password errata oppure file danneggiato.'); }
+        const mod = MODULI.find(x => x.id === dati.modulo);
+        if (!mod || !mod.scuole.includes(dati.scuola)) return errore('Il modulo di questa bozza non è più disponibile nell’app.');
+        m.remove();
+        caricaStato(dati);
+      }}))));
+  document.body.append(m);
+}
+/* Ripopola il modulo: i campi ancora presenti riprendono il valore salvato; i nuovi restano vuoti */
+function caricaStato(dati){
+  apri(dati.modulo, dati.scuola);
+  let ripresi = 0, scartati = 0;
+  for (const [k, v] of Object.entries(dati.stato || {})){
+    if (!(k in STATO) && !k.endsWith('_altro')){ scartati++; continue; }
+    const cur = STATO[k];
+    if (cur !== undefined && cur !== null && typeof cur !== typeof v){ scartati++; continue; }
+    STATO[k] = v; ripresi++;
+  }
+  if ($('#compatto')) $('#compatto').checked = dati.compatto !== false;
+  if ($('#protocollo') && !MOD.protocollo) $('#protocollo').checked = !!dati.protocollo;
+  disegnaForm($('.form'));
+  SPORCO = true;
+  const quando = new Date(dati.salvata).toLocaleString('it-IT', {dateStyle:'short', timeStyle:'short'});
+  toast(`Bozza del ${quando} riaperta` + (scartati ? `: ${scartati} campi non più presenti nel modulo aggiornato` : ''));
 }
 
 /* elementi essenziali non compilati (solo nelle parti visibili) */
@@ -3648,6 +3786,7 @@ function salvaModulo(man, nome){
 
   registra({
     id: 'pei',
+    protocollo: true, // numero di protocollo obbligatorio (decisione della scuola)
     titolo: 'Piano Educativo Individualizzato (PEI)',
     sottotitolo: 'Art. 7 D.Lgs. 66/2017 – modello nazionale D.I. 182/2020 mod. D.I. 153/2023',
     occhiello: 'Modello nazionale – elaborato e approvato dal Gruppo di Lavoro Operativo per l’inclusione (GLO)',
@@ -6977,6 +7116,7 @@ function salvaModulo(man, nome){
   };
   registra({
     id:'pdp-modello',
+    protocollo:true, // numero di protocollo obbligatorio (decisione della scuola)
     titolo:'Piano Didattico Personalizzato',
     sottotitolo:'PDP per BES – DSA con certificazione, diagnosi e decisione scolastica collegiale (L. 170/2010; D.M. 5669/2011 e Linee guida 12/07/2011; Dir. 27/12/2012; C.M. 8/2013)',
     descrizione:'Modello della scuola: DSA, altri BES, BES senza documentazione e alunni neo arrivati',
