@@ -487,7 +487,7 @@ function apri(id, s){
       ? el('span', {class:'chk-inline', title:'Per PEI e PDP il numero di protocollo è obbligatorio: il riquadro è sempre stampato'},
           el('input', {type:'checkbox', id:'protocollo', checked:true, disabled:true}), 'Protocollo obbligatorio')
       : el('label', {class:'chk-inline', title:'Aggiunge nella prima pagina il riquadro "Prot. n. … del …" per la segreteria (facoltativo per questo documento)'},
-          el('input', {type:'checkbox', id:'protocollo'}), 'Spazio protocollo'),
+          el('input', {type:'checkbox', id:'protocollo', checked:!!MOD.protocolloPredefinito}), 'Spazio protocollo'),
     el('button', {class:'btn', onclick:svuota, html:SVG.pulisci + 'Svuota'}),
     el('button', {class:'btn', onclick:() => salvaBozza(), title:'Salva il lavoro in un file cifrato con password, da riaprire più tardi', html:SVG.lucchetto + 'Salva bozza'}),
     el('button', {class:'btn', onclick:anteprima, html:SVG.occhio + 'Anteprima'}),
@@ -1355,7 +1355,7 @@ function pulisciAutore(v){
     .split(/[,;(]/)[0].trim();
 }
 function autoreProposto(){
-  for (const k of ['verbalizzante', 'segretario', 'compilatore', 'docente', 'insegnante', 'insegnanti', 'referente', 'coordinatore']){
+  for (const k of ['sottoscritto', 'dichiarante', 'verbalizzante', 'segretario', 'compilatore', 'docente', 'insegnante', 'insegnanti', 'referente', 'coordinatore']){
     const v = STATO[k]; if (typeof v === 'string' && v.trim()) return pulisciAutore(v);
   }
   const f = STATO.firme && STATO.firme[0];
@@ -6351,10 +6351,14 @@ function salvaModulo(man, nome){
   /* ---------- RELAZIONE DI INFORTUNIO ---------- */
   registra({
     id:'infortunio', argomento:'sicurezza', scuole:['N', 'I', 'P', 'S'], file:'Relazione_infortunio',
-    titolo:'Relazione di infortunio',
-    sottotitolo:'Per la denuncia INAIL (tutela strutturale dal 2025/26: art. 2-ter D.L. 90/2025, L. 109/2025) e l’assicurazione scolastica',
-    descrizione:'Relazione del docente su un infortunio: dinamica, vigilanza, soccorso, avviso alla famiglia',
-    legenda:() => 'Dati essenziali per la denuncia di infortunio all’INAIL e per l’apertura del sinistro: chi, quando, dove, come e chi vigilava. Senza di essi la denuncia non può essere trasmessa nei termini.',
+    /* Struttura dal modulo della scuola «Relazione sinistro/infortunio alunno/a da parte del personale
+       scolastico» (infortunio.pdf), nello stesso ordine; integrata con avviso alla famiglia e 112. */
+    protocolloPredefinito:true,
+    titolo:'Relazione di sinistro / infortunio alunno/a',
+    occhiello:'Relazione del personale scolastico al Dirigente educativo',
+    sottotitolo:'Per la denuncia INAIL e l’assicurazione scolastica',
+    descrizione:'Modello della scuola: dichiarazione del docente su un sinistro o infortunio di un alunno',
+    legenda:() => 'Dati essenziali per la denuncia di infortunio all’INAIL e per l’apertura del sinistro con l’assicurazione: chi dichiara, quando, dove, durante quale attività, che cosa è successo, il soccorso e le conseguenze. Senza di essi la denuncia non può essere trasmessa nei termini.',
     norme:[
       'D.P.R. 1124/1965 (Testo unico INAIL), artt. 4 e 53 – denuncia di infortunio all’INAIL entro due giorni dalla ricezione del certificato medico (entro 24 ore in caso di morte o pericolo di morte).',
       'D.L. 48/2023, art. 18 (L. 85/2023) – tutela INAIL estesa a studenti e personale di tutte le scuole, statali e paritarie, per tutte le attività di insegnamento-apprendimento; prorogata dal D.L. 113/2024, art. 9 (L. 143/2024) e resa strutturale dal 2025/26 dal D.L. 90/2025, art. 2-ter (L. 109/2025).',
@@ -6363,69 +6367,100 @@ function salvaModulo(man, nome){
       'Codice civile, art. 2048 – responsabilità per il fatto dei minori affidati alla vigilanza: descrivere con precisione posizione dell’adulto e modalità di vigilanza.',
       'Reg. UE 2016/679, art. 9 – dati relativi alla salute: nessuna diagnosi nella relazione; fa fede il certificato medico.',
     ],
-    blocchi:(s) => [
-      {t:'nota', testo:'Solo fatti, descritti in modo oggettivo. Nessuna valutazione medica o diagnosi, nessuna attribuzione di colpa. Consegnare la relazione ' + ALCOORD[s] + ' entro la giornata: i termini per la denuncia all’INAIL decorrono dalla ricezione del certificato medico.'},
-      ...testata(s, [
-        {t:'testo', id:'alunno', label:ALUNNO[s], ph:PH_ALUNNO[s], obbl:true, rif:'Identificazione dell’infortunato, necessaria per la denuncia INAIL'},
-        {t:'testo', id:'sezione', label:SEZ[s], ph:PH_SEZ[s], obbl:true, rif:'Identificazione del gruppo e del personale responsabile'}]),
-      {t:'h', testo:'L’evento'},
-      {t:'riga', campi:[
-        {t:'data', id:'data_evento', label:'Data dell’evento', w:3, obbl:true, rif:'Dato richiesto dalla denuncia INAIL'},
-        {t:'ora', id:'ora_evento', label:'Ora', w:2, obbl:true, rif:'Dato richiesto dalla denuncia INAIL'},
-        {t:'testo', id:'luogo_evento', label:'Luogo (aula, cortile, palestra, uscita didattica…)', w:7, ph:s === 'N' ? 'es. giardino, zona scivoli' : s === 'S' ? 'es. palestra, durante il riscaldamento' : 'es. cortile, vicino alla scala esterna', obbl:true, rif:'Dato richiesto dalla denuncia INAIL'}]},
-      {t:'scelta', id:'momento', label:'Momento della giornata', col:3, altro:true, opz:
-        s === 'N'
-          ? ['gioco in sezione', 'gioco all’aperto', 'pasto', 'igiene / cambio', 'sonno / riposo', 'accoglienza o ricongiungimento']
-          : ['attività in aula', s === 'I' ? 'attività motoria' : 'educazione fisica', 'intervallo / ricreazione', 'mensa', 'uscita didattica', 'ingresso / uscita da scuola']},
-      {t:'area', id:'attivita', label:'Attività in corso', righe:2,
-        ph:s === 'N' ? 'es. gioco libero in giardino, gruppo di 8 bambini con due educatrici' : s === 'S' ? 'es. esercizio a coppie di passaggi con la palla, guidato dal docente' : 'es. gioco libero in cortile durante l’intervallo, due classi presenti'},
-      {t:'riga', campi:[
-        {t:'testo', id:'docente', label:DOC[s] + ' presente', w:5, ph:PH_DOC[s], obbl:true, rif:'Adulto che aveva la vigilanza (art. 2048 c.c.)'},
-        {t:'testo', id:'vigilanza', label:'Posizione dell’adulto e modalità di vigilanza al momento dell’evento', w:7, ph:'es. a circa 3 metri, in vista dell’intero gruppo'}]},
-      {t:'area', id:'dinamica', label:'Dinamica (che cosa è successo, come, in quale sequenza)', righe:5, obbl:true, rif:'Descrizione delle cause e circostanze, richiesta dalla denuncia INAIL',
-        ph:'es. Correndo verso lo scivolo, il bambino inciampa sul bordo del tappeto antitrauma e cade in avanti appoggiando le mani a terra.',
-        frasi:[
-          'Durante l’attività, ' + (s === 'N' || s === 'I' ? 'il bambino / la bambina' : 'l’alunno / l’alunna') + ' perde l’equilibrio e cade a terra, appoggiando le mani.',
-          'Nel corso del gioco si verifica uno scontro accidentale con un compagno; entrambi cadono a terra.',
-          'Scendendo le scale, ' + (s === 'N' || s === 'I' ? 'il bambino / la bambina' : 'l’alunno / l’alunna') + ' manca un gradino e cade sui gradini sottostanti.',
-          'Durante lo spostamento urta con la testa lo spigolo di un arredo.',
-          'L’evento avviene in pochi istanti, mentre l’adulto è presente e vigila sul gruppo dalla posizione indicata.',
-          'Subito dopo l’evento ' + (s === 'N' || s === 'I' ? 'il bambino / la bambina' : 'l’alunno / l’alunna') + ' piange / riferisce dolore e viene soccorso immediatamente.',
-          'Non ci sono stati comportamenti scorretti da parte dei presenti: si tratta di un evento accidentale.']},
-      {t:'testo', id:'parte', label:'Parte del corpo interessata (come riferito o visibile, senza diagnosi)', ph:'es. polso destro, arrossato; riferisce dolore'},
-      ...(s === 'N' ? [] : [{t:'area', id:'riferito', label:'Quanto riferito da ' + (s === 'I' ? 'bambino/a' : 'alunno/a') + ' (parole testuali tra virgolette, se utile)', righe:2,
-        ph:'es. «Sono scivolato mentre correvo e ho messo giù la mano»'}]),
-      {t:'tabella', id:'testimoni', label:'Testimoni adulti', col:[{h:'Cognome e nome', w:5, ph:'es. Riva Paola'}, {h:'Ruolo', w:4, ph:'es. collaboratrice scolastica'}, {h:'Presente all’evento / intervenuto', w:3, ph:'es. presente'}], righe:2, aggiungi:true},
-      {t:'nota', testo:'Eventuali compagni presenti si indicano in modo generico («alcuni compagni»), senza nomi.'},
-      {t:'h', testo:'Primo soccorso e comunicazioni'},
-      {t:'area', id:'soccorso', label:'Primo soccorso prestato (chi, che cosa, a che ora)', righe:3,
-        ph:'es. Alle 10.20 l’addetta Paola Riva applica ghiaccio sintetico sul polso e fa sedere ' + (s === 'N' || s === 'I' ? 'il bambino' : 'l’alunno') + ' in infermeria.',
-        frasi:[
-          'L’addetto al primo soccorso interviene immediatamente e applica ghiaccio sintetico sulla parte interessata.',
-          'Si pulisce la ferita superficiale con acqua e si applica una medicazione con cerotto, usando i guanti monouso.',
-          (s === 'N' || s === 'I' ? 'Il bambino / la bambina' : 'L’alunno / l’alunna') + ' viene fatto sedere in un luogo tranquillo e resta sotto osservazione di un adulto fino all’arrivo della famiglia.',
-          'Vista la situazione, si chiama il 112 e si seguono le indicazioni dell’operatore fino all’arrivo dei soccorsi.',
-          'Non si somministrano farmaci; si informa la famiglia della necessità di una valutazione medica.',
-          'Dopo alcuni minuti di osservazione ' + (s === 'N' || s === 'I' ? 'il bambino / la bambina' : 'l’alunno / l’alunna') + ' riprende le attività senza manifestare disagio.']},
-      {t:'testo', id:'addetto', label:'Addetto al primo soccorso intervenuto', ph:'es. Paola Riva, addetta al primo soccorso'},
-      {t:'riga', campi:[
-        {t:'ora', id:'ora_avviso', label:'Ora dell’avviso alla famiglia', w:3},
-        {t:'testo', id:'avvisato', label:'Familiare avvisato', w:5, ph:'es. la madre, sig.ra Rossi, al telefono'},
-        {t:'testo', id:'chi_avvisa', label:'Avviso effettuato da', w:4, ph:'es. segreteria'}]},
-      {t:'scelta', id:'esito', label:'Seguito', altro:true, opz:[
-        'rientro in ' + (s === 'N' || s === 'I' ? 'sezione' : 'classe') + ' e ripresa delle attività',
-        'ritiro da parte della famiglia',
-        'chiamata al 112 (NUE) e trasporto al pronto soccorso',
-        'accompagnamento al pronto soccorso da parte della famiglia']},
-      {t:'se', campo:'esito', vale:'chiamata al 112 (NUE) e trasporto al pronto soccorso', blocchi:[
+    blocchi:(s) => {
+      const bimbo = s === 'N' || s === 'I';
+      const lui = bimbo ? 'il bambino / la bambina' : 'l’alunno / l’alunna';
+      const Lui = bimbo ? 'Il bambino / la bambina' : 'L’alunno / l’alunna';
+      const R_INAIL = 'Dato richiesto dalla denuncia di infortunio all’INAIL e dall’assicurazione';
+      return [
+        {t:'nota', testo:'Solo fatti, descritti in modo oggettivo: nessuna diagnosi, nessuna attribuzione di colpa. Consegnare la relazione al Dirigente educativo entro la giornata: i termini per la denuncia all’INAIL decorrono dalla ricezione del certificato medico.'},
+        ...testata(s),
+
+        {t:'h', testo:'Dichiarante'},
         {t:'riga', campi:[
-          {t:'ora', id:'ora_112', label:'Ora della chiamata', w:3},
-          {t:'testo', id:'accompagnatore', label:'Adulto della scuola che ha accompagnato (se la famiglia non era presente)', w:9, ph:'es. ins. Luca Bianchi, in ambulanza'}]}]},
-      {t:'h', testo:'Trasmissione'},
-      {t:'testofisso', testo:'La presente relazione è consegnata ' + ALCOORD[s] + ' per gli adempimenti di competenza: denuncia all’INAIL, ove prevista, e apertura del sinistro presso l’assicurazione della scuola. La famiglia è invitata a consegnare in segreteria, il prima possibile, il certificato medico o del pronto soccorso.'},
-      H.privacy(),
-      {t:'firme', ruoli:[s === 'N' ? 'L’educatrice' : 'Il docente', 'Per ricevuta: ' + (s === 'N' ? 'la Coordinatrice pedagogica' : 'il Coordinatore didattico')]},
-    ],
+          {t:'testo', id:'sottoscritto', label:'Il/La sottoscritto/a', w:5, ph:PH_DOC[s].replace(/^es\. (ins\. |prof\.ssa )?/, 'es. '), nopdf:true, obbl:true, rif:'Identificazione di chi dichiara il fatto'},
+          {t:'scelta', id:'qualifica', label:'Qualifica', w:4, opz:s === 'N' ? ['educatrice / educatore', 'collaboratore scolastico'] : ['docente', 'educatrice / educatore', 'collaboratore scolastico'], def:s === 'N' ? 'educatrice / educatore' : 'docente', nopdf:true},
+          {t:'testo', id:'servizio', label:'In servizio presso ' + (s === 'N' ? 'il gruppo / la sezione' : s === 'I' ? 'la sezione' : 'la classe'), w:3, ph:PH_SEZ[s], nopdf:true}]},
+        {t:'testofisso', testo:'Il/La sottoscritto/a {sottoscritto}, {qualifica} in servizio presso ' + (s === 'N' ? 'il gruppo / la sezione' : s === 'I' ? 'la sezione' : 'la classe') + ' {servizio} ' + (s === 'N' ? 'del Green Nido' : 'della {scuola}') + ', DICHIARA al Dirigente educativo quanto segue.'},
+
+        {t:'h', testo:'Il fatto'},
+        {t:'riga', campi:[
+          {t:'data', id:'data_evento', label:'Il giorno', w:3, nopdf:true, obbl:true, rif:R_INAIL},
+          {t:'ora', id:'ora_evento', label:'Alle ore', w:2, nopdf:true, obbl:true, rif:R_INAIL},
+          {t:'testo', id:'unita', label:'Alla … ora / unità di tempo', w:3, ph:'es. 5ª', nopdf:true},
+          {t:'scelta', id:'tempo', label:'Tempo di', w:4, opz:s === 'N' ? ['attività', 'gioco', 'pasto', 'riposo', 'routine di cura'] : ['lezione', 'ricreazione', 'mensa', 'uscita didattica'], nopdf:true}]},
+        {t:'riga', campi:[
+          {t:'scelta', id:'locale', label:'Nel locale', w:8, col:3, altro:true, nopdf:true, obbl:true, rif:R_INAIL,
+            opz:['aula', 'laboratorio', 'palestra', 'cortile / giardino', 'scale', 'campo sportivo', 'corridoio', 'mensa', 'servizi igienici']},
+          {t:'testo', id:'sede', label:'Della scuola (sede)', w:4, def:'via Milano, 75 – Orzinuovi', ph:'es. via Milano, 75 – Orzinuovi', nopdf:true}]},
+        {t:'nota', testo:'Locale: specificare aula, laboratori, palestra, cortile, scale, campi ecc.'},
+        {t:'testo', id:'attivita', label:'Durante lo svolgimento dell’attività', nopdf:true, obbl:true, rif:R_INAIL,
+          ph:s === 'S' ? 'es. lezione di educazione fisica – basket' : s === 'P' ? 'es. lezione di educazione motoria – giochi con la palla' : 'es. gioco libero in giardino',
+          nota:'Indicare la lezione o l’altra attività in corso (per informatica o lingue specificare se si usavano apparecchi elettrici o elettronici).'},
+        {t:'riga', campi:[
+          {t:'testo', id:'alunno', label:'È avvenuto ' + (bimbo ? 'al bambino / alla bambina' : 'all’alunno/a'), w:8, ph:PH_ALUNNO[s], nopdf:true, obbl:true, rif:'Identificazione dell’infortunato, necessaria per la denuncia INAIL'},
+          {t:'testo', id:'classe', label:'Della ' + (bimbo ? 'sezione' : 'classe'), w:4, ph:PH_SEZ[s], nopdf:true, obbl:true, rif:'Identificazione del gruppo e del personale responsabile'}]},
+        {t:'testofisso', testo:'Il giorno {data_evento} alle ore {ora_evento}, alla {unita} ora / unità di tempo di {tempo}, nel locale {locale} della scuola ({sede}), durante lo svolgimento dell’attività «{attivita}», è avvenuto ' + (bimbo ? 'al bambino / alla bambina' : 'all’alunno/a') + ' {alunno} della ' + (bimbo ? 'sezione' : 'classe') + ' {classe} il seguente sinistro / infortunio.'},
+        {t:'area', id:'descrizione', label:'Descrizione dell’evento, con dinamica particolareggiata e dettagliata', righe:4, obbl:true, rif:R_INAIL,
+          ph:s === 'S' ? 'es. Durante la partita di basket l’alunno urta accidentalmente il pallone con il dito medio della mano destra, riportando subito dolore.' : 'es. Correndo verso lo scivolo, il bambino inciampa sul bordo del tappeto e cade in avanti appoggiando le mani a terra.',
+          frasi:[
+            'Durante l’attività, ' + lui + ' perde l’equilibrio e cade a terra, appoggiando le mani.',
+            'Durante la partita, ' + lui + ' urta accidentalmente il pallone con le dita della mano, riportando subito dolore.',
+            'Nel corso del gioco si verifica uno scontro accidentale con un compagno; entrambi cadono a terra.',
+            'Scendendo le scale, ' + lui + ' manca un gradino e cade sui gradini sottostanti.',
+            'Durante lo spostamento urta con la testa lo spigolo di un arredo.',
+            'L’evento avviene in pochi istanti, mentre l’adulto è presente e vigila sul gruppo.',
+            'Subito dopo l’evento ' + lui + ' riferisce dolore e viene soccorso immediatamente.']},
+        {t:'area', id:'causa', label:'Causato da (che cosa o chi ha provocato il sinistro)', righe:2, ph:'es. pallone da basket',
+          frasi:['Pallone durante il gioco.', 'Urto accidentale con un compagno.', 'Perdita di equilibrio durante la corsa.', 'Spigolo di un arredo.', 'Pavimento bagnato o scivoloso.', 'Attrezzo sportivo in uso durante l’esercizio.', 'Gradino delle scale.']},
+
+        {t:'h', testo:'Presenza e testimoni'},
+        {t:'scelta', id:'presente', label:'Il/La sottoscritto/a', col:1, obbl:true, rif:'Indica se il dichiarante ha assistito al fatto (art. 2048 c.c.: vigilanza)',
+          opz:['era presente al fatto', 'non era presente al fatto e riferisce quanto appreso da chi era presente']},
+        {t:'area', id:'testimoni', label:'In presenza di testimoni (nominativi)', righe:2, ph:'es. compagni di classe; collaboratrice scolastica sig.ra Paola Riva',
+          nota:'Indicare gli adulti con nome e cognome; i compagni in modo generico («compagni di classe»), senza nomi.',
+          frasi:['Compagni di classe.', 'Compagni di sezione.', 'Collaboratore scolastico in servizio al piano.', 'Altro docente presente in palestra.', 'Nessun testimone oltre al dichiarante.']},
+
+        {t:'h', testo:'Soccorso'},
+        {t:'area', id:'soccorso', label:'Ha prestato il seguente soccorso', righe:3, obbl:true, rif:R_INAIL,
+          ph:'es. Ghiaccio sintetico sulla parte dolorante e avviso ai genitori.',
+          frasi:[
+            'Applicazione di ghiaccio sintetico sulla parte dolorante e avviso ai genitori.',
+            'L’addetto al primo soccorso interviene immediatamente e applica ghiaccio sintetico sulla parte interessata.',
+            'Pulizia della ferita superficiale con acqua e medicazione con cerotto, usando i guanti monouso.',
+            Lui + ' viene fatto sedere in un luogo tranquillo e resta sotto osservazione di un adulto fino all’arrivo della famiglia.',
+            'Vista la situazione, si chiama il 112 e si seguono le indicazioni dell’operatore fino all’arrivo dei soccorsi.',
+            'Non si somministrano farmaci; si informa la famiglia della necessità di una valutazione medica.']},
+        {t:'riga', campi:[
+          {t:'ora', id:'ora_avviso', label:'Ora dell’avviso alla famiglia', w:3},
+          {t:'testo', id:'avvisato', label:'Familiare avvisato', w:5, ph:'es. la madre, al telefono'},
+          {t:'testo', id:'chi_avvisa', label:'Avviso effettuato da', w:4, ph:'es. segreteria'}]},
+
+        {t:'h', testo:'Circostanze e conseguenze'},
+        {t:'testo', id:'svolgeva', label:'L’infortunato, al momento del sinistro, stava svolgendo in particolare', ph:s === 'S' ? 'es. partita di basket' : 'es. gioco con la palla a coppie'},
+        {t:'area', id:'motivo', label:'Motivo per cui è avvenuto il sinistro / infortunio', righe:2, ph:'es. Urto accidentale del pallone con il dito.',
+          frasi:['Urto accidentale durante il gioco.', 'Perdita di equilibrio durante la corsa.', 'Scontro accidentale tra compagni.', 'Inciampo su un ostacolo a terra.', 'Movimento brusco durante l’esercizio.']},
+        {t:'area', id:'conseguenza', label:'Conseguenza del sinistro / infortunio (come visibile o riferito, senza diagnosi)', righe:2, obbl:true, rif:R_INAIL,
+          ph:'es. Gonfiore del dito e dolore riferito.',
+          nota:'Descrivere ciò che si vede o che viene riferito (gonfiore, arrossamento, escoriazione, dolore): la diagnosi è del medico.',
+          frasi:['Gonfiore della parte interessata e dolore riferito.', 'Escoriazione superficiale, medicata a scuola.', 'Arrossamento senza altre conseguenze visibili.', 'Dolore riferito, senza segni visibili.', 'Nessuna conseguenza apparente al momento della relazione.']},
+
+        {t:'h', testo:'Uscita da scuola'},
+        {t:'scelta', id:'uscita', label:'L’infortunato è uscito da scuola', col:1, obbl:true, rif:R_INAIL,
+          opz:['regolarmente al termine delle lezioni', 'prima del termine delle lezioni', 'con il 112 (NUE) per il trasporto al pronto soccorso']},
+        {t:'riga', campi:[
+          {t:'ora', id:'ora_uscita', label:'Alle ore', w:3},
+          {t:'testo', id:'ritirato', label:'Ritirato dal/la signore/a', w:9, ph:'es. sig.ra Anna Locatelli (madre)'}]},
+        {t:'se', campo:'uscita', vale:'con il 112 (NUE) per il trasporto al pronto soccorso', blocchi:[
+          {t:'riga', campi:[
+            {t:'ora', id:'ora_112', label:'Ora della chiamata al 112', w:3},
+            {t:'testo', id:'accompagnatore', label:'Adulto della scuola che ha accompagnato (se la famiglia non era presente)', w:9, ph:'es. ins. Luca Bianchi, in ambulanza'}]}]},
+
+        {t:'testofisso', testo:'Orzinuovi, {data}'},
+        H.privacy(),
+        {t:'firme', ruoli:['Firma del dichiarante', 'Visto in data ____________ – Il Dirigente educativo']},
+      ];
+    },
   });
 
   /* ---------- SOMMINISTRAZIONE DI FARMACI ---------- */
