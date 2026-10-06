@@ -3726,7 +3726,7 @@ function salvaModulo(man, nome){
   const glo = (id, label, s, obbl) => {
     const init = [['', `${H.PRES[s]} (o suo delegato)`, ''], ['', 'Docente per le attività di sostegno', ''],
       ['', s === 'I' ? 'Docente di sezione' : s === 'P' ? 'Docente del team di classe' : 'Docente del Consiglio di classe', ''],
-      ['', 'Genitore / esercente la responsabilità genitoriale', ''], ['', 'Genitore / esercente la responsabilità genitoriale', ''],
+      ['', 'Genitore o tutore legale', ''], ['', 'Genitore o tutore legale', ''],
       ['', 'Rappresentante dell’Unità di valutazione multidisciplinare (ASST/UONPIA)', ''],
       ['', 'Altra figura professionale (es. assistente all’autonomia e alla comunicazione)', ''],
       ...(s === 'S' ? [['', 'Alunno/a (partecipazione attiva, nel rispetto del principio di autodeterminazione)', '']] : [])];
@@ -3868,6 +3868,7 @@ function salvaModulo(man, nome){
           {t:'testo', id:'glo_atto', label:'Atto di configurazione del GLO (prot. n. e data)', ph:'es. prot. n. 245 del 15/09/2026',
             nota:'A inizio anno il Coordinatore didattico definisce con proprio atto la configurazione del GLO (art. 3 c. 8 D.I. 182/2020).'},
           glo('glo', 'Componenti del GLO', s, R.firme),
+          {t:'nota', testo:'Famiglia: firmano i genitori oppure, se nominato, il tutore legale (esercente la responsabilità genitoriale). Per il tutore indicare nella colonna «A quale titolo» gli estremi del provvedimento di nomina.'},
           {t:'nota', testo:'Specificare a quale titolo ciascun componente interviene al GLO. La colonna Firma resta vuota per la firma autografa sul PDF stampato. Si possono aggiungere righe per l’eventuale esperto indicato dalla famiglia (uno solo, con parere consultivo) e per altri specialisti (art. 3 cc. 6-7 D.I. 182/2020). Il GLO è valido anche se non tutte le componenti sono presenti.' + (SEC ? ' La partecipazione attiva dell’alunno/a è assicurata nel rispetto del principio di autodeterminazione (art. 3 c. 4).' : '')},
           {t:'tabella', id:'glo_mod', label:'Eventuali modifiche o integrazioni alla composizione del GLO, successive alla prima convocazione',
             col:[{h:'Data', w:2, ph:'es. 15/01/2027'}, {h:'Nome e cognome', w:3, ph:'es. Luca Verdi'}, {h:'A quale titolo interviene al GLO', w:4, ph:'es. Assistente all’autonomia e alla comunicazione'}, {h:'Variazione (nuovo membro, sostituzione, decadenza…)', w:3, ph:'es. nuovo membro'}],
@@ -4188,11 +4189,13 @@ function salvaModulo(man, nome){
           ...assistenza('vf', s),
           {t:'area', id:'vf_ausili', label:'Arredi speciali, ausili didattici, informatici, ecc. – specificare la tipologia e le modalità di utilizzo', righe:2,
             ph:'es. tablet con sintesi vocale per le attività di lettura; sedia con appoggio per le attività al banco'},
+          {t:'h', testo:'Approvazione e firme – verifica finale'},
+          {t:'nota', testo:'Firmano i componenti del GLO. Per la famiglia firmano i genitori o, se nominato, il tutore legale (esercente la responsabilità genitoriale): in questo caso indicare nella colonna «A quale titolo» gli estremi del provvedimento di nomina.'},
           {t:'riga', campi:[
             {t:'data', id:'vf_glo_data', label:'Approvata dal GLO in data', w:6, obbl:true, rif:R.vf},
             {t:'testo', id:'vf_verbale', label:'Verbale n.', w:6, ph:'es. 3/2027'}]},
           {t:'testofisso', testo:'La verifica finale, con la proposta del numero di ore di sostegno e delle risorse da destinare agli interventi di assistenza igienica e di base, nonché delle tipologie di assistenza/figure professionali da destinare all’assistenza, all’autonomia e/o alla comunicazione, per l’anno scolastico successivo, è stata approvata dal GLO in data {vf_glo_data}, come risulta da verbale n. {vf_verbale} allegato.'},
-          glo('glo_vf', 'Componenti del GLO – firme', s, R.firme),
+          glo('glo_vf', 'Firme dei componenti del GLO (verifica finale)', s, R.firme),
         ]},
 
         /* ---------- PEI provvisorio ---------- */
@@ -7176,6 +7179,15 @@ function salvaModulo(man, nome){
        lingue straniere ed esame di Stato per la secondaria. Struttura e voci del modello invariate:
        aggiunti testo guida, frasi, norme ed elementi essenziali. */
     blocchi:(s) => {
+      /* Firme della famiglia: genitori oppure tutore legale (esercente la responsabilita' genitoriale) */
+      const famiglia = (suf) => [
+        {t:'scelta', id:'firma_fam' + suf, label:'Firmano per la famiglia', opz:['I genitori', 'Il tutore legale'], def:'I genitori', col:2, nopdf:true},
+        {t:'se', campo:'firma_fam' + suf, vale:'I genitori', blocchi:[
+          {t:'firme', id:'firme_gen' + suf, ruoli:['La madre', 'Il padre']}]},
+        {t:'se', campo:'firma_fam' + suf, vale:'Il tutore legale', blocchi:[
+          {t:'testo', id:'tutore' + suf, label:'Tutore legale (nome, cognome ed estremi del provvedimento di nomina)', ph:'es. avv. Giulia Rossi, nominata con decreto del Giudice tutelare di Brescia del 12/03/2025'},
+          {t:'firme', id:'firme_tut' + suf, ruoli:['Il tutore legale']}]},
+      ];
       const organo = s === 'S' ? 'Consiglio di classe' : 'Team docenti';
       const LINGUE = s === 'S' ? 'Lingue straniere (inglese e spagnolo)' : 'Lingua inglese';
       const DIFF = s === 'S'
@@ -7458,7 +7470,8 @@ function salvaModulo(man, nome){
           {t:'testofisso', testo:`Il presente piano è approvato dal ${organo} il {approvazione} e condiviso con la famiglia; è valido per l’a.s. {as}.`},
           {t:'nota', testo:'Documentare la condivisione con il verbale «Condivisione del PDP». Il PDP resta valido anche senza firma della famiglia, purché la condivisione sia documentata.'},
           firmeDocenti('firme_docenti', 'Firme dei docenti', {obbl:true, rif:'Sottoscrizione dei docenti del ' + organo + ' che adottano il piano (Linee guida DSA 2011, par. 3.1)'}),
-          {t:'firme', ruoli:['La madre', 'Il padre', ...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']}]},
+          ...famiglia(''),
+          {t:'firme', id:'firme_scuola', ruoli:[...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']}]},
 
         {t:'se', campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico', blocchi:[
           {t:'h', testo:'Osservazioni alla conclusione dell’anno scolastico'},
@@ -7475,8 +7488,14 @@ function salvaModulo(man, nome){
               'Alcune misure non risultano più necessarie e potranno essere riviste nel piano del prossimo anno.',
               'Si suggerisce di proseguire con le interrogazioni programmate e le verifiche scalari.',
               'La collaborazione con la famiglia è stata costante e ha favorito la continuità tra scuola e casa.']},
-          firmeDocenti('firme_docenti_fine', 'Firme dei docenti'),
-          {t:'firme', id:'firme_fine', ruoli:['La madre', 'Il padre', ...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']}]},
+          {t:'h', testo:'Approvazione e firme – verifica finale'},
+          {t:'riga', campi:[
+            {t:'data', id:'data_vf', label:'Verifica finale approvata dal ' + organo + ' il', w:6, nopdf:true, obbl:true, rif:'Data della verifica finale del piano da parte del ' + organo + ' (Linee guida DSA 2011; C.M. 8/2013)'},
+            {t:'testo', id:'verbale_vf', label:'Verbale n.', w:6, nopdf:true, ph:'es. 7 del 05/06/2027'}]},
+          {t:'testofisso', testo:`La verifica finale del presente piano, con le osservazioni sopra riportate, è approvata dal ${organo} il {data_vf} (verbale n. {verbale_vf}) e condivisa con la famiglia.`},
+          firmeDocenti('firme_docenti_fine', 'Firme dei docenti', {obbl:true, rif:'Sottoscrizione dei docenti del ' + organo + ' che approvano la verifica finale'}),
+          ...famiglia('_fine'),
+          {t:'firme', id:'firme_scuola_fine', ruoli:[...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']}]},
       ];
     },
   });
