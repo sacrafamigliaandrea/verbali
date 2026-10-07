@@ -273,7 +273,7 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-06';
+const AGGIORNAMENTO = '2026-10-07';
 document.getElementById('agg').textContent = 'aggiornata il ' + AGGIORNAMENTO.split('-').reverse().join('/');
 const IOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const SCUOLA_NOME = 'Scuola Sacra Famiglia';
@@ -2035,7 +2035,10 @@ function salvaModulo(man, nome){
 
         {t:'h', testo:'Convocazione e apertura'},
         {t:'riga', campi:[
-          {t:'testo', id:'convocazione', label:'Convocazione (prot. n. e data dell’avviso)', w:6, nopdf:true, obbl:!nido, rif:R.convocazione, ph:'es. prot. n. 412 del 03/10/2026'},
+          s === 'I'
+            /* Infanzia: convocazione facoltativa (decisione della scuola); se compilata si stampa come cella */
+            ? {t:'testo', id:'convocazione', label:'Convocazione (prot. n. e data dell’avviso) – facoltativa', w:6, ph:'es. prot. n. 412 del 03/10/2026'}
+            : {t:'testo', id:'convocazione', label:'Convocazione (prot. n. e data dell’avviso)', w:6, nopdf:true, obbl:!nido, rif:R.convocazione, ph:'es. prot. n. 412 del 03/10/2026'},
           {t:'ora', id:'ora_inizio', label:'Ora di inizio', w:2, nopdf:true},
           {t:'scelta', id:'modalita', label:'Modalità', opz:['in presenza', 'in modalità telematica sincrona'], def:'in presenza', w:4, nopdf:true}]},
         {t:'testo', id:'luogo', label:'Luogo (o piattaforma)', nopdf:true, obbl:true, rif:r('luogo'), ph:nido ? 'es. sala del Green Nido' : 'es. aula docenti, 1° piano – oppure Google Meet'},
@@ -2044,7 +2047,9 @@ function salvaModulo(man, nome){
           {t:'testofisso', testo:'La seduta si svolge in modalità telematica sincrona sulla piattaforma indicata, ai sensi di {reg_tel}; il Presidente ha verificato l’identità dei partecipanti e la loro presenza continuativa.'}]},
         {t:'testofisso', testo:nido
           ? 'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce il Collettivo educativo del Green Nido per discutere il seguente ordine del giorno.'
-          : 'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce il {organo}, convocato con avviso {convocazione} regolarmente comunicato a tutti i componenti, per discutere il seguente ordine del giorno.'},
+          : (s === 'I'
+          ? 'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce il {organo} per discutere il seguente ordine del giorno.'
+          : 'Il giorno {data}, alle ore {ora_inizio}, {modalita} ({luogo}), si riunisce il {organo}, convocato con avviso {convocazione} regolarmente comunicato a tutti i componenti, per discutere il seguente ordine del giorno.')},
         {t:'elenco', id:'odg', label:'Ordine del giorno', min:3, ph:'es. ' + ODG_TIPICI[s]['Inizio anno'][0], obbl:true, rif:nido ? R.nido : R.odg},
         {t:'nota', testo:'Punti tipici per ' + H.NOMI[s] + ' — ' + Object.entries(ODG_TIPICI[s]).map(([k, v]) => k + ': ' + v.join('; ')).join(' | ')},
 
@@ -7964,6 +7969,526 @@ function salvaModulo(man, nome){
         {t:'firme', ruoli:['Il/La docente']},
       ], {data:{obbl:true, rif:'Data del documento'}, as:PH_AS});
     },
+  });
+})();
+
+</script>
+<script data-schemi="infanzia">
+(() => {
+  /* ---------------------------------------------------------------
+     Progetto educativo della Scuola dell’Infanzia (S. Paola Elisabetta Cerioli).
+     Fonte: «PROGETTO EDUCATIVO a.s. 26-7» del Coordinatore.
+     - Testi fissi (premesse, riferimenti teorici, routine, osservazione,
+       documentazione…): blocchi testofisso sotto titoli h, riportati fedelmente.
+     - Dati annuali (composizione delle sezioni, distribuzione settimanale,
+       mappa delle esperienze, giornata, laboratori, gruppo di lavoro, firme):
+       tabelle con init precompilato con i valori dell’a.s. 2026/2027 e
+       stampaVuota:true, cosi’ le righe precompilate vengono stampate anche
+       se il docente non le modifica (il filtro compatto le scarterebbe).
+     - norme: solo a schermo; nessuna citazione normativa in stampa.
+     --------------------------------------------------------------- */
+
+  const T = (testo) => ({t:'testofisso', testo});
+  const RIGA = (...v) => v;
+
+  /* composizione di una sezione: Anno di nascita | Età | Maschi | Femmine | Totale | Note */
+  const COMP_COL = [
+    {h:'Anno di nascita', w:2, ph:'es. 2022'},
+    {h:'Età', w:1.6, ph:'es. 4 anni'},
+    {h:'Maschi', w:1.4, ph:'es. 7'},
+    {h:'Femmine', w:1.4, ph:'es. 5'},
+    {h:'Totale', w:1.4, ph:'es. 12'},
+    {h:'Note', w:3.2, ph:'es. 1 anticipatario (maschi)'}];
+  const sezione = (id, nome, righe) => ({t:'tabella', id, label:'Sezione ' + nome, col:COMP_COL,
+    init:righe, righe:righe.length, aggiungi:true, stampaVuota:true});
+
+  const POM_LAB = 'Finalizzata alla scoperta di sé stessi e dei propri amici\nProgetti d’Istituto\n– Scoperta\n– Progettare e realizzare\n– Problem solving\n– Drammatizzare e narrare';
+
+  registra({
+    id:'progetto-educativo-infanzia', argomento:'programmazione', scuole:['I'], file:'Progetto-educativo',
+    titolo:'Progetto educativo della Scuola dell’Infanzia',
+    occhiello:'S. Paola Elisabetta Cerioli – progetto educativo annuale',
+    descrizione:'Progetto educativo annuale: testi di riferimento fissi, sezioni, giornata, esperienze e gruppo di lavoro da aggiornare ogni anno',
+    legenda:() => 'Il progetto educativo non è un atto deliberativo: gli elementi segnati con * (anno scolastico e data di sottoscrizione) sono il minimo identificativo del documento. La loro mancanza è un’irregolarità documentale, non una causa di invalidità. Le parti testuali di riferimento sono fisse; tabelle e nomi vanno aggiornati ogni anno.',
+    norme:[
+      'D.M. 221/2025 – Nuove Indicazioni nazionali per la scuola dell’infanzia e il primo ciclo di istruzione, in vigore dall’a.s. 2026/2027: finalità della scuola dell’infanzia (identità, autonomia, competenza, cittadinanza) e campi di esperienza.',
+      'D.Lgs. 65/2017 – sistema integrato di educazione e di istruzione dalla nascita sino a sei anni (continuità nido-infanzia, poli per l’infanzia).',
+      'D.M. 334/2021 – Linee pedagogiche per il sistema integrato zerosei: osservazione, documentazione, valutazione formativa, cura degli spazi e dei tempi.',
+      'L. 62/2000 – parità scolastica: la scuola paritaria adotta un progetto educativo in armonia con i principi della Costituzione e un Piano dell’offerta formativa conforme agli ordinamenti.',
+      'D.P.R. 275/1999, art. 3 (come sostituito dalla L. 107/2015, art. 1 c. 14) – Piano triennale dell’offerta formativa, elaborato dal Collegio dei docenti: il progetto educativo annuale ne è la declinazione operativa.',
+      'D.M. 183/2024 – Linee guida per l’insegnamento dell’educazione civica: nella scuola dell’infanzia iniziative di sensibilizzazione alla cittadinanza responsabile attraverso i campi di esperienza.',
+      'Reg. UE 2016/679 (GDPR), art. 5 – minimizzazione: il documento contiene solo dati aggregati sui bambini (numeri per anno di nascita e sesso), mai nomi o dati sanitari; i nomi del personale servono all’organizzazione del servizio.',
+    ],
+    blocchi:(s) => [
+      {t:'h', testo:'Dati generali'},
+      {t:'riga', campi:[
+        {t:'testo', id:'as', label:'Anno scolastico', w:4, def:'2026/2027', ph:'es. 2026/2027', obbl:true, rif:'Identifica l’anno cui si riferisce il progetto educativo'},
+        {t:'data', id:'data_collegio', label:'Presentato al Collegio dei docenti il', w:4},
+        {t:'num', id:'n_sezioni', label:'Numero di sezioni', w:4, def:'3'}]},
+      {t:'nota', testo:'Le parti in grigio sono testi fissi del progetto: si aggiornano solo modificando il modulo. Tabelle e nomi sono precompilati con i dati dell’a.s. 2026/2027: ogni anno basta correggerli, aggiungere o eliminare righe.'},
+
+      {t:'h', testo:'Premesse teoriche'},
+      T('La Scuola dell’Infanzia si rivolge a tutte le bambine e a tutti i bambini dai tre ai sei anni di età ed è la risposta al loro diritto all’educazione e alla cura, in coerenza con i principi presenti nella Costituzione della Repubblica, nella Convenzione sui diritti dell’infanzia e dell’adolescenza e nei documenti dell’Unione Europea. Essa si pone la finalità di promuovere nei bambini lo sviluppo dell’identità, dell’autonomia, della competenza e li avvia alla cittadinanza. Tali finalità sono perseguite attraverso l’organizzazione di un ambiente di vita, di relazioni e di apprendimento di qualità, garantito dalla professionalità del corpo docente e dal dialogo sociale ed educativo con le famiglie e con la comunità (curricolo implicito e curricolo esplicito).'),
+
+      {t:'h', testo:'Riferimenti teorici'},
+      T('Il curricolo della scuola dell’infanzia non coincide con la sola organizzazione delle attività didattiche che si realizzano nella sezione con il gruppo eterogeneo o omogeneo, negli spazi esterni, nei laboratori e negli ambienti di vita comune, ma si esplica in una equilibrata integrazione di momenti di cura, di relazione e di apprendimento, dove le stesse routine svolgono una funzione di regolazione dei ritmi della giornata e si offrono come «base sicura» per nuove esperienze e sollecitazioni in linea con il progetto educativo. L’apprendimento avviene attraverso l’azione, l’esplorazione, il contatto con gli oggetti, la natura, l’arte e il territorio, in una dimensione ludica, da intendersi come forma tipica di relazione e di conoscenza. Nel gioco, particolarmente in quello simbolico, i bambini si esprimono, raccontano e rielaborano in modo creativo le esperienze personali e sociali. Nella relazione educativa, gli insegnanti svolgono una funzione di mediazione e di facilitazione e, nel fare propria la ricerca dei bambini, li aiutano a pensare e a riflettere meglio, sollecitandoli a osservare, descrivere, narrare, fare ipotesi, dare e chiedere spiegazioni in contesti cooperativi e di confronto diffuso.'),
+
+      {t:'h', testo:'La nostra realtà'},
+      T('La nostra scuola dell’infanzia accoglie tre sezioni eterogenee. Il lavoro del team delle docenti è in costante formazione, attraverso momenti di autovalutazione, pratica riflessiva e ricerca.'),
+      T('La progettazione implica una forte sinergia tra le insegnanti e un continuo investimento nell’osservazione del bambino e dei suoi interessi, nel sostegno alla costruzione di nuovi apprendimenti, nella riprogettazione e nella cura della documentazione dei percorsi.'),
+      T('Il «pensato-agito» del gruppo docente si esprime attraverso:\n– il progetto annuale, la strutturazione della giornata scolastica e il percorso triennale del bambino (dal progetto accoglienza fino al passaggio alla scuola primaria);\n– i laboratori e le attività per gruppi omogenei;\n– le routine e le azioni di cura di sé, degli spazi e dei materiali;\n– i valori educativi e la cooperazione con le famiglie.'),
+      T('Ogni insegnante è corresponsabile di tutti i bambini della scuola e, al contempo, responsabile nel «qui e ora» del gruppo di sezione con cui opera.'),
+      T('Attraverso uno strumento di osservazione condiviso, le docenti definiscono un processo che produce tracce, memoria e riflessione, rendendo visibili le complessità della propria sezione. Le diverse dinamiche vengono analizzate compilando apposite griglie di «Rilevazione del disagio», rivolte sia ai bambini sia agli adulti. Il disagio rilevato, qualora sia valutato «a rischio», viene approfondito e costantemente monitorato.'),
+      T('Inoltre, le dinamiche relazionali sono monitorate attraverso l’osservazione del gioco libero con tabulazioni bimestrali. Infine, la mappatura delle strutture interattive (effettuata a ottobre e maggio) permette di visualizzare l’evoluzione sociale dei bambini e delle bambine all’interno della sezione.'),
+
+      {t:'h', testo:'Composizione delle sezioni'},
+      {t:'nota', testo:'Dati da aggiornare ogni anno: una riga per anno di nascita e la riga «Totale». Indicare gli anticipatari nella colonna Note. Solo numeri aggregati, mai nomi di bambini.'},
+      sezione('comp_gialla', 'Gialla', [
+        RIGA('2021', '5 anni', '2', '7', '9', ''),
+        RIGA('2022', '4 anni', '7', '5', '12', ''),
+        RIGA('2023', '3 anni', '4', '3', '8', '1 anticipataria (femmine)'),
+        RIGA('Totale', '', '13', '16', '29', '')]),
+      sezione('comp_rossa', 'Rossa', [
+        RIGA('2021', '5 anni', '3', '5', '8', ''),
+        RIGA('2022', '4 anni', '6', '5', '12', '1 anticipatario (maschi)'),
+        RIGA('2023', '3 anni', '3', '6', '9', ''),
+        RIGA('Totale', '', '13', '16', '29', '')]),
+      sezione('comp_azzurra', 'Azzurra', [
+        RIGA('2021', '5 anni', '4', '4', '8', ''),
+        RIGA('2022', '4 anni', '7', '5', '12', ''),
+        RIGA('2023', '3 anni', '3', '5', '9', '1 anticipatario (maschi)'),
+        RIGA('Totale', '', '14', '16', '30', '')]),
+
+      {t:'h', testo:'Distribuzione settimanale delle proposte'},
+      {t:'tabella', id:'settimana', fisse:['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì'], stampaVuota:true,
+        col:[{h:'Giorno', w:1.4},
+          {h:'Mattina', w:2, ph:'es. Gruppi omogenei'},
+          {h:'Attività prevalente', w:2.6, tipo:'area', ph:'es. Sviluppo progetti specifici per età'},
+          {h:'Pomeriggio', w:2, tipo:'area', ph:'es. Gruppo eterogeneo di sezione / Laboratori'},
+          {h:'Attività prevalente', w:4, tipo:'area', ph:'es. Progetti d’Istituto; laboratori: scoperta, progettare e realizzare…'}],
+        init:[
+          RIGA('', 'Gruppi omogenei', 'Sviluppo progetti specifici per età', 'Gruppi omogenei', 'Sviluppo progetti specifici per età'),
+          RIGA('', 'Gruppi omogenei', 'Sviluppo progetti specifici per età', 'Gruppi omogenei', 'Sviluppo progetti specifici per età'),
+          RIGA('', 'Gruppi omogenei', 'Sviluppo progetti specifici per età', 'Gruppo eterogeneo di sezione / Laboratori', POM_LAB),
+          RIGA('', 'Gruppi omogenei', 'Sviluppo progetti specifici per età', 'Gruppo eterogeneo di sezione / Laboratori', POM_LAB),
+          RIGA('', 'Gruppi omogenei', 'Sviluppo progetti specifici per età', 'Gruppo eterogeneo di sezione / Laboratori', POM_LAB)]},
+
+      {t:'h', testo:'Progetto annuale'},
+      {t:'nota', testo:'Facoltativo: titolo e breve presentazione dello sfondo integratore dell’anno. Se restano vuoti non vengono stampati.'},
+      {t:'testo', id:'titolo_progetto', label:'Titolo del progetto annuale / sfondo integratore', ph:'es. «Il giardino delle meraviglie»'},
+      {t:'area', id:'progetto_annuale', label:'Presentazione del progetto annuale', righe:4,
+        ph:'es. Lo sfondo integratore accompagna i bambini da novembre a giugno attraverso un personaggio guida che propone situazioni da esplorare nei diversi campi di esperienza.',
+        frasi:[
+          'Lo sfondo integratore nasce dagli interessi emersi nell’osservazione dei bambini durante il periodo dell’accoglienza.',
+          'Un personaggio mediatore accompagna i bambini lungo l’anno e propone situazioni problema da esplorare in sezione e nei gruppi omogenei.',
+          'Il progetto attraversa tutti i campi di esperienza e si sviluppa in modo circolare, a partire dalle risposte dei bambini allo stimolo iniziale.',
+          'Particolare attenzione è dedicata alle regole di convivenza, alla cura di sé, degli altri e dell’ambiente, come prima educazione alla cittadinanza.',
+          'Le famiglie sono coinvolte attraverso momenti di condivisione e la documentazione dei percorsi esposta a scuola.',
+          'Il progetto si conclude con un momento di festa e di restituzione alle famiglie del percorso svolto.']},
+
+      {t:'h', testo:'Mappa delle esperienze annuali e dei progetti'},
+      {t:'nota', testo:'Una riga per esperienza o progetto: aggiornare periodi, luoghi e insegnanti; aggiungere i progetti nuovi ed eliminare quelli non attivati.'},
+      {t:'tabella', id:'mappa', aggiungi:true, stampaVuota:true,
+        col:[{h:'Esperienza / progetto', w:2, ph:'es. Acquaticità'},
+          {h:'Destinatari', w:1.6, tipo:'area', ph:'es. Tutti i bambini delle sezioni'},
+          {h:'Periodo', w:1.4, ph:'es. Maggio – Giugno'},
+          {h:'Luogo di riferimento privilegiato', w:2, tipo:'area', ph:'es. Sezione di appartenenza, spazio esterno riservato'},
+          {h:'Insegnanti', w:1.6, tipo:'area', ph:'es. Tutte le insegnanti di sezione'},
+          {h:'Tempi', w:1.5, tipo:'area', ph:'es. Mattina'},
+          {h:'Competenze attese', w:2.6, tipo:'area', ph:'es. Avvicinarsi all’elemento acqua'}],
+        init:[
+          RIGA('Accoglienza / Inserimento', 'Bambini/e di 4-5 anni (accoglienza); bambini/e di 3-4-5 anni (inserimento)', 'Settembre – Ottobre', 'Sezione di appartenenza, spazio esterno riservato', 'Tutte le insegnanti di sezione', 'Orario di frequenza del bambino', '– Sviluppare il senso di «appartenenza»\n– Condividere i vissuti dell’esperienza nella nuova scuola'),
+          RIGA('Progetto annuale / sfondo integratore', 'Tutti i bambini/e', 'Novembre – Giugno', 'Sezione di appartenenza, spazio esterno riservato', 'Tutte le insegnanti di sezione', 'Orario di frequenza del bambino', 'Acquisizione delle regole di convivenza sociale'),
+          RIGA('Madrelingua', 'Tutti i bambini/e', 'Settembre – Giugno', 'Sezione di appartenenza, spazio esterno riservato', 'Tutte le insegnanti di sezione', 'Orario di frequenza del bambino', 'Comprendere parole, brevi istruzioni, espressioni e frasi di uso quotidiano'),
+          RIGA('Attività IRC', 'Tutti i bambini/e', 'Ottobre – Giugno', 'Sezione di appartenenza, spazio esterno riservato', 'Padre con le insegnanti', 'Lunedì', '– Acquisire la fiducia in sé stessi\n– Porre attenzione all’altro'),
+          RIGA('Esperienze di gruppo omogeneo', 'Bambini/e di 3 anni, di 4 anni, di 5 anni', 'Ottobre – Giugno', 'Sezione di appartenenza, spazio esterno riservato', 'Tutte le insegnanti di sezione', 'Vedere organizzazione specifica', '– Sviluppare il senso di «appartenenza» al gruppo dei coetanei\n– Sviluppare competenze relative al percorso evolutivo specifico per età'),
+          RIGA('Esperienze di laboratori', 'Tutti i bambini/e delle sezioni', 'Ottobre – Aprile', 'Sezione di appartenenza, spazio interno ed esterno riservato', 'Tutte le insegnanti della scuola', 'Vedere organizzazione specifica', '– Scoprire\n– Progettare/realizzare\n– Sviluppare atteggiamenti collaborativi'),
+          RIGA('Progetto «Outdoor»', 'Tutti i bambini/e delle sezioni', 'Settembre – Giugno', 'Giardino del benessere, sezione', 'Tutte le insegnanti di sezione', 'Mattino e/o pomeriggio', 'Formare una coscienza ecologica che sa interagire con la natura, l’ambiente, le persone e le cose'),
+          RIGA('Esperienza di continuità', 'Bambini/e di 5 anni', 'Gennaio – Maggio', 'Spazio gruppo omogeneo, Scuola Primaria', 'Insegnanti gruppo omogeneo', 'Incontri da calendarizzare', 'Conoscenza della scuola Primaria'),
+          RIGA('Acquaticità', 'Tutti i bambini delle sezioni', 'Maggio – Giugno', 'Piscina Andreana', 'Tutte le insegnanti di sezione', 'Mattina', 'Avvicinarsi all’elemento acqua'),
+          RIGA('Pet therapy', 'Tutti i bambini delle sezioni', 'Gennaio – Maggio', 'Da definire', 'Tutte le insegnanti', 'Mattina', 'Avvicinarsi all’animale instaurando un rapporto di fiducia')]},
+
+      {t:'h', testo:'Esperienza di gruppo omogeneo'},
+      T('Il lavoro con i gruppi omogenei permette di garantire stimoli e percorsi adeguati a ciascun bambino, diversificando maggiormente la proposta educativa. La sezione, luogo di riferimento del gruppo, contiene e valorizza l’evoluzione del singolo e della collettività, costituendo la rete di relazioni, di memoria e di affettività su cui si intrecciano i percorsi di apprendimento.'),
+      T('Affinché la progettazione sia «coerente con la plasticità e il dinamismo dello sviluppo infantile», viene definito solo lo stimolo iniziale. Le risposte dei bambini all’input di partenza aiutano le insegnanti a formulare un ipotetico sviluppo della proposta, individuando le dimensioni di sviluppo che possono essere coinvolte con maggiore probabilità.'),
+      T('In questo processo di tipo circolare, gli obiettivi curricolari non sono definiti in modo lineare ma reticolare, e vengono declinati come competenze realmente attivate.'),
+
+      {t:'h', testo:'Fasi per la stesura dei percorsi di apprendimento nei gruppi omogenei'},
+      T('1. Osservazione.\n2. Bisogni.\n3. Proposta – stimolo: motivante (suscita curiosità, deve stupire); aperta, cioè che lascia spazio a ipotesi diverse.\n4. Evoluzioni possibili: quali giochi, esperienze e situazioni problema si possono attivare, definendo tempi, spazi, aggregazioni e materiali.\n5. Competenze attese, all’interno delle dimensioni di sviluppo.\n6. Strumenti di osservazione.'),
+      T('Il percorso è rivolto ai bambini e alle bambine di 3, 4 e 5 anni: evoluzioni possibili, competenze attese e strumenti di osservazione sono definiti per ciascuna età.'),
+
+      {t:'h', testo:'I laboratori'},
+      T('I bambini esprimono pensieri ed emozioni con immaginazione e creatività: l’arte orienta questa propensione, educando al piacere del bello e al sentire estetico. L’esplorazione dei materiali permette di vivere le prime esperienze artistiche, in grado di stimolare la creatività e di arricchire altri apprendimenti. Facendo riferimento alla teoria delle «intelligenze multiple» di Howard Gardner, la proposta di apprendimento attraverso l’esperienza laboratoriale risponde ai bisogni evolutivi dei bambini e delle bambine, rispettandone gli stili cognitivi. Nella strutturazione dei contesti operativi e nella definizione del ruolo dell’adulto emergono le differenti manifestazioni dell’intelligenza. Nella scuola si organizzano attività laboratoriali che, privilegiando l’aspetto creativo-espressivo, permettono di integrare e ampliare le esperienze vissute nella propria sezione.'),
+      {t:'tabella', id:'laboratori', aggiungi:true, stampaVuota:true,
+        col:[{h:'Laboratorio', w:4, ph:'es. Leonardo'}, {h:'Ambito', w:8, ph:'es. Costruttivo'}],
+        init:[RIGA('Leonardo', 'Costruttivo'), RIGA('Mennea', 'Motorio'), RIGA('Archimede', 'Scientifico'), RIGA('King James', 'Lingua inglese')]},
+
+      {t:'h', testo:'Progetto madrelingua'},
+      T('Un’insegnante madrelingua è presente, a rotazione, in tutte le sezioni. L’approccio alla lingua avviene attraverso il metodo TPR (Total Physical Response), che prevede un’immersione totale nel contesto comunicativo: la lingua serve infatti a rispondere a bisogni reali e si costruisce a partire dall’intenzionalità del bambino. Il TPR è una metodologia efficace per stimolare i livelli cognitivi dei bambini dai 3 ai 6 anni, caratterizzati da tempi di attenzione ridotti. Quando viene applicato attraverso giochi, storie, canzoni e drammatizzazioni, il metodo si trasforma in uno strumento flessibile, capace di valorizzare i diversi stili di apprendimento.'),
+
+      {t:'h', testo:'Le routine'},
+      T('Le routine sono momenti ricorrenti che si ripetono quotidianamente e, in molti casi, più volte nel corso della giornata. Si tratta di un insieme di azioni che integrano il quadro della vita scolastica: l’organizzazione, la strutturazione del tempo e dello spazio, le attività quotidiane e le relazioni sociali. Questi momenti creano un clima accogliente, trasmettono messaggi costruttivi e influiscono positivamente sul comportamento dei bambini. Inoltre, delineano la coerenza educativa tra ciò che viene dichiarato nei documenti ufficiali e ciò che la scuola offre realmente. Le routine vengono quindi analizzate e proposte come esperienze significative di apprendimento. L’assunzione di consapevolezza delle ritualità rappresenta una forma di metacognizione che rafforza e conferma la costruzione di schemi cognitivi fondamentali per i processi di sviluppo.'),
+      {t:'tabella', id:'routine', aggiungi:true, stampaVuota:true,
+        col:[{h:'Momenti significativi di routine', w:5, tipo:'area', ph:'es. Riflessione «che cosa mi è piaciuto fare oggi a scuola?»'},
+          {h:'Quando', w:3, tipo:'area', ph:'es. Gruppo sezione, prima dell’uscita'},
+          {h:'Come', w:4, tipo:'area', ph:'es. Verbalizzazioni'}],
+        init:[
+          RIGA('Socializzazione delle esperienze «portate» da casa, appello, «come mi sento oggi?», compilazione del calendario', 'Gruppo sezione, al mattino', 'Verbalizzazioni; definizione del giorno della settimana, simbolo del giorno, del tempo, ricorrenze particolari, nelle apposite caselle'),
+          RIGA('Condivisione in salone con tutte le sezioni', 'Gruppi sezione', 'Condivisione di ricorrenze particolari, preghiera, canti e balli'),
+          RIGA('Riflessione «che cosa mi è piaciuto fare oggi a scuola?»', 'Gruppo sezione, prima dell’uscita', 'Verbalizzazioni'),
+          RIGA('Scansione della giornata scolastica', 'Tutti i passaggi di situazione', 'Lettura delle caselle del copione della «giornata a scuola»')]},
+
+      {t:'h', testo:'Organizzazione della giornata'},
+      {t:'nota', testo:'Tabella precompilata con la giornata tipo: aggiornare orari, spazi e aggregazioni se cambiano; le voci si separano andando a capo.'},
+      {t:'tabella', id:'giornata', aggiungi:true, stampaVuota:true,
+        col:[{h:'Orario', w:1.6, ph:'es. 8:30-9:00'},
+          {h:'Attività prevalenti', w:1.6, tipo:'area', ph:'es. Accoglienza, gioco libero'},
+          {h:'Spazio', w:1.4, tipo:'area', ph:'es. Sezione di appartenenza'},
+          {h:'Aggregazione', w:1.4, tipo:'area', ph:'es. Gruppo eterogeneo di sezione'},
+          {h:'Bisogni emergenti bambino/a', w:2.1, tipo:'area', ph:'es. Bisogno di sentirsi atteso e riconosciuto'},
+          {h:'Obiettivi educativi', w:2.1, tipo:'area', ph:'es. Favorire un sereno inizio di giornata'},
+          {h:'Atteggiamenti insegnanti', w:1.8, tipo:'area', ph:'es. Osserva, rassicura e coinvolge'}],
+        init:[
+          RIGA('8:30-9:00', '– Accoglienza\n– Gioco libero', 'Sezione di appartenenza', 'Gruppo eterogeneo di sezione',
+            '– Bisogno di sentirsi atteso e riconosciuto\n– Bisogno di sentirsi rassicurato\n– Bisogno di ritrovare spazi e amici',
+            '– Favorire un sereno inizio di giornata\n– Favorire il distacco dalle figure familiari\n– Favorire la relazione e lo scambio tra i bambini/e',
+            '– Attenta alle modalità dell’accoglienza rispettando i bisogni-richieste del bambino/a\n– Accogliente alle comunicazioni-richieste delle famiglie\n– Osserva, rassicura e coinvolge i bambini/e'),
+          RIGA('9:00-9:30', '– Appello\n– Conversazione\n– Routine (settimana educativa, calendario)', 'Sezione di appartenenza', 'Gruppo eterogeneo di sezione / gruppo omogeneo',
+            '– Bisogno di trovare sicurezza nelle routine\n– Bisogno di esprimere il proprio vissuto, di comunicare, di partecipare, di condividere\n– Bisogno di essere ascoltati\n– Bisogno di orientarsi nel tempo e nello spazio\n– Bisogno relazionale',
+            '– Acquisire e consolidare regole\n– Rassicurare e promuovere le relazioni interpersonali\n– Creare un clima sereno e positivo\n– Promuovere attenzione e concentrazione',
+            '– Osserva\n– Coordina la scelta\n– Ascolta e partecipa alle conversazioni\n– Rassicura\n– È attenta alla relazione e alle dinamiche emergenti\n– Coordina le scelte del gioco\n– Media i conflitti'),
+          RIGA('9:30-10:00', '– Canzoni animate\n– Spuntino', 'Salone', '– Gruppo sezione scuola\n– Gruppo omogeneo',
+            '– Bisogno di socializzare\n– Bisogno di vivere un momento «ricreativo»',
+            '– Favorire un clima sociale educativo\n– Favorire fiducia nelle proprie capacità comunicative-espressive\n– Condividere il piacere di «uno spuntino»',
+            '– Organizza\n– Propone\n– Coordina\n– Sostiene\n– Coinvolge\n– Partecipa'),
+          RIGA('10:00-11:30', '– Attività del percorso didattico all’interno di uno sfondo o su progetti', 'Sezione di appartenenza / spazi scuola', 'Gruppo omogeneo di sezione',
+            '– Bisogno di sicurezza affettiva\n– Bisogno di realizzare esperienze adeguate alle età\n– Bisogno di apprendere con il gruppo dei pari',
+            '– Sviluppare e consolidare le competenze specifiche previste dal percorso didattico\n– Promuovere e rafforzare lo sviluppo delle competenze\n– Promuovere la collaborazione tra i pari\n– Sviluppare autonomia operativa',
+            '– Organizza\n– Propone\n– Coordina\n– Sostiene\n– Promuove\n– Ascolta e partecipa alle conversazioni e cura, promuove la relazione'),
+          RIGA('11:30-11:45', '– Conversazione\n– Preparazione al pranzo\n– Igiene personale', 'Sezione di appartenenza / bagno', 'Gruppo di sezione / omogeneo',
+            '– Bisogno di comunicare e di condividere la propria esperienza\n– Bisogno di sicurezza affettiva\n– Bisogno di sentirsi responsabili\n– Bisogno di autonomia',
+            '– Favorire la comunicazione con i coetanei e gli adulti\n– Favorire lo sviluppo di una buona autostima nelle proprie capacità\n– Favorire l’autonomia',
+            '– Ascolta e valorizza le diverse esperienze\n– Rassicura e sostiene la conversazione\n– Rinforza le regole\n– Favorisce l’autonomia'),
+          RIGA('11:45-12:30', '– Pranzo\n– Riordino', 'Sezione di appartenenza', 'Gruppo di sezione / omogeneo',
+            '– Soddisfare i bisogni primari\n– Bisogno di comunicare con i compagni\n– Bisogno di condivisione con i compagni\n– Bisogno di nutrizione\n– Bisogno di rafforzare l’autonomia',
+            '– Sviluppare una buona e corretta educazione alimentare\n– Favorire la comunicazione tra i pari e gli adulti\n– Favorire l’autonomia gestionale',
+            '– Ascolta\n– Rassicura\n– Osserva le dinamiche\n– Aiuta'),
+          RIGA('12:30-13:30', 'Gioco libero', 'Salone, sez. Rossa, sez. Azzurra, sez. Gialla, giardino interno, giardino del benessere', 'Tutti i bambini',
+            '– Bisogno di socializzazione\n– Bisogno di scegliere il proprio compagno di gioco\n– Bisogno di vivere spazi diversi\n– Bisogno di affermazione di sé\n– Bisogno di vivere un momento «ricreativo»',
+            '– Favorire l’aggregazione spontanea\n– Favorire le proprie capacità relazionali\n– Rispettare e attendere le scelte proprie e altrui',
+            '– Osserva\n– Coinvolge\n– Interviene solo se necessario\n– Contiene e media i conflitti'),
+          RIGA('13:30-15:00 (lunedì, martedì)', '– Attività del percorso didattico all’interno di uno sfondo o su progetti', 'Sezione di appartenenza / spazi scuola', 'Gruppo di sezione',
+            '– Bisogno di esprimere il miglior sé stesso possibile\n– Bisogno di vivere con esperienze di gruppo\n– Bisogno di scoprire contenuti attraverso attività ludiche\n– Bisogno di esplorare, fantasticare, ascoltare, raccontare, muoversi, costruire',
+            '– Favorire lo sviluppo dell’attività ludica in funzione dell’apprendimento cognitivo\n– Favorire l’evoluzione del gioco che è manifestazione affettiva, cognitiva, sociale\n– Promuovere lo sviluppo e consolidamento delle competenze\n– Promuovere la collaborazione\n– Sviluppare l’autonomia operativa e gestionale',
+            '– Osserva\n– Sostiene\n– Partecipa\n– Propone\n– Promuove\n– Svolge un’azione di regia\n– Coordina e gestisce le scelte\n– Conversa\n– Cura e promuove le relazioni\n– Media i conflitti\n– È attenta alle procedure operative'),
+          RIGA('13:30-15:00 (mercoledì, giovedì, venerdì)', '– Attività come da progettazione didattica: laboratori', 'Sezioni, salone, biblioteca, aula scienze, palestra, giardino del benessere', 'Tutti i bambini',
+            '– Bisogno di esprimere il miglior sé stesso possibile\n– Bisogno di vivere con esperienze di gruppo\n– Bisogno di scoprire contenuti attraverso attività ludiche\n– Bisogno di esplorare, fantasticare, ascoltare, raccontare, muoversi, costruire',
+            '– Favorire lo sviluppo dell’attività ludica in funzione dell’apprendimento cognitivo\n– Favorire l’evoluzione del gioco che è manifestazione affettiva, cognitiva, sociale\n– Promuovere lo sviluppo e il consolidamento delle competenze\n– Promuovere la collaborazione\n– Sviluppare l’autonomia operativa e gestionale',
+            '– Osserva\n– Sostiene\n– Partecipa\n– Propone\n– Promuove\n– Svolge un’azione di regia\n– Coordina e gestisce le scelte\n– Conversa\n– Cura e promuove le relazioni\n– Media i conflitti\n– È attenta alle procedure operative'),
+          RIGA('15:00-15:40', '– Riordino / conversazione\n– Igiene personale\n– Merenda', 'Sezione di appartenenza / spazi della scuola / bagno', 'Gruppo di sezione',
+            '– Bisogno di condividere le impressioni della giornata\n– Bisogno di trovare sicurezza nelle routine\n– Bisogno di autonomia',
+            '– Favorire lo scambio verbale\n– Rafforzare una positiva immagine di sé\n– Favorire l’autonomia\n– Condividere il piacere di uno spuntino',
+            '– Ascolta e risponde ai bisogni di ciascuno\n– Rinforza le regole\n– Favorisce l’autonomia\n– Coordina le dinamiche relazionali del gruppo'),
+          RIGA('15:40-16:00', 'Uscita', 'Sezione di appartenenza', 'Gruppo di sezione',
+            '– Bisogno di sentirsi accolto dalle figure parentali',
+            '– Favorire una relazione positiva con le figure parentali',
+            '– Comunica e consolida il rapporto scuola/famiglia')]},
+      T('Note:\n– I tempi in tabella hanno carattere indicativo e servono a individuare le articolazioni dell’attività.\n– Le attività possono essere ulteriormente articolate ma mantengono le scansioni individuate e le funzioni assegnate ai diversi momenti.\n– L’organizzazione della giornata viene illustrata ai genitori in occasione del primo incontro.'),
+
+      {t:'h', testo:'Orario insegnanti ed educatrici'},
+      {t:'nota', testo:'Da compilare ogni anno. Se le tabelle restano vuote vengono stampate righe in bianco da completare a mano.'},
+      {t:'tabella', id:'orario_settembre', label:'Settembre', aggiungi:true, stampaVuota:true, righe:3,
+        col:[{h:'Insegnante / educatrice', w:4, ph:'es. Assirati Chiara'}, {h:'Giorni', w:4, ph:'es. dal lunedì al venerdì'}, {h:'Orario', w:4, ph:'es. 8:30-12:30'}]},
+      {t:'tabella', id:'orario_ottobre', label:'Ottobre – giugno', aggiungi:true, stampaVuota:true, righe:3,
+        col:[{h:'Insegnante / educatrice', w:4, ph:'es. Assirati Chiara'}, {h:'Giorni', w:4, ph:'es. lunedì, mercoledì, venerdì'}, {h:'Orario', w:4, ph:'es. 8:30-15:30'}]},
+
+      {t:'h', testo:'Utilizzo degli spazi e sorveglianza'},
+      T('L’accoglienza dei bambini e delle bambine avviene dalle 7:30 alle 8:30 (servizio di anticipo) nella sezione gialla della scuola dell’infanzia con la sorveglianza di un’educatrice. Alle 8:30 le insegnanti e/o educatrici entrano in servizio e ogni gruppo entra nella propria sezione.'),
+      T('Dalle ore 9:00 alle ore 10:00 è il momento dell’accoglienza dei bambini in sezione. Ogni insegnante propone le routine del mattino e canzoni animate.'),
+      T('Dalle ore 10:00 alle ore 11:30:\n– lunedì, martedì, mercoledì, giovedì e venerdì vengono svolte attività per gruppi omogenei nelle proprie sezioni di appartenenza che seguono il percorso specifico per l’età; la documentazione è nel registro informatico di ogni sezione.'),
+      T('Dalle ore 11:30 alle ore 11:45: conversazione, canzoni animate, preparazione al pranzo, igiene personale.'),
+      T('Dalle ore 11:45 alle ore 12:30: pranzo nella sezione di appartenenza o nella sezione del gruppo omogeneo.'),
+      T('Dalle ore 12:30 alle ore 13:30: gioco libero nel giardino interno della scuola dell’infanzia, nel giardino del benessere e nelle sezioni di appartenenza.'),
+      T('Dalle 13:30 alle 15:00:\n– lunedì e martedì i bambini si ritrovano in sezione nel gruppo eterogeneo per le attività di progetto; nei periodi di maggiore rilevanza religiosa viene inserita l’attività di IRC;\n– mercoledì, giovedì e venerdì pomeriggio vengono svolti i laboratori.'),
+      T('Dalle 15:00 alle 15:40: riordino, conversazione, igiene personale e merenda.'),
+      T('Dalle 15:40 alle 16:00: uscita, gestita dalle insegnanti ed educatrici della scuola dell’infanzia.'),
+      T('Dalle 16:00 alle 18:00: posticipo gestito dalle educatrici della scuola dell’infanzia e del Green Nido.'),
+      {t:'testo', id:'sorveglianza_nomi', label:'Personale incaricato di anticipo e posticipo', ph:'es. anticipo: educatrice Rossi Anna; posticipo: educatrici Bianchi Sara e Verdi Paola'},
+
+      {t:'h', testo:'Gruppo di lavoro – insegnanti di riferimento rispetto ai diversi contesti'},
+      {t:'nota', testo:'Aggiornare ogni anno: abbinamento sezione / gruppo omogeneo e nomi delle insegnanti (indicare tra parentesi eventuali periodi di servizio).'},
+      {t:'tabella', id:'gruppo_lavoro', aggiungi:true, stampaVuota:true,
+        col:[{h:'Sezione / contesto', w:5, ph:'es. Sezione Gialla – gruppo omogeneo 3 anni'}, {h:'Insegnanti di riferimento', w:7, tipo:'area', ph:'es. Assirati Chiara, Zappa Eleonora'}],
+        init:[
+          RIGA('Sezione Gialla – gruppo omogeneo 3 anni', 'Assirati Chiara\nZappa Eleonora'),
+          RIGA('Sezione Rossa – gruppo omogeneo 5 anni', 'Torchiani Stefania\nVolpi Aurora (settembre – maggio)\nZupelli Serena (giugno)'),
+          RIGA('Sezione Azzurra – gruppo omogeneo 4 anni', 'Gatti Michela\nMartinelli Andrea'),
+          RIGA('Madrelingua', 'Rebecca Osei Akoto'),
+          RIGA('IRC', 'p. Gianmarco Paris')]},
+
+      {t:'h', testo:'L’osservazione'},
+      T('Osservando sistematicamente e progettando l’osservazione (chi, cosa, quando e come osservare) così come si progettano le attività e i percorsi didattici e il modo di realizzarli, si costruirà un modo di essere e di procedere nel nostro lavoro che rende coerente l’azione educativa con la realtà e le esigenze di ogni bambino.'),
+      T('Il tempo dedicato all’osservazione è già un primo momento educativo: quando osserviamo un bambino questo lo aiuta a sentirsi stimato, apprezzato, oggetto di attenzione; di fatto è già un intervento strutturante.'),
+      T('L’osservazione produce conoscenza e accettazione e genera maggiore empatia; mentre osserviamo si sospende il giudizio e si ricostruiscono le aspettative nei confronti del bambino a partire da quello che egli realmente è. Anche le insegnanti hanno la possibilità di cambiare e modificare il «loro sapere», ampliando la visione e accogliendo in modo autentico il bambino.'),
+      T('L’osservazione si caratterizzerà in forme diverse rispetto a:\n– COSA osservare, partendo proprio dall’idea di complessità per cogliere gli aspetti che definiscono ogni bambino/a come individuo integrato;\n– TEMPI, prestabiliti per garantire sistematicità nella rilevazione dell’evoluzione;\n– CHI osservare, perché i bambini/e vivono esperienze e momenti diversi con tutte le insegnanti della scuola;\n– MODALITÀ DI REGISTRAZIONE, diverse perché diverso è il contesto in cui essa avviene e varie le opportunità che ogni tipo di registrazione offre.'),
+      {t:'tabella', id:'osservazione', aggiungi:true, stampaVuota:true,
+        col:[{h:'Cosa', w:2.6, tipo:'area', ph:'es. Laboratori'},
+          {h:'Quando', w:2.2, tipo:'area', ph:'es. Pomeriggio'},
+          {h:'Chi', w:2, tipo:'area', ph:'es. Insegnanti di sezione'},
+          {h:'Strumenti', w:3, tipo:'area', ph:'es. Registrazione settimanale delle osservazioni'},
+          {h:'Dove', w:2.2, tipo:'area', ph:'es. Profilo finale personale'}],
+        init:[
+          RIGA('Inserimento:\n– distacco\n– autonomia\n– interessi\n– relazionalità', 'Primo periodo, nei diversi momenti della giornata', 'Insegnanti di sezione', 'Osservazione nel periodo per il profilo intermedio', '– Progetto accoglienza\n– Profilo intermedio personale'),
+          RIGA('Laboratori', 'Pomeriggio', 'Insegnanti di sezione', 'Registrazione delle osservazioni settimanale da parte dell’insegnante', 'Profilo finale personale'),
+          RIGA('Gruppi omogenei', 'Mattino', 'Insegnanti di sezione', '– Osservazione sistematica per il profilo finale\n– Griglia delle competenze raggiunte per ogni blocco di lavoro\n– Rilevazione prerequisiti letture e scritture emergenti (solo 5 anni)', 'Profilo finale personale'),
+          RIGA('Sezione', 'Momenti di sezione', 'Insegnanti di sezione', '– Strutture interattive\n– Analisi sezione\n– Griglia di rilevamento disagio', '– Fascicolo personale\n– Registro')]},
+
+      {t:'h', testo:'Documentazione'},
+      T('All’interno di un percorso formativo la documentazione è strategica per riesaminare, ricostruire nel gruppo e con il gruppo i percorsi compiuti, crea memoria di quello che si sta facendo e nel contempo permette ad adulti e bambini di sistemare, ordinare e classificare le esperienze per renderle leggibili al gruppo di bambini e bambine e alle famiglie.'),
+      T('La verifica permetterà all’équipe di riflettere sulla efficace declinazione del progetto educativo-didattico in esperienze di gioco e di apprendimento. È uno strumento per controllare e ridefinire la proposta educativa e le dinamiche relazionali. Ridiscutere, esplicitare, autovalutare in équipe le scelte psicopedagogiche che muovono l’agire educativo-didattico delle insegnanti attraverso la pratica dell’osservazione, della descrizione, della valutazione del comportamento dei bambini/e nei diversi ambiti, riprogettando l’organizzazione del lavoro e i progetti per raffinare gli interventi e supportare i percorsi di crescita dei singoli e del gruppo, è un’attività di monitoraggio continuo. Pensiamo quindi alla documentazione come strumento per le insegnanti, per i bambini e le bambine, per il personale che lavora nella scuola ma anche per i genitori.'),
+      T('Per le insegnanti: come da modelli riferiti alle procedure della Scuola.'),
+      T('Per i bambini/e e le famiglie:\n– illustrazione del progetto e della proposta didattica (*);\n– illustrazione del percorso evolutivo dei bambini;\n– raccolta degli elaborati riferiti alle varie esperienze;\n– fotografie e disegni verbalizzati all’insegnante;\n– lavori individuali/collettivi esposti e raccontati.'),
+      T('Nota (*): tutta la documentazione agli atti della scuola (progetto educativo e sviluppo delle proposte didattiche) è disponibile per i genitori, su richiesta.'),
+
+      {t:'h', testo:'Firme'},
+      {t:'riga', campi:[
+        {t:'testo', id:'luogo', label:'Luogo', w:6, def:'Orzinuovi', ph:'es. Orzinuovi', nopdf:true},
+        {t:'data', id:'data', label:'Data', w:6, oggi:true, nopdf:true, obbl:true, rif:'Data di sottoscrizione: minimo identificativo del documento'}]},
+      T('{luogo}, {data}'),
+      {t:'nota', testo:'Nomi precompilati dal gruppo di lavoro dell’a.s. 2026/2027: aggiornarli ogni anno. La colonna Firma resta vuota per la firma autografa sul PDF stampato.'},
+      {t:'tabella', id:'firme_tab', aggiungi:true, stampaVuota:true,
+        col:[{h:'Cognome e nome', w:4, ph:'es. Rossi Maria'}, {h:'Ruolo', w:4, ph:'es. insegnante di sezione'}, {h:'Firma', w:4, ph:'lasciare vuoto: firma autografa'}],
+        init:[
+          RIGA('', 'Coordinatore didattico', ''),
+          RIGA('Assirati Chiara', 'Insegnante – sezione Gialla', ''),
+          RIGA('Zappa Eleonora', 'Insegnante – sezione Gialla', ''),
+          RIGA('Torchiani Stefania', 'Insegnante – sezione Rossa', ''),
+          RIGA('Volpi Aurora', 'Insegnante – sezione Rossa', ''),
+          RIGA('Zupelli Serena', 'Insegnante – sezione Rossa', ''),
+          RIGA('Gatti Michela', 'Insegnante – sezione Azzurra', ''),
+          RIGA('Martinelli Andrea', 'Insegnante – sezione Azzurra', ''),
+          RIGA('Rebecca Osei Akoto', 'Insegnante madrelingua', ''),
+          RIGA('p. Gianmarco Paris', 'Insegnante di religione cattolica', ''),
+          RIGA('', 'Educatrice', '')]},
+    ],
+  });
+})();
+
+(() => {
+  /* ---------------------------------------------------------------
+     Schede della Scuola dell'Infanzia (modelli della scuola, ottobre 2026):
+     analisi della sezione, profilo intermedio (3 anni / 4-5 anni), profilo finale.
+     Testi e voci ripresi dai modelli; dati annuali e firme compilabili.
+     --------------------------------------------------------------- */
+  const LEG_INF = 'Documento di osservazione e documentazione educativa, non deliberativo: gli elementi segnati con * sono il minimo identificativo (chi, quando, quale bambino o sezione). Se mancano il documento perde valore di documentazione, ma non si tratta di invalidità.';
+  const NORME_OSS = [
+    'D.M. 221/2025 – Nuove Indicazioni nazionali per la scuola dell’infanzia e il primo ciclo (in vigore dal 2026/27): campi di esperienza, osservazione e valutazione formativa nella scuola dell’infanzia.',
+    'D.Lgs. 65/2017 – Sistema integrato di educazione e di istruzione dalla nascita fino ai sei anni; Linee pedagogiche per il sistema integrato 0-6 (D.M. 334/2021): osservazione, documentazione e valutazione formativa.',
+    'D.Lgs. 62/2017, art. 1 – la valutazione ha finalità formativa e documenta lo sviluppo dell’identità personale (principi richiamati anche per l’infanzia).',
+    'L. 104/1992 e D.Lgs. 66/2017 – alunni con certificazione: raccordo con il PEI.',
+    'Reg. UE 2016/679 (GDPR), artt. 5 e 9 – dati personali di minori: minimizzazione, nessuna diagnosi, conservazione riservata nel fascicolo.',
+  ];
+  const FIRME_INS = (id, label) => ({t:'tabella', id, label,
+    col:[{h:'Insegnante', w:6, ph:'es. Stefania Torchiani'}, {h:'Firma', w:6, ph:'lasciare vuoto: firma autografa sul PDF'}],
+    righe:3, aggiungi:true, stampaVuota:true, obbl:true, rif:'Identificazione delle insegnanti che redigono il documento'});
+
+  /* ---------- ANALISI DELLA SEZIONE ---------- */
+  registra({
+    id:'analisi-sezione-infanzia', argomento:'programmazione', scuole:['I'], file:'Analisi-sezione',
+    titolo:'Analisi della sezione',
+    occhiello:'Scuola dell’Infanzia – analisi di inizio e di fine anno scolastico',
+    descrizione:'Modello della scuola: descrizione della sezione, numeri e clima, a ottobre e a fine anno',
+    legenda:() => LEG_INF,
+    norme:NORME_OSS,
+    blocchi:(s) => [
+      {t:'h', testo:'Dati generali'},
+      {t:'riga', campi:[
+        {t:'scelta', id:'periodo', label:'Periodo', opz:['Mese di ottobre (inizio anno)', 'Fine anno scolastico'], def:'Mese di ottobre (inizio anno)', w:6, obbl:true, rif:'Indica il momento dell’analisi'},
+        {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico(), ph:'es. 2026/2027', obbl:true, rif:'Identificazione dell’anno'},
+        {t:'testo', id:'sezione', label:'Sezione', w:3, ph:'es. Gialla', obbl:true, rif:'Identificazione della sezione'}]},
+      {t:'h', testo:'La sezione'},
+      {t:'area', id:'descrizione', label:'Descrizione della sezione', righe:3,
+        ph:'es. Sezione eterogenea di 29 bambini (9 di 5 anni, 12 di 4 anni, 8 di 3 anni), con due insegnanti e l’insegnante madrelingua.',
+        frasi:[
+          'Sezione eterogenea composta da bambini di 3, 4 e 5 anni, con una distribuzione equilibrata tra le fasce d’età.',
+          'Nella sezione sono presenti alcuni bambini anticipatari, inseriti con un percorso di ambientamento graduale.',
+          'Il gruppo dei bambini di 5 anni è numeroso e svolge un ruolo di riferimento per i più piccoli.',
+          'Sono presenti bambini con lingua madre diversa dall’italiano, che partecipano con interesse alle attività di gruppo.',
+          'Il gruppo dei bambini di 3 anni ha concluso l’inserimento e partecipa con serenità alla vita della sezione.']},
+      {t:'riga', campi:[
+        {t:'num', id:'n_alunni', label:'Numero alunni presenti nella sezione', w:4},
+        {t:'num', id:'n_m', label:'di cui M', w:4},
+        {t:'num', id:'n_f', label:'e F', w:4}]},
+      {t:'riga', campi:[
+        {t:'num', id:'n_cert', label:'Numero alunni con certificazione presenti nella sezione', w:4},
+        {t:'num', id:'n_cert_m', label:'di cui M', w:4},
+        {t:'num', id:'n_cert_f', label:'e F', w:4}]},
+      {t:'nota', testo:'Indicare solo i numeri: nessun nome né diagnosi. Per i bambini con certificazione il riferimento è il PEI.'},
+      {t:'area', id:'clima', label:'Breve descrizione del clima d’aula e degli eventuali problemi presenti', righe:8,
+        ph:'es. Il clima è sereno e collaborativo; i bambini partecipano volentieri alle routine. Nel gioco libero emergono alcuni conflitti per l’uso dei materiali, che si risolvono con la mediazione dell’adulto.',
+        frasi:[
+          'Il clima della sezione è sereno e accogliente; i bambini si muovono con sicurezza negli spazi e nelle routine.',
+          'I bambini partecipano con entusiasmo alle attività proposte e mostrano curiosità verso le nuove esperienze.',
+          'Nel gioco libero emergono talvolta conflitti per l’uso dei materiali, che i bambini iniziano a gestire con la mediazione dell’adulto.',
+          'Alcuni bambini faticano a rispettare i tempi di attesa e le regole condivise; si lavora sulla costruzione delle regole di convivenza.',
+          'Il gruppo dei grandi sostiene i più piccoli nelle routine, favorendo un clima di collaborazione.',
+          'Si osservano momenti di agitazione nei passaggi tra un’attività e l’altra: si introducono rituali di transizione.',
+          'Rispetto all’inizio dell’anno il gruppo ha raggiunto una buona coesione e una maggiore autonomia.',
+          'Si segnalano alcune situazioni da monitorare, che vengono seguite con osservazioni periodiche e confronto con le famiglie.']},
+      {t:'h', testo:'Firme'},
+      FIRME_INS('firme_ins', 'Le insegnanti di sezione'),
+      {t:'riga', campi:[{t:'data', id:'data', label:'Data compilazione', w:4, oggi:true, obbl:true, rif:'Data del documento'}]},
+    ],
+  });
+
+  /* ---------- PROFILO INTERMEDIO (3 anni / 4-5 anni) ---------- */
+  const F = {
+    inserimento:[
+      'È sereno/a al momento del distacco e si inserisce volentieri nelle attività della sezione.',
+      'Ha bisogno di ritualità (saluto, oggetto transizionale) per affrontare serenamente il distacco.',
+      'È ancora in difficoltà rispetto al momento del distacco dal genitore, ma si consola con l’aiuto dell’insegnante.',
+      'È ancora in difficoltà rispetto al momento del riposo / del pranzo.',
+      'Ha concluso positivamente il percorso di inserimento.'],
+    relazione:[
+      'Con l’adulto: cerca l’insegnante come punto di riferimento e accetta le sue proposte.',
+      'Con l’adulto: si rivolge all’insegnante solo in caso di bisogno.',
+      'Con i bambini: gioca prevalentemente in coppia o in piccolo gruppo.',
+      'Con i bambini: tende a giocare da solo/a, osservando i compagni.',
+      'Gestione del conflitto: chiede l’intervento dell’adulto per risolvere i contrasti.',
+      'Gestione del conflitto: inizia a trovare accordi con i compagni con una breve mediazione.',
+      'Gestione del conflitto: reagisce in modo impulsivo; si lavora sul riconoscimento delle emozioni.'],
+    partecipazione3:[
+      'Nelle attività a libera scelta si dedica con interesse al gioco simbolico / di costruzione / grafico.',
+      'Nelle attività a libera scelta si sposta spesso tra i diversi angoli, con tempi di permanenza brevi.',
+      'Nell’attività proposta partecipa con interesse e porta a termine il lavoro.',
+      'Nell’attività proposta partecipa se sollecitato/a dall’adulto.'],
+    partecipazione45:[
+      'In sezione e nei laboratori partecipa attivamente e con interventi pertinenti.',
+      'Lavora con più facilità nel piccolo gruppo; nel grande gruppo interviene raramente.',
+      'Nel grande gruppo ascolta e interviene rispettando il turno.',
+      'Mantiene l’attenzione per tempi adeguati alla sua età.',
+      'I tempi di attenzione sono brevi: ha bisogno di richiami e di attività frazionate.'],
+    autonomia3:[
+      'In bagno è autonomo/a; a tavola mangia da solo/a e utilizza correttamente le posate.',
+      'In bagno ha ancora bisogno dell’aiuto dell’adulto.',
+      'Si orienta con sicurezza nei diversi spazi della scuola.',
+      'Nell’attività sa organizzarsi con i materiali dopo la consegna.',
+      'Nell’attività ha bisogno della guida dell’adulto per iniziare e portare a termine il lavoro.'],
+    autonomia45:[
+      'Comprende la consegna e si organizza in modo autonomo nell’attività.',
+      'Ha bisogno che la consegna venga ripetuta o mostrata per avviare il lavoro.',
+      'Porta a termine il lavoro nei tempi previsti e riordina i materiali.',
+      'Esprime idee personali e propone soluzioni (autonomia di pensiero).',
+      'Tende a imitare il lavoro dei compagni; si incoraggia l’espressione di idee proprie.'],
+    approccio:[
+      'Motivazione: affronta con entusiasmo le nuove proposte.',
+      'Motivazione: si scoraggia di fronte alle difficoltà e chiede aiuto all’adulto.',
+      'Percezione di sé: ha fiducia nelle proprie capacità.',
+      'Percezione di sé: tende a sottovalutarsi e ha bisogno di incoraggiamento.',
+      'Gestione delle emozioni: riconosce e nomina le proprie emozioni.',
+      'Gestione delle emozioni: fatica a gestire la frustrazione; si lavora con l’aiuto dell’adulto.'],
+    interesse:[
+      'Mostra interesse prevalente per il gioco simbolico.',
+      'Mostra interesse prevalente per le costruzioni e i giochi di incastro.',
+      'Mostra interesse prevalente per le attività grafico-pittoriche e manipolative.',
+      'Mostra interesse prevalente per il movimento e i giochi all’aperto.',
+      'Mostra interesse prevalente per l’ascolto di storie, libri e canzoni.'],
+    forza:[
+      'Buone capacità relazionali e disponibilità verso i compagni.',
+      'Curiosità e desiderio di sperimentare.',
+      'Buona capacità di espressione verbale.',
+      'Creatività nelle attività grafico-pittoriche e nel gioco simbolico.',
+      'Autonomia nella gestione delle routine.'],
+    debolezza:[
+      'Tempi di attenzione ancora brevi.',
+      'Difficoltà nel rispetto delle regole condivise e dei turni.',
+      'Gestione della frustrazione da consolidare.',
+      'Linguaggio da arricchire nel lessico e nella struttura della frase.',
+      'Coordinazione fine (impugnatura, ritaglio) da consolidare.'],
+  };
+  registra({
+    id:'profilo-intermedio-infanzia', argomento:'valutazione', scuole:['I'], file:'Profilo-intermedio',
+    titolo:'Profilo intermedio',
+    occhiello:'Scuola dell’Infanzia – osservazione del bambino a metà anno',
+    descrizione:'Modello della scuola: profilo intermedio per i bambini di 3 anni o di 4-5 anni',
+    legenda:() => LEG_INF,
+    norme:NORME_OSS,
+    blocchi:(s) => [
+      {t:'h', testo:'Dati generali'},
+      {t:'riga', campi:[
+        {t:'testo', id:'nome', label:'Profilo intermedio di (nome del bambino / della bambina)', w:6, ph:'es. Marco Rossi', obbl:true, rif:'Identificazione del bambino'},
+        {t:'data', id:'data', label:'Data', w:3, oggi:true, obbl:true, rif:'Data dell’osservazione'},
+        {t:'testo', id:'sezione', label:'Sezione', w:3, ph:'es. Rossa'}]},
+      {t:'scelta', id:'eta', label:'Fascia d’età', opz:['3 anni', '4-5 anni'], def:'3 anni', col:2, obbl:true, rif:'Determina le voci del profilo', nopdf:true},
+      {t:'nota', testo:'Descrivere ciò che si osserva (che cosa fa, quando, con chi), senza giudizi né ipotesi diagnostiche.'},
+      {t:'se', campo:'eta', vale:'3 anni', blocchi:[
+        {t:'h', testo:'Profilo intermedio – 3 anni'},
+        {t:'area', id:'inserimento', label:'Inserimento – specificare se: è sereno; ha bisogno di ritualità; è ancora in difficoltà rispetto a…', righe:3, ph:'es. È sereno al momento del distacco; ha ancora bisogno del saluto rituale con la mamma.', frasi:F.inserimento},
+        {t:'area', id:'relazione3', label:'Relazione – con l’adulto; con i bambini/e; gestione del conflitto', righe:3, ph:'es. Cerca spesso l’insegnante; gioca volentieri con due compagni; nei conflitti chiede l’aiuto dell’adulto.', frasi:F.relazione},
+        {t:'area', id:'partecipazione3', label:'Partecipazione – attività a libera scelta; attività proposta', righe:3, ph:'es. Nel gioco libero sceglie l’angolo della cucina; nelle attività proposte partecipa con interesse.', frasi:F.partecipazione3},
+        {t:'area', id:'autonomia3', label:'Autonomia – in bagno, a tavola, organizzazione nell’attività, nei diversi spazi della scuola', righe:3, ph:'es. A tavola mangia da solo; in bagno ha ancora bisogno di aiuto; si orienta bene negli spazi.', frasi:F.autonomia3},
+        {t:'area', id:'interesse', label:'Interesse prevalente', righe:3, ph:'es. Ascolto di storie e gioco simbolico.', frasi:F.interesse}]},
+      {t:'se', campo:'eta', vale:'4-5 anni', blocchi:[
+        {t:'h', testo:'Profilo intermedio – 4-5 anni'},
+        {t:'area', id:'relazione45', label:'Relazione – con l’adulto; con i bambini/e; gestione del conflitto', righe:3, ph:'es. Ha un rapporto sereno con le insegnanti; è ricercato dai compagni; nei conflitti propone soluzioni.', frasi:F.relazione},
+        {t:'area', id:'partecipazione45', label:'Partecipazione – in sezione e nei laboratori; piccolo, medio e grande gruppo; tempi di attenzione', righe:3, ph:'es. Partecipa attivamente nel piccolo gruppo; nel grande gruppo interviene poco; l’attenzione cala dopo 15 minuti.', frasi:F.partecipazione45},
+        {t:'area', id:'autonomia45', label:'Autonomia – organizzativa nell’attività rispetto alla consegna; di pensiero', righe:3, ph:'es. Comprende la consegna e si organizza da solo; propone idee personali nel gioco.', frasi:F.autonomia45},
+        {t:'area', id:'approccio', label:'Approccio al compito – motivazione; percezione di sé; gestione delle emozioni', righe:3, ph:'es. È motivato e fiducioso; di fronte all’errore si scoraggia ma accetta l’aiuto.', frasi:F.approccio},
+        {t:'area', id:'forza', label:'Punti di forza', righe:3, ph:'es. Curiosità, linguaggio ricco, disponibilità verso i compagni.', frasi:F.forza},
+        {t:'area', id:'debolezza', label:'Punti di debolezza', righe:3, ph:'es. Tempi di attenzione brevi; gestione della frustrazione da consolidare.', frasi:F.debolezza}]},
+    ],
+  });
+
+  /* ---------- PROFILO FINALE ---------- */
+  registra({
+    id:'profilo-finale-infanzia', argomento:'valutazione', scuole:['I'], file:'Profilo-finale',
+    titolo:'Profilo finale dell’alunno/a',
+    occhiello:'Scuola dell’Infanzia – profilo descrittivo di fine anno',
+    descrizione:'Modello della scuola: profilo finale, laboratori, accordi con la famiglia e firme dell’anno',
+    legenda:() => LEG_INF,
+    norme:NORME_OSS,
+    blocchi:(s) => [
+      {t:'h', testo:'Dati generali'},
+      {t:'riga', campi:[
+        {t:'testo', id:'nome', label:'Profilo finale dell’alunno/a', w:6, ph:'es. Marco Rossi', obbl:true, rif:'Identificazione del bambino'},
+        {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico(), ph:'es. 2026/2027', obbl:true, rif:'Identificazione dell’anno'},
+        {t:'testo', id:'sezione', label:'Sezione', w:3, ph:'es. Azzurra'}]},
+      {t:'h', testo:'Firmatari dell’anno'},
+      {t:'nota', testo:'Elenco dei firmatari da aggiornare ogni anno: nomi e ruoli come compaiono nel profilo (dirigente, direttore educativo, insegnanti, insegnante madrelingua, educatrice). La colonna Firma resta vuota per la firma autografa.'},
+      {t:'tabella', id:'firmatari', col:[{h:'Cognome e nome', w:5, ph:'es. Stefania Torchiani'}, {h:'Ruolo', w:3, ph:'es. insegnante'}, {h:'Firma', w:4, ph:'firma autografa sul PDF'}],
+        init:[['', 'dirigente scolastica', ''], ['', 'direttore educativo', ''], ['', 'insegnante', ''], ['', 'madrelingua', ''], ['', 'educatrice', '']],
+        righe:5, aggiungi:true, stampaVuota:true, obbl:true, rif:'Sottoscrizione del profilo da parte del personale della sezione'},
+      {t:'h', testo:'Profilo descrittivo'},
+      {t:'area', id:'profilo', label:'Profilo descrittivo steso utilizzando le griglie di osservazione', righe:8, obbl:true, rif:'Contenuto essenziale del profilo',
+        ph:'es. Marco ha concluso il percorso con serenità. Si relaziona positivamente con compagni e adulti, partecipa con interesse alle attività e porta a termine le consegne in autonomia…',
+        frasi:[
+          'Ha vissuto l’anno scolastico con serenità, consolidando la relazione con compagni e insegnanti.',
+          'Partecipa con interesse e curiosità alle attività proposte, intervenendo in modo pertinente nelle conversazioni.',
+          'Ha raggiunto una buona autonomia nelle routine e nell’organizzazione dei materiali.',
+          'Si esprime con un linguaggio chiaro e ricco, racconta esperienze e formula domande.',
+          'Nelle attività grafico-pittoriche e manipolative mostra creatività e cura dei particolari.',
+          'Ha migliorato la capacità di attenzione e di ascolto nel corso dell’anno.',
+          'Sta imparando a gestire le emozioni e la frustrazione, con il sostegno dell’adulto.',
+          'È pronto/a ad affrontare con fiducia il passaggio alla scuola primaria.']},
+      {t:'area', id:'laboratori', label:'Osservazione del progetto educativo dei laboratori', righe:4,
+        ph:'es. Nel laboratorio di scienze ha partecipato con curiosità agli esperimenti, formulando ipotesi e confrontandole con i compagni.',
+        frasi:[
+          'Nei laboratori ha partecipato con curiosità, sperimentando con piacere materiali e tecniche diverse.',
+          'Nel lavoro di gruppo ha collaborato con i compagni, rispettando i turni e i ruoli.',
+          'Ha mostrato particolare interesse per il laboratorio di espressione artistica / scientifico / motorio / linguistico.',
+          'Nel progetto madrelingua ha compreso istruzioni e semplici espressioni di uso quotidiano.',
+          'Ha portato a termine i prodotti dei laboratori con impegno e cura.']},
+      {t:'area', id:'accordi', label:'Accordi scuola-famiglia in sede di colloquio', righe:4,
+        ph:'es. Si concorda con la famiglia di proseguire durante l’estate la lettura condivisa e di favorire l’autonomia nelle routine quotidiane.',
+        frasi:[
+          'Si concorda con la famiglia di favorire l’autonomia nelle routine quotidiane (vestirsi, riordinare).',
+          'La famiglia condivide le osservazioni della scuola e si impegna a sostenere la lettura condivisa a casa.',
+          'Si concorda di proseguire il dialogo con la scuola primaria per un passaggio sereno.',
+          'Si concordano strategie comuni per la gestione delle emozioni e delle regole.',
+          'La famiglia riferisce i progressi osservati anche a casa.']},
+      {t:'riga', campi:[{t:'data', id:'data', label:'Data', w:4, oggi:true, obbl:true, rif:'Data del documento'}]},
+      {t:'nota', testo:'Il profilo contiene dati personali di un minore: consegnarlo alla famiglia in modo riservato e conservarne copia nel fascicolo. Nessuna diagnosi o informazione sanitaria.'},
+    ],
   });
 })();
 
