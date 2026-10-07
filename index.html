@@ -480,6 +480,7 @@ function apri(id, s){
   MOD = MODULI.find(m => m.id === id); SCU = s; azzera();
   BLOCCHI = conAnnotazioni(MOD.blocchi(s));
   inizializza(BLOCCHI);
+  STATO._prot_n = ''; STATO._prot_data = ''; // numero e data di protocollo forniti dalla segreteria
   const app = $('#app'); app.innerHTML = '';
   const bar = el('div', {class:'bar'}, el('div', {class:'wrap'},
     el('button', {class:'btn', onclick:esci, html:SVG.indietro + 'Elenco'}),
@@ -548,6 +549,21 @@ function inizializza(blocchi){
 }
 function segna(){ SPORCO = true; aggiornaDinamici(); }
 
+/* Protocollo: numero e data forniti dalla segreteria, stampati nel riquadro della prima pagina.
+   Se restano vuoti il riquadro esce con le righe da compilare a mano. */
+function sezioneProtocollo(){
+  const n = el('input', {type:'text', id:'f__prot_n', value:STATO._prot_n || '', placeholder:'es. 1234/C27'});
+  const d = el('input', {type:'date', id:'f__prot_data', value:STATO._prot_data || ''});
+  const attiva = () => { const c = $('#protocollo'); if (c && !c.disabled && (STATO._prot_n || STATO._prot_data)) c.checked = true; };
+  n.addEventListener('input', () => { STATO._prot_n = n.value; attiva(); segna(); });
+  d.addEventListener('input', () => { STATO._prot_data = d.value; attiva(); segna(); });
+  return el('section', {class:'sez'}, el('h3', {}, 'Protocollo'), el('div', {class:'g'},
+    el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_n'}, 'Prot. n.'), n),
+    el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_data'}, 'del'), d),
+    el('div', {class:'nota', html:SVG.info}, el('span', {}, MOD.protocollo
+      ? 'Per questo documento il protocollo è obbligatorio. Inserisci il numero e la data forniti dalla segreteria: compariranno nel riquadro della prima pagina. Se non li hai ancora, lascia vuoto: il riquadro resterà da compilare a mano.'
+      : 'Facoltativo. Se la segreteria ti ha fornito un numero di protocollo, inseriscilo qui: il riquadro viene aggiunto alla prima pagina del PDF (casella «Spazio protocollo»).'))));
+}
 function haObbl(bl){ return bl.some(b => b.obbl || (b.campi && haObbl(b.campi)) || (b.blocchi && haObbl(b.blocchi))); }
 function disegnaForm(root){
   root.innerHTML = '';
@@ -556,6 +572,7 @@ function disegnaForm(root){
     el('summary', {}, 'Riferimenti normativi di questo documento'),
     el('ul', {}, norme.map(n => el('li', {}, n))),
     el('p', {}, 'I riferimenti servono a chi compila e non vengono stampati nel PDF.')));
+  root.append(sezioneProtocollo());
   if (haObbl(BLOCCHI)){
     const spec = MOD.legenda ? MOD.legenda(SCU) : null;
     root.append(el('div', {class:'legenda', html:'<b>*</b> ' + (spec ? esc(spec) : 'Elementi essenziali del verbale: se mancano, il verbale o le deliberazioni possono essere invalidi o impugnabili.') + ' Sotto ciascuno è indicato il riferimento normativo; al salvataggio l\u2019app segnala quelli non compilati.'}));
@@ -860,6 +877,9 @@ function creaPDF(man = []){
       doc.text('Prot. n.', bx + 2, by + 7.3); doc.text('del', bx + 2, by + 11.2);
       doc.setDrawColor(...GRIGIO); doc.setLineWidth(0.2);
       doc.line(bx + 13, by + 7.6, bx + bw - 2, by + 7.6); doc.line(bx + 8, by + 11.5, bx + bw - 2, by + 11.5);
+      font('bold', 9, INK);
+      if (STATO._prot_n) doc.text(pulisci(STATO._prot_n), bx + 14, by + 7.1);
+      if (STATO._prot_data) doc.text(dataIT(STATO._prot_data), bx + 9, by + 11);
       }
       doc.setDrawColor(...acc); doc.setLineWidth(0.6); doc.line(PDF.M, 28.5, PDF.M + PDF.W, 28.5);
       y = 34;
@@ -1238,13 +1258,19 @@ function cartaIntestata(scuola){
   const inTitolo = el('input', {type:'text', placeholder:'es. Relazione sull’uscita didattica al Vittoriale', value:''});
   inTitolo.addEventListener('input', () => { CI.titolo = inTitolo.value; });
   const cbProt = el('input', {type:'checkbox'}); cbProt.addEventListener('change', () => { CI.protocollo = cbProt.checked; });
+  const inProtN = el('input', {type:'text', placeholder:'es. 1234/C27'}), inProtD = el('input', {type:'date'});
+  const protAttiva = () => { if (CI.protN || CI.protData){ CI.protocollo = true; cbProt.checked = true; } };
+  inProtN.addEventListener('input', () => { CI.protN = inProtN.value; protAttiva(); });
+  inProtD.addEventListener('input', () => { CI.protData = inProtD.value; protAttiva(); });
   const selPag = el('select', {}, el('option', {value:'prima'}, 'Completa sulla prima pagina, ridotta sulle successive'), el('option', {value:'tutte'}, 'Completa su tutte le pagine'));
   selPag.addEventListener('change', () => { CI.pagineInt = selPag.value; });
   form.append(el('section', {class:'sez'}, el('h3', {}, '3. Opzioni'), el('div', {class:'g'},
     el('div', {class:'f', style:'grid-column:span 12'}, el('label', {}, 'Titolo del documento (compare nelle pagine successive e nel nome del file)'), inTitolo),
     el('div', {class:'f', style:'grid-column:span 7'}, el('label', {}, 'Intestazione'), selPag),
     el('div', {class:'f', style:'grid-column:span 5'}, el('span', {class:'lbl'}, 'Protocollo'),
-      el('label', {class:'chk-inline', style:'font-size:14px;color:var(--ink)'}, cbProt, 'Riquadro "Prot. n. … del …" per la segreteria (facoltativo; obbligatorio se il documento è un PEI o un PDP)')))));
+      el('label', {class:'chk-inline', style:'font-size:14px;color:var(--ink)'}, cbProt, 'Riquadro "Prot. n. … del …" per la segreteria (facoltativo; obbligatorio se il documento è un PEI o un PDP)')),
+    el('div', {class:'f', style:'grid-column:span 6'}, el('label', {}, 'Prot. n. (se fornito dalla segreteria)'), inProtN),
+    el('div', {class:'f', style:'grid-column:span 6'}, el('label', {}, 'del'), inProtD))));
   window.scrollTo(0, 0);
 }
 
@@ -1290,6 +1316,8 @@ async function impagina(soloAnteprima, nomeScelto){
         T(pg, 'del', bx + mm(2), by + mm(11.2), 8, fR, ink);
         pg.drawLine({start:{x:bx + mm(13), y:Hp - by - mm(7.6)}, end:{x:bx + bw - mm(2), y:Hp - by - mm(7.6)}, thickness:0.5, color:grigio});
         pg.drawLine({start:{x:bx + mm(8), y:Hp - by - mm(11.5)}, end:{x:bx + bw - mm(2), y:Hp - by - mm(11.5)}, thickness:0.5, color:grigio});
+        if (CI.protN) T(pg, CI.protN, bx + mm(14), by + mm(7.1), 9, fB, ink);
+        if (CI.protData) T(pg, dataIT(CI.protData), bx + mm(9), by + mm(11), 9, fB, ink);
       }
       pg.drawLine({start:{x:M, y:Hp - mm(28.5)}, end:{x:M + mm(186), y:Hp - mm(28.5)}, thickness:1.6, color:acc});
       top = mm(31);
