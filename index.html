@@ -316,14 +316,14 @@ const H = {
   },
   presenti(ruoli = [], titolo = 'Presenti'){
     return [{t:'h', testo:titolo},
-      {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:5, ph:'es. Rossi Maria'}, {h:'Ruolo / qualifica', w:5, ph:'es. docente di matematica'}, {h:'Presenza', w:2, tipo:'pres'}],
+      {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:5, ph:'Cognome e nome'}, {h:'Ruolo / qualifica', w:5, ph:'es. docente di matematica'}, {h:'Presenza', w:2, tipo:'pres'}],
        righe:Math.max(4, ruoli.length), init:ruoli.map(r => ['', r, 'P']), aggiungi:true},
       {t:'nota', testo:'Presenza: P = presente, A = assente, AG = assente giustificato. Le righe vuote non vengono stampate.'}];
   },
   presidenza(presidente = 'Coordinatore didattico'){
     return [{t:'riga', campi:[
-        {t:'testo', id:'presidente', label:`Presiede (${presidente} o delegato)`, w:6, nopdf:true, ph:'es. prof.ssa Maria Rossi, Coordinatore didattico'},
-        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'es. ins. Luca Bianchi'}]},
+        {t:'testo', id:'presidente', label:`Presiede (${presidente} o delegato)`, w:6, nopdf:true, ph:'es. Coordinatore didattico (cognome e nome)'},
+        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'Cognome e nome dell’insegnante'}]},
       {t:'testofisso', testo:'Presiede {presidente}; funge da segretario verbalizzante {segretario}. Constatata la validità della seduta, il Presidente dichiara aperti i lavori.'}];
   },
   odg(punti = []){
@@ -332,7 +332,7 @@ const H = {
   trattazione(){
     return [{t:'h', testo:'Trattazione dei punti'},
       {t:'nota', testo:'Per ogni punto: sintesi degli interventi (chi, che cosa), proposte emerse e decisione. Linguaggio oggettivo e descrittivo.'},
-      {t:'tabella', id:'trattazione', col:[{h:'Punto', w:1, ph:'1'}, {h:'Sintesi della discussione', w:7, tipo:'area', ph:'es. La prof.ssa Rossi illustra i risultati delle prove d’ingresso; interviene il prof. Bianchi proponendo attività di recupero a piccoli gruppi…'}, {h:'Decisioni', w:4, tipo:'area', ph:'es. Si approva all’unanimità il calendario del recupero'}], righe:3, aggiungi:true}];
+      {t:'tabella', id:'trattazione', col:[{h:'Punto', w:1, ph:'1'}, {h:'Sintesi della discussione', w:7, tipo:'area', ph:'es. La docente di italiano illustra i risultati delle prove d’ingresso; interviene il docente di matematica proponendo attività di recupero a piccoli gruppi…'}, {h:'Decisioni', w:4, tipo:'area', ph:'es. Si approva all’unanimità il calendario del recupero'}], righe:3, aggiungi:true}];
   },
   delibere(){
     return [{t:'tabella', id:'delibere', label:'Delibere e votazioni',
@@ -340,7 +340,7 @@ const H = {
   },
   impegni(){
     return [{t:'tabella', id:'impegni', label:'Impegni operativi',
-      col:[{h:'Azione / compito', w:7, tipo:'area', ph:'es. Predisporre la prova comune di italiano per le classi terze'}, {h:'Responsabile', w:3, ph:'es. prof.ssa Rossi'}, {h:'Scadenza', w:2, ph:'es. 15/11'}], righe:2, aggiungi:true}];
+      col:[{h:'Azione / compito', w:7, tipo:'area', ph:'es. Predisporre la prova comune di italiano per le classi terze'}, {h:'Responsabile', w:3, ph:'es. docente di italiano'}, {h:'Scadenza', w:2, ph:'es. 15/11'}], righe:2, aggiungi:true}];
   },
   chiusura(ruoli = ['Il Presidente', 'Il Segretario verbalizzante']){
     return [{t:'h', testo:'Chiusura'},
@@ -1399,7 +1399,7 @@ function classeProposta(){
 }
 /* Finestra di conferma del nome: autore obbligatorio, nome modificabile */
 function dialogoNome(p, conferma){
-  const inAut = el('input', {type:'text', value:p.autore || '', placeholder:'es. Rossi Maria', 'aria-label':'Autore'});
+  const inAut = el('input', {type:'text', value:p.autore || '', placeholder:'Cognome e nome', 'aria-label':'Autore'});
   const inData = el('input', {type:'date', value:p.data || oggiISO(), 'aria-label':'Data del documento'});
   const inClasse = el('input', {type:'text', value:p.classe || '', placeholder:'es. 3A (facoltativo)', 'aria-label':'Classe o sezione'});
   const inNome = el('input', {type:'text', 'aria-label':'Nome del file', style:'font-family:ui-monospace,Menlo,monospace;font-size:13px'});
@@ -1668,7 +1668,7 @@ function salvaModulo(man, nome){
   const ALUNNO = { N:'Bambino/a', I:'Bambino/a', P:'Alunno/a', S:'Alunno/a' };
   const SEZ = { N:'Gruppo / sezione', I:'Sezione', P:'Classe', S:'Classe' };
   const PH_SEZ = { N:'es. Gruppo medi (Scoiattoli)', I:'es. Sezione Gialla', P:'es. 3ª A', S:'es. 2ª B' };
-  const PH_ALU = { N:'es. Matteo R.', I:'es. Sofia B.', P:'es. Luca M.', S:'es. Giulia T.' };
+  const PH_ALU = { N:'Iniziali dell’alunno/a', I:'Iniziali dell’alunno/a', P:'Iniziali dell’alunno/a', S:'Iniziali dell’alunno/a' };
   const PH_AS = 'es. 2026/2027';
   const PRIVACY_NORMA = 'Reg. UE 2016/679 (GDPR), artt. 5 e 9 e D.Lgs. 196/2003, art. 2-sexies – dati di minori e dati particolari: minimizzazione, pertinenza, conservazione riservata; vademecum del Garante «La scuola a prova di privacy».';
 
@@ -1798,7 +1798,7 @@ function salvaModulo(man, nome){
       {t:'tabella', id:'ambientamenti', label:'Ambientamenti', col:[
         {h:'Bambino/a (iniziali)', w:2, ph:'es. M.R.'},
         {h:'Periodo', w:2, ph:'es. 8-19 settembre'},
-        {h:'Educatrice di riferimento', w:3, ph:'es. Giulia Verdi'},
+        {h:'Educatrice di riferimento', w:3, ph:'Cognome e nome'},
         {h:'Osservazioni / esito', w:5, tipo:'area', ph:'es. Separazione serena dalla seconda settimana; dorme al nido dal 22/9'}], righe:2, aggiungi:true},
       {t:'nota', testo:'Le osservazioni sui singoli bambini vanno scritte in forma descrittiva (che cosa fa, quando, con chi), senza giudizi o ipotesi diagnostiche.'},
     ];
@@ -2054,7 +2054,7 @@ function salvaModulo(man, nome){
         {t:'nota', testo:'Punti tipici per ' + H.NOMI[s] + ' — ' + Object.entries(ODG_TIPICI[s]).map(([k, v]) => k + ': ' + v.join('; ')).join(' | ')},
 
         {t:'h', testo:'Presenti e numero legale'},
-        {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:5, ph:'es. Rossi Maria'}, {h:'Ruolo / qualifica', w:5, ph:nido ? 'es. educatrice' : 'es. docente di matematica'}, {h:'Presenza', w:2, tipo:'pres'}],
+        {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:5, ph:'Cognome e nome'}, {h:'Ruolo / qualifica', w:5, ph:nido ? 'es. educatrice' : 'es. docente di matematica'}, {h:'Presenza', w:2, tipo:'pres'}],
           righe:Math.max(4, RUOLI[s].length), init:RUOLI[s].map(x => ['', x, 'P']), aggiungi:true, obbl:true, rif:r('presenti')},
         {t:'nota', testo:'Presenza: P = presente, A = assente, AG = assente giustificato. Indicare tutti i componenti in carica, anche gli assenti.'},
         {t:'se', campo:'organo', vale:COLLEGIALI, blocchi:[
@@ -2064,8 +2064,8 @@ function salvaModulo(man, nome){
             {t:'testo', id:'art_reg', label:'Articolo del Regolamento OO.CC. sul numero legale', w:4, nopdf:true, ph:'es. art. 5'}]},
           {t:'testofisso', testo:'Il Presidente, constatata la presenza di n. {n_presenti} componenti su {in_carica} in carica, accertato il numero legale ai sensi di {art_reg} del Regolamento degli organi collegiali, dichiara aperta la seduta.'}]},
         {t:'riga', campi:[
-          {t:'testo', id:'presidente', label:`Presiede (${H.PRES[s]} o delegato)`, w:6, nopdf:true, obbl:true, rif:r('presidente'), ph:nido ? 'es. dott.ssa Anna Neri, Coordinatrice pedagogica' : 'es. prof.ssa Maria Rossi, Coordinatore didattico'},
-          {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, obbl:true, rif:r('segretario'), ph:nido ? 'es. Giulia Verdi, educatrice' : 'es. ins. Luca Bianchi'}]},
+          {t:'testo', id:'presidente', label:`Presiede (${H.PRES[s]} o delegato)`, w:6, nopdf:true, obbl:true, rif:r('presidente'), ph:nido ? 'es. Coordinatrice pedagogica (cognome e nome)' : 'es. Coordinatore didattico (cognome e nome)'},
+          {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, obbl:true, rif:r('segretario'), ph:nido ? 'es. educatrice (cognome e nome)' : 'Cognome e nome dell’insegnante'}]},
         {t:'testofisso', testo:'Presiede {presidente}; funge da segretario verbalizzante {segretario}.'},
 
         ...progettazioneGrado(s),
@@ -2080,7 +2080,7 @@ function salvaModulo(man, nome){
           {h:'Astenuti', w:1.25, ph:'es. 1'},
           {h:'Esito', w:1.25, ph:'es. approvata'}], righe:1, aggiungi:true},
         {t:'area', id:'dichiarazioni', label:'Dichiarazioni a verbale richieste dai componenti', nota:'Riportare il testo richiesto (meglio se consegnato per iscritto e allegato). L’omissione è irregolarità sanabile in sede di approvazione.',
-          ph:'es. La prof.ssa Rossi chiede che si metta a verbale la propria contrarietà alla calendarizzazione proposta, per…',
+          ph:'es. La docente di italiano chiede che si metta a verbale la propria contrarietà alla calendarizzazione proposta, per…',
           frasi:[
             'Nessuna dichiarazione a verbale.',
             'Il/la docente … chiede che venga messa a verbale la seguente dichiarazione: «…».',
@@ -2149,8 +2149,8 @@ function salvaModulo(man, nome){
       {t:'riga', campi:[{t:'ora', id:'ora_inizio', label:'Ora inizio', w:3}, {t:'ora', id:'ora_fine', label:'Ora fine', w:3},
         {t:'scelta', id:'modalita', label:'Modalità', opz:['in presenza', 'a distanza'], def:'in presenza', w:6}]},
       {t:'h', testo:'Partecipanti'},
-      {t:'tabella', id:'partecipanti', col:[{h:'Cognome e nome', w:6, ph:'es. Bianchi Laura'}, {h:'Ruolo', w:6, ph:'es. madre / docente coordinatore'}], righe:4, init:[['', s === 'N' ? 'Educatrice' : 'Docente'], ['', s === 'N' ? 'Educatrice' : 'Docente'], ['', 'Genitore'], ['', 'Genitore']], aggiungi:true, obbl:true, rif:RIF_INC.partecipanti},
-      {t:'testo', id:'verbalizzante', label:'Verbalizzante', ph:s === 'N' ? 'es. Giulia Verdi, educatrice' : 'es. ins. Paola Rossi', obbl:true, rif:RIF_INC.verbalizzante},
+      {t:'tabella', id:'partecipanti', col:[{h:'Cognome e nome', w:6, ph:'Cognome e nome'}, {h:'Ruolo', w:6, ph:'es. madre / docente coordinatore'}], righe:4, init:[['', s === 'N' ? 'Educatrice' : 'Docente'], ['', s === 'N' ? 'Educatrice' : 'Docente'], ['', 'Genitore'], ['', 'Genitore']], aggiungi:true, obbl:true, rif:RIF_INC.partecipanti},
+      {t:'testo', id:'verbalizzante', label:'Verbalizzante', ph:s === 'N' ? 'es. educatrice (cognome e nome)' : 'Cognome e nome dell’insegnante', obbl:true, rif:RIF_INC.verbalizzante},
       {t:'riga', campi:[{t:'scelta', id:'richiesto', label:'Colloquio richiesto da', opz:['scuola', 'famiglia'], w:4},
         {t:'testo', id:'motivo', label:'Motivo del colloquio', w:8, ph:{N:'es. Andamento dei momenti di sonno e di pasto', I:'es. Relazioni con i compagni durante il gioco libero', P:'es. Andamento del primo periodo e organizzazione dei compiti', S:'es. Calo del rendimento in matematica e nello studio'}[s]}]},
       {t:'h', testo:'Osservazioni della scuola'},
@@ -2226,13 +2226,13 @@ function salvaModulo(man, nome){
       {t:'testofisso', testo:'In data {data} alle ore {ora_inizio} si sono riuniti presso i locali della scuola per discutere il seguente ordine del giorno.'},
       ...H.odg(),
       {t:'h', testo:'Presenti'},
-      {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:4, ph:'es. Neri Chiara'}, {h:'Qualifica', w:4, ph:'es. logopedista'}, {h:'Ente / servizio', w:4, ph:'es. UONPIA territoriale / studio privato'}], righe:5,
+      {t:'tabella', id:'presenti', col:[{h:'Cognome e nome', w:4, ph:'Cognome e nome'}, {h:'Qualifica', w:4, ph:'es. logopedista'}, {h:'Ente / servizio', w:4, ph:'es. UONPIA territoriale / studio privato'}], righe:5,
         init:[['', s === 'N' ? 'Educatrice' : 'Docente', 'Scuola Sacra Famiglia'], ['', 'Referente inclusione', 'Scuola Sacra Famiglia'], ['', 'Specialista', ''], ['', 'Genitore', ''], ['', 'Genitore', '']], aggiungi:true,
         obbl:true, rif:RIF_INC.partecipanti},
-      {t:'testo', id:'verbalizzante', label:'Verbalizzante', ph:'es. ins. Paola Rossi', obbl:true, rif:RIF_INC.verbalizzante},
+      {t:'testo', id:'verbalizzante', label:'Verbalizzante', ph:'Cognome e nome dell’insegnante', obbl:true, rif:RIF_INC.verbalizzante},
       {t:'h', testo:'Sintesi della discussione'},
       {t:'area', id:'specialista', label:'Quanto riferisce lo specialista (attribuire le affermazioni: «la dott.ssa / il dott. … riferisce che…»)', righe:4,
-        ph:'es. La dott.ssa Neri riferisce che nel percorso in corso si osservano progressi nella comprensione delle consegne orali',
+        ph:'es. La logopedista riferisce che nel percorso in corso si osservano progressi nella comprensione delle consegne orali',
         frasi:[
           'Lo/la specialista riferisce l’andamento del percorso in corso e i principali obiettivi di lavoro.',
           'Lo/la specialista suggerisce alcune strategie da adottare in ' + (piccoli(s) ? 'sezione' : 'classe') + ', riportate nelle indicazioni operative.',
@@ -2292,9 +2292,9 @@ function salvaModulo(man, nome){
     blocchi:(s) => [
       ...testata(s, [{t:'testo', id:'alunno', label:'Bambino/a', ph:PH_ALU.N}, {t:'testo', id:'sezione', label:'Gruppo / sezione', ph:PH_SEZ.N}], RIF_INC.data),
       {t:'scelta', id:'tipo', label:'Tipo di colloquio', opz:['Colloquio iniziale (prima dell’ambientamento)', 'Colloquio di restituzione (dopo 1-2 mesi)'], def:'Colloquio iniziale (prima dell’ambientamento)', col:2},
-      {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6, ph:'es. Bianchi Laura'}, {h:'Ruolo', w:6, ph:'es. madre'}], righe:4,
+      {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6, ph:'Cognome e nome'}, {h:'Ruolo', w:6, ph:'es. madre'}], righe:4,
         init:[['', 'Coordinatrice pedagogica'], ['', 'Educatrice di riferimento'], ['', 'Genitore'], ['', 'Genitore']], aggiungi:true, obbl:true, rif:RIF_INC.partecipanti},
-      {t:'testo', id:'verbalizzante', label:'Verbalizzante', ph:'es. Giulia Verdi, educatrice di riferimento', obbl:true, rif:RIF_INC.verbalizzante},
+      {t:'testo', id:'verbalizzante', label:'Verbalizzante', ph:'es. educatrice di riferimento (cognome e nome)', obbl:true, rif:RIF_INC.verbalizzante},
       {t:'se', campo:'tipo', vale:'Colloquio iniziale (prima dell’ambientamento)', blocchi:[
         {t:'h', testo:'Abitudini e informazioni'},
         {t:'area', id:'sonno', label:'Sonno (tempi, rituali, oggetti transizionali)', righe:2, ph:'es. Dorme dopo pranzo circa 2 ore; si addormenta con il ciuccio e il coniglietto di peluche'},
@@ -2388,7 +2388,7 @@ function salvaModulo(man, nome){
         {t:'tabella', id:'ponte', label:'Attività ponte e visite concordate', col:[
           {h:'Attività', w:7, ph:piccoli(s) ? 'es. Mattinata di gioco condiviso nella scuola di destinazione' : 'es. Lezione aperta di scienze in laboratorio con i docenti della secondaria'},
           {h:'Data', w:2, ph:'es. 15/04'},
-          {h:'Referenti', w:3, ph:'es. ins. Rossi, prof. Bianchi'}], righe:2, aggiungi:true},
+          {h:'Referenti', w:3, ph:'es. docente di classe, docente di sostegno'}], righe:2, aggiungi:true},
         H.privacy(),
         ...H.chiusura(),
       ], {
@@ -2447,7 +2447,7 @@ function salvaModulo(man, nome){
     blocchi:(s) => arricchisci([
       ...testata(s, [{t:'testo', id:'n_verbale', label:'Verbale n.', ph:'es. 4'}, {t:'testo', id:'classe', label:'Classe', ph:'es. 2ª B'}], RD.data),
       {t:'riga', campi:[
-        {t:'testo', id:'alunno', label:'Alunno/a', w:4, ph:'es. Giulia T.', obbl:true, rif:RD.alunno},
+        {t:'testo', id:'alunno', label:'Alunno/a', w:4, ph:'Iniziali dell’alunno/a', obbl:true, rif:RD.alunno},
         {t:'testo', id:'contestazione', label:'Contestazione addebiti (prot. / data)', w:4, ph:'es. prot. n. 518 del 10/11/2026', obbl:true, rif:RD.contestazione},
         {t:'testo', id:'convocazione', label:'Convocazione (prot. / data)', w:4, ph:'es. prot. n. 520 del 11/11/2026', obbl:true, rif:RD.convocazione}]},
       ...H.apertura('il Consiglio di classe in seduta straordinaria, nella composizione prevista dal regolamento di disciplina'),
@@ -2458,12 +2458,12 @@ function salvaModulo(man, nome){
         {t:'num', id:'n_presenti', label:'Presenti', w:4, nopdf:true, obbl:true, rif:RD.quorum}]},
       {t:'testofisso', testo:'Sono presenti n. {n_presenti} componenti su {in_carica} in carica.'},
       ...H.presidenza('Coordinatore didattico'),
-      {t:'testo', id:'astensioni', label:'Componenti che si astengono per conflitto di interessi', ph:'es. nessuno – oppure: il rappresentante dei genitori sig.ra Verdi, genitore di un alunno coinvolto'},
+      {t:'testo', id:'astensioni', label:'Componenti che si astengono per conflitto di interessi', ph:'es. nessuno – oppure: il rappresentante dei genitori, genitore di un alunno coinvolto'},
       {t:'nota', testo:'Il rappresentante dei genitori in conflitto di interessi si astiene dalla deliberazione. Nomi di vittime o testimoni minorenni: «omissis» o iniziali.'},
       {t:'h', testo:'1. Fatti contestati'},
       {t:'riga', campi:[
         {t:'testo', id:'quando', label:'Data, luogo e circostanze', w:6, ph:'es. 07/11/2026, ore 10.15, corridoio del 1° piano, durante l’intervallo'},
-        {t:'testo', id:'fonti', label:'Fonti (chi ha rilevato / riferito)', w:6, ph:'es. prof. Bianchi (presente ai fatti); segnalazione scritta di un collaboratore'}]},
+        {t:'testo', id:'fonti', label:'Fonti (chi ha rilevato / riferito)', w:6, ph:'es. docente di educazione fisica (presente ai fatti); segnalazione scritta di un collaboratore'}]},
       {t:'testo', id:'norma', label:'Norma del regolamento violata', ph:'es. Regolamento di disciplina, art. 3 lett. b – rispetto delle persone', obbl:true, rif:RD.norma},
       {t:'area', id:'fatti', label:'Descrizione oggettiva dei fatti', righe:4, obbl:true, rif:RD.fatti,
         ph:'es. Durante l’intervallo l’alunna ha spinto un compagno (omissis), che è caduto riportando un’escoriazione al ginocchio',
@@ -2503,7 +2503,7 @@ function salvaModulo(man, nome){
       {t:'se', campo:'provvedimento', vale:[PROVV[2], PROVV[3], PROVV[4]], blocchi:[
         {t:'riga', campi:[
           {t:'testo', id:'durata', label:'Durata e date', w:4, ph:'es. 2 giorni: 20 e 21/11/2026', obbl:true, rif:RD.provvedimento},
-          {t:'testo', id:'attivita', label:'Attività previste e docente / referente incaricato', w:8, ph:'es. Elaborato di riflessione sul rispetto delle persone, seguito dal prof. Bianchi', obbl:true, rif:RD.attivita}]}]},
+          {t:'testo', id:'attivita', label:'Attività previste e docente / referente incaricato', w:8, ph:'es. Elaborato di riflessione sul rispetto delle persone, seguito dal coordinatore di classe', obbl:true, rif:RD.attivita}]}]},
       {t:'se', campo:'provvedimento', vale:PROVV[3], blocchi:[
         {t:'testo', id:'struttura', label:'Struttura convenzionata (se prevista)', ph:'es. Associazione di volontariato del territorio, convenzione del 15/10/2026'}]},
       {t:'riga', campi:[
@@ -2518,8 +2518,8 @@ function salvaModulo(man, nome){
       luogo:{obbl:true, rif:RD.luogo},
       odg:{obbl:true, rif:RD.odg},
       presenti:{obbl:true, rif:RD.presenti},
-      presidente:{obbl:true, rif:RD.presidente, ph:'es. prof.ssa Maria Rossi, Coordinatore didattico'},
-      segretario:{obbl:true, rif:RD.segretario, ph:'es. prof. Luca Bianchi, coordinatore di classe'},
+      presidente:{obbl:true, rif:RD.presidente, ph:'es. Coordinatore didattico (cognome e nome)'},
+      segretario:{obbl:true, rif:RD.segretario, ph:'es. coordinatore di classe (cognome e nome)'},
     }),
   });
 
@@ -2550,12 +2550,12 @@ function salvaModulo(man, nome){
     blocchi:(s) => [
       ...testata(s, [{t:'testo', id:'codice', label:ALUNNO[s] + ' (codice)', ph:'es. A-07 (la corrispondenza nome-codice è custodita dal Coordinatore)'}, {t:'testo', id:'sezione', label:SEZ[s], ph:PH_SEZ[s]}], RDIS.data),
       {t:'nota', testo:'Procedura: chi osserva annota subito solo fatti e parole testuali del minore tra virgolette, con data e ora, e consegna la nota al Coordinatore. Non si svolgono indagini, non si interroga il minore, non si fanno domande suggestive. Se si sospetta maltrattamento o abuso la famiglia non va informata prima della valutazione del Coordinatore.'},
-      {t:'tabella', id:'partecipanti', label:'Partecipanti (ristretti)', col:[{h:'Cognome e nome', w:6, ph:'es. Rossi Maria'}, {h:'Ruolo', w:6, ph:'es. referente per la tutela dei minori'}], righe:3,
+      {t:'tabella', id:'partecipanti', label:'Partecipanti (ristretti)', col:[{h:'Cognome e nome', w:6, ph:'Cognome e nome'}, {h:'Ruolo', w:6, ph:'es. referente per la tutela dei minori'}], righe:3,
         init:[['', s === 'N' ? 'Coordinatrice pedagogica' : 'Coordinatore didattico'], ['', s === 'N' ? 'Educatrice che ha osservato' : 'Docente che ha osservato'], ['', 'Referente']], aggiungi:true, obbl:true, rif:RDIS.partecipanti},
       {t:'h', testo:'Fatti osservati'},
       {t:'tabella', id:'fatti', col:[
         {h:'Data e ora', w:2, ph:'es. 14/10, ore 9.10'},
-        {h:'Chi ha osservato', w:3, ph:s === 'N' ? 'es. educatrice G. Verdi' : 'es. ins. P. Rossi'},
+        {h:'Chi ha osservato', w:3, ph:s === 'N' ? 'es. educatrice (cognome e nome)' : 'Cognome e nome dell’insegnante'},
         {h:'Fatto osservato / parole testuali del minore', w:7, tipo:'area', ph:'es. All’ingresso presenta un livido sul braccio sinistro; alla domanda «ti sei fatto male?» risponde: «sono caduto dalle scale»'}], righe:3, aggiungi:true, obbl:true, rif:RDIS.fatti},
       {t:'h', testo:'Valutazione e decisione del Coordinatore'},
       {t:'multi', id:'decisione', label:'Decisione', obbl:true, rif:RDIS.decisione, opz:[
@@ -2739,7 +2739,7 @@ function salvaModulo(man, nome){
     return [
       {t:'h', testo:'Composizione del GLO'},
       {t:'testofisso', testo:'Si è riunito il Gruppo di Lavoro Operativo così composto:'},
-      {t:'tabella', id:'glo_comp', col:[{h:'Componente', w:4}, {h:'Nominativi', w:6, tipo:'area', ph:'es. ins. Anna Rossi, ins. Paolo Verdi'}, {h:'Presenza', w:2, tipo:'pres'}],
+      {t:'tabella', id:'glo_comp', col:[{h:'Componente', w:4}, {h:'Nominativi', w:6, tipo:'area', ph:'Cognomi e nomi delle insegnanti'}, {h:'Presenza', w:2, tipo:'pres'}],
        fisse, init:fisse.map(() => ['', '', 'P'])},
       {t:'nota', testo:'Presenza: P = presente, A = assente, AG = assente giustificato. La seduta è valida anche se non tutte le componenti sono rappresentate, purché tutte siano state convocate. L’esperto indicato dalla famiglia (al massimo uno, autorizzato dal Coordinatore didattico) partecipa a titolo consultivo e non decisionale: lasciare vuota la riga se non presente.'},
     ];
@@ -2800,7 +2800,7 @@ function salvaModulo(man, nome){
       {t:'nota', testo:'Per ogni sezione scegliere "Modifiche" solo se si revisiona il PEI: compaiono i campi da compilare. Aggiornare poi le corrispondenti sezioni del PEI.'},
       ...sezModifica('mod_glo', 'Composizione del GLO', [
         {t:'tabella', id:'mod_glo_tab', label:'Modifiche e/o integrazioni alla composizione del GLO successive alla prima convocazione',
-         col:[{h:'Data', w:2, ph:'es. 15/01/2027'}, {h:'Cognome e nome', w:3, ph:'es. Bianchi Laura'}, {h:'Titolo o ruolo nel GLO', w:3, ph:'es. assistente all’autonomia'}, {h:'Variazione (nuovo membro, sostituzione...)', w:4, ph:'es. sostituisce la dott.ssa Neri (UONPIA)'}],
+         col:[{h:'Data', w:2, ph:'es. 15/01/2027'}, {h:'Cognome e nome', w:3, ph:'Cognome e nome'}, {h:'Titolo o ruolo nel GLO', w:3, ph:'es. assistente all’autonomia'}, {h:'Variazione (nuovo membro, sostituzione...)', w:4, ph:'es. sostituisce la neuropsichiatra (UONPIA)'}],
          righe:2, aggiungi:true}],
         'non ci sono modifiche o integrazioni alla composizione del GLO successive alla prima convocazione.'),
       ...sezModifica('mod_oss', 'Osservazioni sull’alunno/a per progettare gli interventi di sostegno',
@@ -2892,7 +2892,7 @@ function salvaModulo(man, nome){
     {t:'testofisso', testo:oggetto},
     {t:'se', campo:'approvazione', vale:'a maggioranza', blocchi:[
       {t:'area', id:'approvazione_voti', label:'Esito della votazione e componenti dissenzienti', righe:2,
-       ph:'es. Favorevoli 7, contrari 1 (sig.ra Bianchi, genitore), che chiede di mettere a verbale la propria posizione'}]},
+       ph:'es. Favorevoli 7, contrari 1 (un genitore), che chiede di mettere a verbale la propria posizione'}]},
   ];
 
   const dichiarazioni = () => [
@@ -3151,7 +3151,7 @@ function salvaModulo(man, nome){
       ...aperturaGLO(s),
       ...composizioneGLO(s),
       {t:'area', id:'docenti_individuati', label:`Docenti individuati dal Coordinatore didattico (se ${s === 'I' ? 'la sezione non è ancora assegnata' : 'la classe non è ancora assegnata'})`, righe:2,
-       ph:'es. ins. Chiara Gatti (futura docente di classe), ins. Marco Sala (docente di sostegno)'},
+       ph:'es. futura docente di classe, docente di sostegno (cognomi e nomi)'},
       ...presidenzaGLO(),
       ...H.odg(['A. Esame della documentazione e presentazione del caso', 'B. Redazione del PEI provvisorio',
         'C. Proposta delle ore di sostegno e delle risorse per l’anno scolastico successivo', 'D. Varie ed eventuali']),
@@ -3321,12 +3321,12 @@ function salvaModulo(man, nome){
     blocchi:(s) => [
       {t:'h', testo:'Dati'},
       {t:'riga', campi:[
-        {t:'testo', id:'genitore1', nopdf:true, label:'Genitore / esercente la responsabilità genitoriale', w:6, ph:'es. Laura Colombo',
+        {t:'testo', id:'genitore1', nopdf:true, label:'Genitore / esercente la responsabilità genitoriale', w:6, ph:'Cognome e nome',
          obbl:true, rif:'Identificazione di chi rilascia il consenso (GDPR art. 7)'},
-        {t:'testo', id:'genitore2', nopdf:true, label:'Genitore / esercente la responsabilità genitoriale', w:6, ph:'es. Marco Ferrari',
+        {t:'testo', id:'genitore2', nopdf:true, label:'Genitore / esercente la responsabilità genitoriale', w:6, ph:'Cognome e nome',
          nota:'Se firma un solo genitore, vale la dichiarazione sulla responsabilità genitoriale riportata nel modulo.'}]},
       {t:'riga', campi:[
-        {t:'testo', id:'alunno', label:`${AL_CAP(s)} (nome e cognome)`, nopdf:true, w:6, ph:'es. Giulia Ferrari',
+        {t:'testo', id:'alunno', label:`${AL_CAP(s)} (nome e cognome)`, nopdf:true, w:6, ph:'Cognome e nome',
          obbl:true, rif:'Identificazione dell’alunno cui si riferisce la documentazione'},
         {t:'testo', id:'as_dal', nopdf:true, label:'Frequentante dall’a.s.', w:3, ph:'es. 2025/2026'},
         {t:'testo', id:'classe', label:CLASSE(s), w:3, nopdf:true, ph:ES_CLASSE(s)}]},
@@ -3422,7 +3422,7 @@ function salvaModulo(man, nome){
         {t:'se', campo:'decisione', vale:'predisporre un Piano Didattico Personalizzato', blocchi:[
           {t:'riga', campi:[
             {t:'data', id:'pdp_entro', label:'Stesura del PDP entro il', w:4},
-            {t:'testo', id:'pdp_ref', label:'Docente incaricato della stesura', w:8, ph:s === 'S' ? 'es. prof.ssa Elena Rota, coordinatrice di classe' : 'es. ins. Sara Villa, docente prevalente'}]},
+            {t:'testo', id:'pdp_ref', label:'Docente incaricato della stesura', w:8, ph:s === 'S' ? 'es. coordinatrice di classe (cognome e nome)' : 'es. docente prevalente (cognome e nome)'}]},
           {t:'area', id:'pdp_misure', label:'Misure ipotizzate (strumenti, strategie, dispensative)', righe:3,
            ph:'es. Mappe concettuali nelle verifiche orali, tempi aggiuntivi, dispensa dalla lettura ad alta voce',
            frasi:[
@@ -3460,7 +3460,7 @@ function salvaModulo(man, nome){
         {t:'riga', campi:[
           {t:'scelta', id:'com_modo', nopdf:true, label:'Modalità', opz:['colloquio', 'comunicazione scritta'], w:4},
           {t:'data', id:'com_data', nopdf:true, label:'Data (prevista o avvenuta)', w:4},
-          {t:'testo', id:'com_chi', nopdf:true, label:'Docente incaricato', w:4, ph:'es. ins. Sara Villa'}]},
+          {t:'testo', id:'com_chi', nopdf:true, label:'Docente incaricato', w:4, ph:'Cognome e nome dell’insegnante'}]},
         {t:'testofisso', testo:'La decisione viene comunicata alla famiglia mediante {com_modo} il {com_data} a cura di {com_chi}; la famiglia è invitata a collaborare alla definizione e alla verifica delle misure.'},
         {t:'area', id:'varie', label:'Varie ed eventuali', righe:2, ph:'es. Nessun ulteriore argomento'},
         ...H.chiusura(),
@@ -3768,7 +3768,7 @@ function salvaModulo(man, nome){
       ['', 'Altra figura professionale (es. assistente all’autonomia e alla comunicazione)', ''],
       ...(s === 'S' ? [['', 'Alunno/a (partecipazione attiva, nel rispetto del principio di autodeterminazione)', '']] : [])];
     return {t:'tabella', id, label,
-      col:[{h:'Nome e cognome', w:4, ph:'es. Maria Bianchi'}, {h:'A quale titolo interviene al GLO', w:4, ph:'es. Docente di classe (Italiano)'}, {h:'Firma', w:4, ph:'lasciare vuoto: firma autografa sul PDF'}],
+      col:[{h:'Nome e cognome', w:4, ph:'Cognome e nome'}, {h:'A quale titolo interviene al GLO', w:4, ph:'es. Docente di classe (Italiano)'}, {h:'Firma', w:4, ph:'lasciare vuoto: firma autografa sul PDF'}],
       righe:init.length + 1, aggiungi:true, init,
       ...(obbl ? {obbl:true, rif:obbl} : {})};
   };
@@ -3908,7 +3908,7 @@ function salvaModulo(man, nome){
           {t:'nota', testo:'Famiglia: firmano i genitori oppure, se nominato, il tutore legale (esercente la responsabilità genitoriale). Per il tutore indicare nella colonna «A quale titolo» gli estremi del provvedimento di nomina.'},
           {t:'nota', testo:'Specificare a quale titolo ciascun componente interviene al GLO. La colonna Firma resta vuota per la firma autografa sul PDF stampato. Si possono aggiungere righe per l’eventuale esperto indicato dalla famiglia (uno solo, con parere consultivo) e per altri specialisti (art. 3 cc. 6-7 D.I. 182/2020). Il GLO è valido anche se non tutte le componenti sono presenti.' + (SEC ? ' La partecipazione attiva dell’alunno/a è assicurata nel rispetto del principio di autodeterminazione (art. 3 c. 4).' : '')},
           {t:'tabella', id:'glo_mod', label:'Eventuali modifiche o integrazioni alla composizione del GLO, successive alla prima convocazione',
-            col:[{h:'Data', w:2, ph:'es. 15/01/2027'}, {h:'Nome e cognome', w:3, ph:'es. Luca Verdi'}, {h:'A quale titolo interviene al GLO', w:4, ph:'es. Assistente all’autonomia e alla comunicazione'}, {h:'Variazione (nuovo membro, sostituzione, decadenza…)', w:3, ph:'es. nuovo membro'}],
+            col:[{h:'Data', w:2, ph:'es. 15/01/2027'}, {h:'Nome e cognome', w:3, ph:'Cognome e nome'}, {h:'A quale titolo interviene al GLO', w:4, ph:'es. Assistente all’autonomia e alla comunicazione'}, {h:'Variazione (nuovo membro, sostituzione, decadenza…)', w:3, ph:'es. nuovo membro'}],
             righe:2, aggiungi:true},
         ]},
 
@@ -4292,7 +4292,7 @@ function salvaModulo(man, nome){
   const ORGANO = {I:'Consiglio di Intersezione', P:'Consiglio di Interclasse', S:'Consiglio di classe'};
   const TEAM = {P:'team docente', S:'Consiglio di classe'};
   const PH_CLASSE = {I:'es. sezioni Coccinelle e Farfalle', P:'es. 3A', S:'es. 2B'};
-  const PH_DOC = {I:'es. ins. Giulia Rossi', P:'es. ins. Giulia Rossi', S:'es. prof.ssa Giulia Rossi'};
+  const PH_DOC = {I:'Cognome e nome dell’insegnante', P:'Cognome e nome dell’insegnante', S:'Cognome e nome della docente'};
 
   const COMP_CHIAVE = [
     'Competenza alfabetica funzionale',
@@ -4342,7 +4342,7 @@ function salvaModulo(man, nome){
   });
 
   const firmeDocenti = (s, id = 'firme_docenti') => ({t:'tabella', id, label:'Firme dei docenti',
-    col:[{h:'Docente', w:4, ph:PH_DOC[s] || 'es. Giulia Rossi'},
+    col:[{h:'Docente', w:4, ph:PH_DOC[s] || 'Cognome e nome'},
       {h:'Disciplina / ambito', w:4, ph:s === 'S' ? 'es. matematica e scienze' : 'es. area linguistica'},
       {h:'Firma', w:4, ph:'firma autografa sulla copia stampata'}], righe:6, aggiungi:true});
 
@@ -4396,7 +4396,7 @@ function salvaModulo(man, nome){
       ...H.presenti([H.PRES[s], 'Docente', 'Docente', 'Docente'], 'Presenti – docenti'),
       {t:'se', campo:'tipo_seduta', vale:'con i rappresentanti dei genitori', blocchi:[
         {t:'tabella', id:'presenti_genitori', label:'Rappresentanti dei genitori',
-          col:[{h:'Cognome e nome', w:5, ph:'es. Verdi Paolo'}, {h:s === 'I' ? 'Sezione' : 'Classe', w:5, ph:PH_CLASSE[s]}, {h:'Presenza', w:2, tipo:'pres'}],
+          col:[{h:'Cognome e nome', w:5, ph:'Cognome e nome'}, {h:s === 'I' ? 'Sezione' : 'Classe', w:5, ph:PH_CLASSE[s]}, {h:'Presenza', w:2, tipo:'pres'}],
           righe:2, aggiungi:true}]},
       {t:'riga', campi:[
         {t:'num', id:'in_carica', label:'Componenti in carica', w:6, nopdf:true},
@@ -4458,7 +4458,7 @@ function salvaModulo(man, nome){
     blocchi: (s) => {
       const FINALE = 'finale (II quadrimestre)';
       const NONAMM = 'Si delibera la non ammissione di uno o più alunni';
-      const PH_AL = 'es. Rossi Luca';
+      const PH_AL = 'Cognome e nome';
       const valutazione = s === 'P' ? [
         {t:'testofisso', testo:'Constatata la regolarità della seduta, si aprono le operazioni di scrutinio. Su proposta dei docenti contitolari, il team docente attribuisce per ciascuna disciplina, compresa l’educazione civica, il giudizio sintetico (Ottimo, Distinto, Buono, Discreto, Sufficiente, Non sufficiente) correlato alla descrizione dei livelli di apprendimento; attribuisce il giudizio sintetico sul comportamento e formula il giudizio globale sui progressi nello sviluppo culturale, personale e sociale e sul livello globale di sviluppo degli apprendimenti. Le valutazioni sono riportate nel documento di valutazione (documentazione agli atti del registro elettronico).'},
         {t:'nota', testo:'Educazione civica: il giudizio è proposto dal docente coordinatore sulla base degli elementi raccolti dai contitolari (Linee guida D.M. 183/2024). IRC e attività alternative: nota separata con giudizio sintetico sull’interesse e sui livelli di apprendimento.'}
@@ -4486,7 +4486,7 @@ function salvaModulo(man, nome){
       const ammissioneP = [
         {t:'h', testo:'Ammissione alla classe successiva'},
         {t:'testofisso', testo:'Il team docente delibera l’ammissione alla classe successiva, o alla prima classe della scuola secondaria di I grado, dei seguenti alunni:'},
-        {t:'elenco', id:'ammessi', label:'Alunni ammessi', min:5, ph:'es. Bianchi Anna'},
+        {t:'elenco', id:'ammessi', label:'Alunni ammessi', min:5, ph:'Cognome e nome'},
         {t:'scelta', id:'non_amm', label:'Non ammissioni', opz:['Nessuna non ammissione', NONAMM], def:'Nessuna non ammissione'},
         {t:'se', campo:'non_amm', vale:NONAMM, blocchi:[
           {t:'testofisso', testo:'In casi eccezionali e comprovati da specifica motivazione, il team docente delibera all’unanimità la non ammissione alla classe successiva dei seguenti alunni. La famiglia è stata preventivamente informata dei livelli di apprendimento parzialmente raggiunti e delle strategie di miglioramento attivate.'},
@@ -4505,7 +4505,7 @@ function salvaModulo(man, nome){
           col:[{h:'Alunno', w:4, ph:PH_AL}, {h:'Motivazione', w:8, tipo:'area', ph:'es. assenze pari al 32% del monte ore, non documentate né riconducibili alle deroghe deliberate'}], righe:1, aggiungi:true},
         {t:'h', testo:'Ammissione alla classe successiva'},
         {t:'testofisso', testo:'L’ammissione è disposta anche in caso di parziale o mancata acquisizione dei livelli di apprendimento in una o più discipline; in tal caso il Consiglio può deliberare a maggioranza, con adeguata motivazione, la non ammissione. Non è ammesso alla classe successiva l’alunno con voto di comportamento inferiore a sei decimi.'},
-        {t:'elenco', id:'ammessi', label:'Alunni ammessi', min:5, ph:'es. Bianchi Anna'},
+        {t:'elenco', id:'ammessi', label:'Alunni ammessi', min:5, ph:'Cognome e nome'},
         {t:'tabella', id:'carenze', label:'Alunni ammessi con carenze (comunicazione alla famiglia)',
           col:[{h:'Alunno', w:3, ph:PH_AL}, {h:'Discipline con valutazione inferiore a 6', w:4, ph:'es. matematica, inglese'}, {h:'Strategie per il miglioramento', w:5, tipo:'area', ph:'es. studio estivo guidato con schede di ripasso; verifica di settembre'}], righe:1, aggiungi:true},
         {t:'scelta', id:'non_amm', label:'Non ammissioni', opz:['Nessuna non ammissione', NONAMM], def:'Nessuna non ammissione'},
@@ -4533,7 +4533,7 @@ function salvaModulo(man, nome){
           opz:['Sono presenti tutti i docenti contitolari della classe', 'Uno o più docenti assenti sono sostituiti da docenti nominati formalmente']},
         {t:'se', campo:'collegio', vale:'Uno o più docenti assenti sono sostituiti da docenti nominati formalmente', blocchi:[
           {t:'tabella', id:'sostituzioni', label:'Sostituzioni',
-            col:[{h:'Docente assente', w:4, ph:'es. prof. Marco Neri (inglese)'}, {h:'Sostituito da', w:4, ph:'es. prof.ssa Sara Galli'}, {h:'Estremi della nomina', w:4, ph:'es. nomina prot. n. 512 del 9/6/2027'}],
+            col:[{h:'Docente assente', w:4, ph:'es. docente di inglese (cognome e nome)'}, {h:'Sostituito da', w:4, ph:'Cognome e nome della docente'}, {h:'Estremi della nomina', w:4, ph:'es. nomina prot. n. 512 del 9/6/2027'}],
             righe:1, aggiungi:true}]},
         ...H.presidenza(H.PRES[s]),
         {t:'h', testo:'Operazioni di scrutinio'},
@@ -4588,7 +4588,7 @@ function salvaModulo(man, nome){
         ...testata(s, [{t:'testo', id:'classe', label:'Classe', ph:PH_CLASSE[s]}]),
         {t:'riga', campi:[
           {t:'testo', id:'coordinatore', label:'Coordinatore', w:6, ph:PH_DOC[s]},
-          {t:'testo', id:'segretario', label:'Segretario', w:6, ph:s === 'S' ? 'es. prof. Luca Bianchi' : 'es. ins. Luca Bianchi'}]},
+          {t:'testo', id:'segretario', label:'Segretario', w:6, ph:s === 'S' ? 'Cognome e nome del docente' : 'Cognome e nome dell’insegnante'}]},
 
         {t:'h', testo:'Analisi della classe'},
         {t:'scelta', id:'composizione', label:'Composizione della classe', opz:['invariata rispetto all’inizio dell’anno', 'variata'], def:'invariata rispetto all’inizio dell’anno'},
@@ -4904,7 +4904,7 @@ function salvaModulo(man, nome){
           'Attività di cura del clima di classe (circle time, assemblee di classe periodiche).',
           'Educazione all’uso consapevole dei dispositivi digitali.']},
       {t:'area', id:'ed_civica', label:'Educazione civica: tematiche e ripartizione delle 33 ore annue', nota:'Linee guida D.M. 183/2024: indicare nuclei, discipline coinvolte e docente coordinatore.',
-        ph:'es. Costituzione: 12 ore (storia, italiano); Sviluppo sostenibile: 12 ore (scienze, geografia); Cittadinanza digitale: 9 ore (tecnologia). Coordinatore: ins. Rossi',
+        ph:'es. Costituzione: 12 ore (storia, italiano); Sviluppo sostenibile: 12 ore (scienze, geografia); Cittadinanza digitale: 9 ore (tecnologia). Coordinatore: docente prevalente',
         frasi:[
           'Nucleo Costituzione: regole della convivenza, diritti e doveri, istituzioni del territorio (storia, italiano, IRC).',
           'Nucleo Sviluppo economico e sostenibilità: tutela dell’ambiente, educazione alimentare, rispetto dei beni comuni (scienze, geografia, tecnologia).',
@@ -5012,7 +5012,7 @@ function salvaModulo(man, nome){
     norme: () => [N.racc, N.indic, N.autonomia, N.cert, N.val, N.civica],
     blocchi: (s) => marca([
       ...testata(s, [{t:'testo', id:'classe', label:'Classe', ph:PH_CLASSE[s]}, {t:'testo', id:'periodo', label:'Periodo', ph:'es. ottobre – dicembre'}]),
-      {t:'testo', id:'insegnanti', label:'Insegnante/i', ph:s === 'S' ? 'es. prof.ssa Rossi (italiano), prof. Bianchi (storia)' : 'es. ins. Rossi, ins. Bianchi'},
+      {t:'testo', id:'insegnanti', label:'Insegnante/i', ph:s === 'S' ? 'es. docente di italiano, docente di storia (cognomi e nomi)' : 'Cognomi e nomi delle insegnanti'},
       {t:'testo', id:'competenza', label:'Competenza disciplinare / trasversale', ph:'es. Comprendere e produrre testi descrittivi'},
       {t:'multi', id:'comp_chiave', label:'Competenza/e chiave', opz:COMP_CHIAVE, col:2},
 
@@ -5100,9 +5100,9 @@ function salvaModulo(man, nome){
       {t:'nota', testo:'Le aree sono dettagliate nella sezione 2.6 del PTOF.'},
 
       {t:'h', testo:'Persone coinvolte'},
-      {t:'area', id:'referente', label:'Docente referente (nominativo e disciplina)', righe:2, ph:s === 'I' ? 'es. ins. Giulia Rossi, sezione Coccinelle' : s === 'P' ? 'es. ins. Giulia Rossi, italiano' : 'es. prof.ssa Giulia Rossi, italiano'},
-      {t:'area', id:'altri_docenti', label:'Altri docenti coinvolti (nominativo e disciplina)', righe:2, ph:'es. ins. Luca Bianchi (scienze), ins. Sara Galli (arte)'},
-      {t:'area', id:'esperti', label:'Esperti coinvolti', righe:2, ph:'es. dott. Paolo Verdi, agronomo (2 incontri in classe) – oppure: nessuno'},
+      {t:'area', id:'referente', label:'Docente referente (nominativo e disciplina)', righe:2, ph:s === 'I' ? 'es. insegnante della sezione Coccinelle (cognome e nome)' : s === 'P' ? 'es. docente di italiano (cognome e nome)' : 'es. docente di italiano (cognome e nome)'},
+      {t:'area', id:'altri_docenti', label:'Altri docenti coinvolti (nominativo e disciplina)', righe:2, ph:'es. docente di scienze, docente di arte (cognomi e nomi)'},
+      {t:'area', id:'esperti', label:'Esperti coinvolti', righe:2, ph:'es. agronomo esterno (2 incontri in classe) – oppure: nessuno'},
       {t:'multi', id:'destinatari', label:'Destinatari',
         opz:['Intero plesso / istituto', s === 'I' ? 'Sezione/i' : 'Classe/i', 'Alunni con BES'], altro:true, col:3},
       {t:'se', campo:'destinatari', vale:s === 'I' ? 'Sezione/i' : 'Classe/i', blocchi:[
@@ -5349,8 +5349,8 @@ function salvaModulo(man, nome){
 
   const presidenzaLibera = (labelPres, formula, phPres) => [
     {t:'riga', campi:[
-      {t:'testo', id:'presidente', label:labelPres, w:6, nopdf:true, ph:phPres || 'es. prof.ssa Maria Rossi, Coordinatore didattico'},
-      {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'es. ins. Luca Bianchi'}]},
+      {t:'testo', id:'presidente', label:labelPres, w:6, nopdf:true, ph:phPres || 'es. Coordinatore didattico (cognome e nome)'},
+      {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'Cognome e nome dell’insegnante'}]},
     {t:'testofisso', testo:formula || 'Presiede {presidente}; funge da segretario verbalizzante {segretario}.'},
   ];
 
@@ -5408,7 +5408,7 @@ function salvaModulo(man, nome){
       {t:'h', testo:'Deliberazioni'},
       ...delibereNumerate(),
       {t:'area', id:'dichiarazioni', label:'Dichiarazioni di voto e interventi a verbale', righe:3,
-        ph:'es. La prof.ssa Neri chiede che venga messo a verbale il proprio voto contrario sul punto 3, motivato dalla sovrapposizione con le prove comuni.',
+        ph:'es. La docente di inglese chiede che venga messo a verbale il proprio voto contrario sul punto 3, motivato dalla sovrapposizione con le prove comuni.',
         frasi:FRASI_DICHIARAZIONI,
         nota:'Il docente che chiede la verbalizzazione di un intervento lo detta o lo consegna per iscritto; il testo viene allegato.'},
       {t:'multi', id:'allegati', label:'Allegati', opz:['Foglio firme presenze', 'Piano annuale delle attività', 'Documenti approvati (PTOF, criteri, regolamenti)', 'Dichiarazioni scritte dei docenti', 'Elenco dei libri di testo adottati'], altro:true, col:2},
@@ -5473,12 +5473,12 @@ function salvaModulo(man, nome){
         'Rappresentante del personale non docente',
       ], 'Componenti presenti e assenti'),
       ...numeroLegale('componenti'),
-      ...presidenzaLibera('Presidente (secondo il regolamento; di norma un genitore)', null, 'es. sig.ra Anna Verdi, genitore'),
+      ...presidenzaLibera('Presidente (secondo il regolamento; di norma un genitore)', null, 'es. genitore (cognome e nome)'),
       ...H.trattazione(),
       {t:'h', testo:'Deliberazioni'},
       ...delibereNumerate('delibere', 'Delibere e votazioni', 'es. Approvazione del calendario scolastico 2026/27 con adattamento del 2 novembre: esigenze organizzative delle famiglie emerse nel sondaggio'),
       {t:'area', id:'dichiarazioni', label:'Dichiarazioni di voto e interventi a verbale', righe:2,
-        ph:'es. Il rappresentante dei genitori sig. Gialli chiede che venga messo a verbale il proprio voto di astensione sul punto 4.',
+        ph:'es. Il rappresentante dei genitori chiede che venga messo a verbale il proprio voto di astensione sul punto 4.',
         frasi:FRASI_DICHIARAZIONI.map(f => f.replace('Il/La docente', 'Il/La consigliere/a'))},
       {t:'testofisso', testo:'Le delibere sono pubblicate secondo le modalità previste dal regolamento; non sono soggetti a pubblicazione gli atti concernenti singole persone, salvo contraria richiesta dell’interessato.'},
       ...H.impegni(),
@@ -5539,10 +5539,10 @@ function salvaModulo(man, nome){
           {t:'num', id:'n_totale', label:'Famiglie della ' + SEZ[s].toLowerCase(), w:4},
           {t:'testo', id:'foglio_firme', label:'Foglio firme', w:4, def:'allegato'}]},
         {t:'tabella', id:'personale', label:'Personale della scuola presente',
-          col:[{h:'Cognome e nome', w:6, ph:nido ? 'es. Bianchi Laura' : 'es. Rossi Maria'}, {h:'Ruolo', w:6, ph:nido ? 'es. educatrice di riferimento' : (s === 'S' ? 'es. coordinatore di classe' : 'es. docente prevalente')}], righe:3,
+          col:[{h:'Cognome e nome', w:6, ph:nido ? 'Cognome e nome' : 'Cognome e nome'}, {h:'Ruolo', w:6, ph:nido ? 'es. educatrice di riferimento' : (s === 'S' ? 'es. coordinatore di classe' : 'es. docente prevalente')}], righe:3,
           init:[['', nido ? 'Coordinatrice pedagogica' : 'Coordinatore didattico'], ['', nido ? 'Educatrice' : 'Docente'], ['', nido ? 'Educatrice' : 'Docente']], aggiungi:true},
         ...presidenzaLibera('Presiede', 'Presiede l’assemblea {presidente}; funge da segretario verbalizzante {segretario}.',
-          nido ? 'es. dott.ssa Paola Rossi, Coordinatrice pedagogica' : 'es. sig.ra Anna Verdi, rappresentante dei genitori'),
+          nido ? 'es. Coordinatrice pedagogica (cognome e nome)' : 'es. rappresentante dei genitori (cognome e nome)'),
         {t:'h', testo:'Presentazione della scuola'},
         {t:'area', id:'programmazione', label:nido ? 'Progetto educativo, ambientamenti e routine' : 'Programmazione annuale, progetti, uscite', righe:4,
           ph:nido
@@ -5603,7 +5603,7 @@ function salvaModulo(man, nome){
         luogo:{ph:nido ? 'es. salone del Green Nido' : 'es. aula della classe, sede di Orzinuovi'},
         foglio_firme:{ph:'es. allegato'},
         n_famiglie:{obbl:true, rif:RIF.nd_part},
-        segretario:{obbl:true, rif:RIF.nd_segr, ph:'es. sig. Marco Gialli, genitore'},
+        segretario:{obbl:true, rif:RIF.nd_segr, ph:'es. genitore (cognome e nome)'},
       });
     },
   });
@@ -5654,12 +5654,12 @@ function salvaModulo(man, nome){
         {t:'num', id:'non_utilizzate', label:'Schede non utilizzate', w:4}]},
       {t:'nota', testo:'Controllo: votanti = schede valide + bianche + nulle.'},
       {t:'tabella', id:'voti', label:'Voti di preferenza riportati', col:[
-        {h:'Cognome e nome del genitore', w:7, ph:'es. Verdi Anna'}, {h:'Voti di preferenza', w:2, ph:'es. 9'}, {h:'Note', w:3, ph:'es. genitore di due alunni: vota una sola volta'}], righe:6, aggiungi:true},
+        {h:'Cognome e nome del genitore', w:7, ph:'Cognome e nome'}, {h:'Voti di preferenza', w:2, ph:'es. 9'}, {h:'Note', w:3, ph:'es. genitore di due alunni: vota una sola volta'}], righe:6, aggiungi:true},
       {t:'nota', testo:'Riportare tutti i genitori che hanno ottenuto almeno un voto, in ordine decrescente. Preferenze oltre il numero consentito: si considerano valide solo le prime (verificare il regolamento); scheda con segni di riconoscimento: nulla.'},
       {t:'scelta', id:'parita', label:'Parità di voti per l’ultimo posto', opz:['Non si sono verificate parità', 'Si è proceduto a sorteggio'], def:'Non si sono verificate parità'},
       {t:'se', campo:'parita', vale:'Si è proceduto a sorteggio', blocchi:[
         {t:'area', id:'sorteggio', label:'Esito del sorteggio (genitori in parità, modalità, estratto)', righe:2,
-          ph:'es. Parità a 5 voti tra i genitori Neri e Gialli; sorteggio con biglietti chiusi alla presenza del seggio: estratto il sig. Gialli.',
+          ph:'es. Parità a 5 voti tra due candidati; sorteggio con biglietti chiusi alla presenza del seggio.',
           frasi:[
             'Avendo i genitori … e … riportato lo stesso numero di voti per l’ultimo posto, il presidente procede al sorteggio alla presenza degli scrutatori.',
             'Il sorteggio si svolge con biglietti chiusi recanti i nomi dei genitori in parità, estratti da uno scrutatore.',
@@ -5668,7 +5668,7 @@ function salvaModulo(man, nome){
           ]},
       ]},
       {t:'h', testo:'Proclamazione degli eletti'},
-      {t:'tabella', id:'eletti', col:[{h:'Cognome e nome', w:7, ph:'es. Verdi Anna'}, {h:'Voti', w:2, ph:'es. 9'}, {h:'Note (es. eletto per sorteggio)', w:3, ph:'es. eletta per sorteggio'}], righe:s === 'S' ? 4 : 1, aggiungi:true},
+      {t:'tabella', id:'eletti', col:[{h:'Cognome e nome', w:7, ph:'Cognome e nome'}, {h:'Voti', w:2, ph:'es. 9'}, {h:'Note (es. eletto per sorteggio)', w:3, ph:'es. eletta per sorteggio'}], righe:s === 'S' ? 4 : 1, aggiungi:true},
       {t:'testofisso', testo:`Il presidente del seggio proclama eletti rappresentanti dei genitori nel ${CONSIGLIO[s]} i genitori sopra indicati. Il presente verbale, l’elenco degli elettori con le firme dei votanti e le schede scrutinate sono chiusi in plico e consegnati alla segreteria della scuola.`},
       {t:'nota', testo:'Dopo la consegna del plico il Coordinatore didattico rende noti gli eletti alle famiglie e ne dispone la nomina nel consiglio secondo il regolamento.'},
       {t:'area', id:'contestazioni', label:'Eventuali contestazioni o osservazioni', righe:2,
@@ -5688,9 +5688,9 @@ function salvaModulo(man, nome){
       data:{obbl:true, rif:RIF_EL},
       sezione:{ph:s === 'I' ? 'es. Sezione Azzurra' : 'es. 3ª B', obbl:true, rif:RIF_EL},
       seggio:{ph:'es. 1'},
-      pres_seggio:{ph:'es. sig.ra Paola Neri', obbl:true, rif:RIF_EL},
-      scrutatore1:{ph:'es. sig. Marco Gialli', obbl:true, rif:RIF_EL},
-      scrutatore2:{ph:'es. sig.ra Elena Bruni', obbl:true, rif:RIF_EL},
+      pres_seggio:{ph:'Cognome e nome', obbl:true, rif:RIF_EL},
+      scrutatore1:{ph:'Cognome e nome', obbl:true, rif:RIF_EL},
+      scrutatore2:{ph:'Cognome e nome', obbl:true, rif:RIF_EL},
       luogo:{ph:'es. aula della classe, sede di Orzinuovi'},
       elettori:{obbl:true, rif:RIF_EL},
       votanti:{obbl:true, rif:RIF_EL},
@@ -5730,7 +5730,7 @@ function salvaModulo(man, nome){
       {t:'nota', testo:'Punti tipici: settembre – curricolo, prove d’ingresso, griglie; gennaio-febbraio – esiti delle prove intermedie; maggio – libri di testo, prove finali; giugno – verifica del curricolo e proposte.'},
       ...H.presenti(['Coordinatore di dipartimento', 'Docente', 'Docente', 'Docente']),
       ...presidenzaLibera('Coordinatore di dipartimento (presiede)', 'Presiede {presidente}, coordinatore del dipartimento su delega del Coordinatore didattico; funge da segretario verbalizzante {segretario}.',
-        s === 'P' ? 'es. ins. Giulia Ferri' : 'es. prof. Paolo Conti'),
+        s === 'P' ? 'Cognome e nome dell’insegnante' : 'Cognome e nome del docente'),
       {t:'h', testo:'Curricolo verticale'},
       {t:'area', id:'curricolo', label:'Revisione del curricolo: traguardi, obiettivi, nuclei essenziali, raccordi tra le classi e con gli altri gradi', righe:4,
         ph:s === 'P'
@@ -5837,7 +5837,7 @@ function salvaModulo(man, nome){
       ...H.odg(),
       ...H.presenti([s === 'N' ? 'Referente / coordinatrice' : 'Referente della commissione', s === 'N' ? 'Educatrice' : 'Docente', s === 'N' ? 'Educatrice' : 'Docente']),
       ...presidenzaLibera('Coordina (referente)', 'Coordina i lavori {presidente}; funge da segretario verbalizzante {segretario}.',
-        s === 'N' ? 'es. educatrice Sara Colombo, referente' : 'es. prof.ssa Chiara Riva, referente'),
+        s === 'N' ? 'es. educatrice referente (cognome e nome)' : 'es. docente referente (cognome e nome)'),
       {t:'h', testo:'Mandato'},
       {t:'area', id:'mandato', label:'Compiti affidati e riferimento dell’incarico (es. delibera del Collegio dei docenti n. … del …)', righe:2,
         ph:'es. Aggiornare la sezione del PTOF sulla continuità; incarico conferito dal Collegio dei docenti nella seduta del 10/9/2026 (delibera n. 4).',
@@ -6148,8 +6148,8 @@ function salvaModulo(man, nome){
   const ALCOORD = {N:'alla Coordinatrice pedagogica', I:'al Coordinatore didattico', P:'al Coordinatore didattico', S:'al Coordinatore didattico'};
   // testi guida ricorrenti, differenziati per grado
   const PH_SEZ = {N:'es. sezione Medi (12-24 mesi)', I:'es. sezione Gialli', P:'es. 3ª A', S:'es. 2ª B'};
-  const PH_DOC = {N:'es. Chiara Ferrari, educatrice', I:'es. ins. Laura Colombo', P:'es. ins. Laura Colombo', S:'es. prof.ssa Laura Colombo'};
-  const PH_ALUNNO = {N:'es. Marco Rossi', I:'es. Marco Rossi', P:'es. Marco Rossi', S:'es. Marco Rossi'};
+  const PH_DOC = {N:'es. educatrice (cognome e nome)', I:'Cognome e nome dell’insegnante', P:'Cognome e nome dell’insegnante', S:'Cognome e nome della docente'};
+  const PH_ALUNNO = {N:'Cognome e nome', I:'Cognome e nome', P:'Cognome e nome', S:'Cognome e nome'};
   // H.testata non assegna un testo guida all'anno scolastico (precompilato): lo aggiungiamo qui
   const testata = (s, extra = []) => H.testata(s, extra).map(b => b.t !== 'riga' ? b : Object.assign({}, b, {
     campi:b.campi.map(c => c.id === 'as' && !c.ph ? Object.assign({}, c, {ph:'es. 2026/2027'}) : c)}));
@@ -6194,8 +6194,8 @@ function salvaModulo(man, nome){
           {t:'num', id:'in_carica', label:'Componenti in carica', w:4, obbl:true, rif:'Verifica del numero legale: metà più uno dei componenti in carica (Regolamento OO.CC.; art. 37 D.Lgs. 297/1994)'},
           {t:'num', id:'n_presenti', label:'Componenti presenti', w:4, obbl:true, rif:'Verifica del numero legale (art. 37 D.Lgs. 297/1994)'}]}]},
       {t:'riga', campi:[
-        {t:'testo', id:'presidente', label:'Presiede', w:6, nopdf:true, ph:'es. ' + (s === 'N' ? 'dott.ssa Anna Verdi, Coordinatrice pedagogica' : 'prof. Paolo Neri, Coordinatore didattico')},
-        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'es. ins. Luca Bianchi'}]},
+        {t:'testo', id:'presidente', label:'Presiede', w:6, nopdf:true, ph:'es. ' + (s === 'N' ? 'es. Coordinatrice pedagogica (cognome e nome)' : 'es. Coordinatore didattico (cognome e nome)')},
+        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'Cognome e nome dell’insegnante'}]},
       {t:'testofisso', testo:'Presiede {presidente}; funge da segretario verbalizzante {segretario}. Constatata la validità della seduta, il Presidente dichiara aperti i lavori.'},
       {t:'h', testo:'Trattazione dei punti all’ordine del giorno'},
       {t:'nota', testo:'Una sezione per ogni punto: rinominala (es. «1. Approvazione del verbale precedente»), riordinala o eliminala. Per ogni punto: sintesi degli interventi (chi, che cosa), proposte emerse, decisione. Nel PDF ogni punto diventa una sezione.'},
@@ -6244,7 +6244,7 @@ function salvaModulo(man, nome){
         {t:'testo', id:'luogo', label:'Luogo / piattaforma', w:5, ph:'es. aula docenti – oppure Google Meet'}]},
       {t:'testo', id:'argomento', label:'Argomento', ph:s === 'N' ? 'es. organizzazione degli ambientamenti di settembre' : s === 'S' ? 'es. coordinamento delle prove comuni di matematica delle classi prime' : 'es. preparazione della festa di fine anno'},
       {t:'area', id:'partecipanti', label:'Partecipanti (nome e ruolo)', righe:2, obbl:true, rif:'Identificazione di chi ha partecipato all’incontro',
-        ph:s === 'N' ? 'es. Chiara Ferrari (educatrice), Sara Galli (educatrice), dott.ssa Anna Verdi (Coordinatrice pedagogica)' : 'es. ins. Laura Colombo, ins. Luca Bianchi, prof.ssa Giulia Marini (referente)'},
+        ph:s === 'N' ? 'es. educatrici e Coordinatrice pedagogica (cognomi e nomi)' : 'es. insegnanti di classe e docente referente (cognomi e nomi)'},
       {t:'area', id:'sintesi', label:'Sintesi', righe:6,
         ph:'es. Si confrontano le proposte per l’uscita di aprile; si valutano costi, tempi di viaggio e collegamento con la progettazione.',
         frasi:[
@@ -6256,7 +6256,7 @@ function salvaModulo(man, nome){
           'Alcuni aspetti restano da approfondire e vengono rinviati al prossimo incontro, dopo aver raccolto ulteriori informazioni.',
           'Si concorda di informare ' + ALCOORD[s] + ' delle decisioni prese, per le valutazioni di competenza.']},
       {t:'area', id:'decisioni', label:'Decisioni e azioni (chi, che cosa, entro quando)', righe:3,
-        ph:'es. Ins. Bianchi prepara la bozza del programma entro il 15/10; ins. Colombo contatta la struttura entro il 20/10.',
+        ph:'es. Il docente referente prepara la bozza del programma entro il 15/10; la segreteria contatta la struttura entro il 20/10.',
         frasi:[
           'Il referente predispone la bozza del documento e la invia ai colleghi entro la data concordata.',
           'Ciascun docente raccoglie le osservazioni nella propria ' + (s === 'N' || s === 'I' ? 'sezione' : 'classe') + ' e le condivide al prossimo incontro.',
@@ -6348,10 +6348,10 @@ function salvaModulo(man, nome){
               {t:'testo', id:'non_deambulanti', label:'Bambini non deambulanti: numero e modalità (culla di evacuazione, passeggino, in braccio)', w:8, ph:'es. 3 bambini, culla di evacuazione condotta da un’educatrice'}]}]
           : [{t:'testo', id:'assistiti', label:'Alunni con disabilità o difficoltà motorie assistiti: numero e adulto incaricato', ph:'es. 1 alunno, accompagnato dall’insegnante di sostegno'}]),
         {t:'riga', campi:piccoli
-          ? [{t:'testo', id:'testa', label:'Adulto in testa al gruppo', w:6, ph:s === 'N' ? 'es. educatrice Chiara Ferrari' : 'es. ins. Laura Colombo'},
-             {t:'testo', id:'coda', label:'Adulto in coda al gruppo', w:6, ph:s === 'N' ? 'es. educatrice Sara Galli' : 'es. assistente Paola Riva'}]
-          : [{t:'testo', id:'aprifila', label:'Apri-fila (e sostituto)', w:6, ph:'es. Luca B. (sostituto: Anna M.)'},
-             {t:'testo', id:'chiudifila', label:'Chiudi-fila (e sostituto)', w:6, ph:'es. Sara T. (sostituto: Omar K.)'}]},
+          ? [{t:'testo', id:'testa', label:'Adulto in testa al gruppo', w:6, ph:s === 'N' ? 'es. educatrice (cognome e nome)' : 'Cognome e nome dell’insegnante'},
+             {t:'testo', id:'coda', label:'Adulto in coda al gruppo', w:6, ph:s === 'N' ? 'es. educatrice (cognome e nome)' : 'es. assistente (cognome e nome)'}]
+          : [{t:'testo', id:'aprifila', label:'Apri-fila (e sostituto)', w:6, ph:'es. iniziali del docente e del sostituto'},
+             {t:'testo', id:'chiudifila', label:'Chiudi-fila (e sostituto)', w:6, ph:'es. iniziali del docente e del sostituto'}]},
         {t:'h', testo:'Evacuazione'},
         {t:'riga', campi:[
           {t:'testo', id:'punto_raccolta', label:'Punto di raccolta', w:4, ph:'es. n. 1, cortile interno'},
@@ -6459,7 +6459,7 @@ function salvaModulo(man, nome){
         {t:'h', testo:'Presenza e testimoni'},
         {t:'scelta', id:'presente', label:'Il/La sottoscritto/a', col:1, obbl:true, rif:'Indica se il dichiarante ha assistito al fatto (art. 2048 c.c.: vigilanza)',
           opz:['era presente al fatto', 'non era presente al fatto e riferisce quanto appreso da chi era presente']},
-        {t:'area', id:'testimoni', label:'In presenza di testimoni (nominativi)', righe:2, ph:'es. compagni di classe; collaboratrice scolastica sig.ra Paola Riva',
+        {t:'area', id:'testimoni', label:'In presenza di testimoni (nominativi)', righe:2, ph:'es. compagni di classe; collaboratrice scolastica in servizio al piano',
           nota:'Indicare gli adulti con nome e cognome; i compagni in modo generico («compagni di classe»), senza nomi.',
           frasi:['Compagni di classe.', 'Compagni di sezione.', 'Collaboratore scolastico in servizio al piano.', 'Altro docente presente in palestra.', 'Nessun testimone oltre al dichiarante.']},
 
@@ -6492,11 +6492,11 @@ function salvaModulo(man, nome){
           opz:['regolarmente al termine delle lezioni', 'prima del termine delle lezioni', 'con il 112 (NUE) per il trasporto al pronto soccorso']},
         {t:'riga', campi:[
           {t:'ora', id:'ora_uscita', label:'Alle ore', w:3},
-          {t:'testo', id:'ritirato', label:'Ritirato dal/la signore/a', w:9, ph:'es. sig.ra Anna Locatelli (madre)'}]},
+          {t:'testo', id:'ritirato', label:'Ritirato dal/la signore/a', w:9, ph:'es. la madre (cognome e nome)'}]},
         {t:'se', campo:'uscita', vale:'con il 112 (NUE) per il trasporto al pronto soccorso', blocchi:[
           {t:'riga', campi:[
             {t:'ora', id:'ora_112', label:'Ora della chiamata al 112', w:3},
-            {t:'testo', id:'accompagnatore', label:'Adulto della scuola che ha accompagnato (se la famiglia non era presente)', w:9, ph:'es. ins. Luca Bianchi, in ambulanza'}]}]},
+            {t:'testo', id:'accompagnatore', label:'Adulto della scuola che ha accompagnato (se la famiglia non era presente)', w:9, ph:'es. insegnante di classe, in ambulanza (cognome e nome)'}]}]},
 
         {t:'testofisso', testo:'Orzinuovi, {data}'},
         H.privacy(),
@@ -6523,7 +6523,7 @@ function salvaModulo(man, nome){
       ...testata(s, [
         {t:'testo', id:'alunno', label:ALUNNO[s], ph:PH_ALUNNO[s], obbl:true, rif:'Identificazione del destinatario della somministrazione'},
         {t:'testo', id:'sezione', label:SEZ[s], ph:PH_SEZ[s]}]),
-      {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6, ph:'es. Rossi Anna'}, {h:'Ruolo', w:6, ph:'es. genitore'}], righe:5, aggiungi:true,
+      {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6, ph:'Cognome e nome'}, {h:'Ruolo', w:6, ph:'es. genitore'}], righe:5, aggiungi:true,
         init:[['', H.PRES[s]], ['', DOC[s]], ['', 'Genitore'], ['', 'Genitore'], ['', 'Operatore sanitario ASST (se presente)']]},
       {t:'h', testo:'Documentazione agli atti'},
       {t:'riga', campi:[
@@ -6540,12 +6540,12 @@ function salvaModulo(man, nome){
         'Genitore o suo delegato che accede a scuola',
         ...(s === 'S' || s === 'P' ? ['Autosomministrazione da parte dell’alunno/a, se prevista dalla prescrizione, con la supervisione di un adulto'] : []),
         'Personale sanitario']},
-      {t:'tabella', id:'personale', label:'Personale disponibile', col:[{h:'Cognome e nome', w:4, ph:'es. Colombo Laura'}, {h:'Ruolo', w:3, ph:'es. ' + DOC[s].toLowerCase()}, {h:'Disponibilità scritta (data)', w:2.5, ph:'es. 15/09/2026'}, {h:'Formazione ricevuta (data, ente)', w:2.5, ph:'es. 20/09/2026, ASST Franciacorta'}], righe:3, aggiungi:true},
+      {t:'tabella', id:'personale', label:'Personale disponibile', col:[{h:'Cognome e nome', w:4, ph:'Cognome e nome'}, {h:'Ruolo', w:3, ph:'es. ' + DOC[s].toLowerCase()}, {h:'Disponibilità scritta (data)', w:2.5, ph:'es. 15/09/2026'}, {h:'Formazione ricevuta (data, ente)', w:2.5, ph:'es. 20/09/2026, ASST Franciacorta'}], righe:3, aggiungi:true},
       {t:'nota', testo:'La disponibilità del personale è volontaria e va dichiarata per iscritto; la somministrazione non richiede competenze sanitarie specialistiche. La formazione è curata dall’ATS / ASST secondo il protocollo. Indicare anche i sostituti.'},
       {t:'h', testo:'Conservazione'},
       {t:'riga', campi:[
         {t:'testo', id:'luogo_cons', label:'Luogo di conservazione', w:6, ph:'es. armadietto chiuso in segreteria, piano terra'},
-        {t:'testo', id:'resp_cons', label:'Responsabile della conservazione', w:6, ph:'es. sig.ra Paola Riva, segreteria'}]},
+        {t:'testo', id:'resp_cons', label:'Responsabile della conservazione', w:6, ph:'es. segreteria (cognome e nome)'}]},
       {t:'multi', id:'conservazione', label:'Accordi sulla conservazione', col:2, opz:[
         'Confezione integra fornita dalla famiglia, con il nome ' + (s === 'N' || s === 'I' ? 'del bambino' : 'dell’alunno'),
         'Conservazione secondo le indicazioni (temperatura, luce)',
@@ -6631,7 +6631,7 @@ function salvaModulo(man, nome){
           'La frequenza, regolare nel primo periodo, si è ridotta nelle ultime settimane.',
           'Le assenze coincidono spesso con verifiche o attività programmate.']},
       {t:'h', testo:'Contatti con la famiglia'},
-      {t:'tabella', id:'contatti', col:[{h:'Data', w:2, ph:'es. 14/10/2026'}, {h:'Modalità (telefono, colloquio, registro, lettera, PEC)', w:4, ph:'es. telefonata alla madre'}, {h:'Chi ha contattato', w:2.5, ph:'es. ins. Colombo'}, {h:'Esito', w:3.5, tipo:'area', ph:'es. la famiglia assicura il rientro da lunedì'}], righe:3, aggiungi:true,
+      {t:'tabella', id:'contatti', col:[{h:'Data', w:2, ph:'es. 14/10/2026'}, {h:'Modalità (telefono, colloquio, registro, lettera, PEC)', w:4, ph:'es. telefonata alla madre'}, {h:'Chi ha contattato', w:2.5, ph:'Cognome e nome dell’insegnante'}, {h:'Esito', w:3.5, tipo:'area', ph:'es. la famiglia assicura il rientro da lunedì'}], righe:3, aggiungi:true,
         obbl:s !== 'I', rif:'Documenta la comunicazione al responsabile dell’obbligo prevista dalla procedura'},
       {t:'area', id:'motivazioni', label:'Motivazioni riferite dalla famiglia (per motivi di salute rinviare ai certificati agli atti)', righe:3,
         ph:'es. La famiglia riferisce difficoltà organizzative negli orari di lavoro; per i giorni di malattia ha consegnato certificato (prot. 2345).',
@@ -6704,14 +6704,14 @@ function salvaModulo(man, nome){
     blocchi:(s) => {
       const inf = s === 'I';
       return [
-        ...testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s], ph:'es. Amina Diallo', obbl:true, rif:'Identificazione dell’alunno'}]),
+        ...testata(s, [{t:'testo', id:'alunno', label:ALUNNO[s], ph:'Cognome e nome', obbl:true, rif:'Identificazione dell’alunno'}]),
         {t:'riga', campi:[
           {t:'testo', id:'eta', label:'Età', w:3, ph:inf ? 'es. 4 anni' : s === 'P' ? 'es. 8 anni' : 'es. 12 anni'},
           {t:'testo', id:'provenienza', label:'Paese di provenienza', w:3, ph:'es. Senegal'},
           {t:'data', id:'arrivo', label:'Arrivo in Italia', w:3},
           {t:'data', id:'iscrizione', label:'Data di iscrizione', w:3, obbl:true, rif:'Iscrizione possibile in qualsiasi momento dell’anno (art. 45 D.P.R. 394/1999)'}]},
         {t:'h', testo:'Colloquio con la famiglia'},
-        {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6, ph:'es. Diallo Fatou'}, {h:'Ruolo', w:6, ph:'es. madre'}], righe:5, aggiungi:true,
+        {t:'tabella', id:'partecipanti', label:'Partecipanti', col:[{h:'Cognome e nome', w:6, ph:'Cognome e nome'}, {h:'Ruolo', w:6, ph:'es. madre'}], righe:5, aggiungi:true,
           init:[['', H.PRES[s]], ['', 'Referente intercultura / italiano L2'], ['', DOC[s]], ['', 'Genitore'], ['', 'Mediatore linguistico-culturale']]},
         {t:'scelta', id:'mediazione', label:'Mediazione', opz:['con mediatore linguistico-culturale', 'con interprete o familiare', 'senza mediazione'], col:3},
         {t:'area', id:'colloquio', label:'Informazioni emerse (composizione del nucleo, abitudini, aspettative della famiglia)', righe:3,
@@ -6779,14 +6779,14 @@ function salvaModulo(man, nome){
         {t:'tabella', id:'piano_l2', label:'Attività di italiano L2', col:[
           {h:'Attività', w:5, tipo:'area', ph:inf ? 'es. giochi linguistici in piccolo gruppo con immagini e canzoni' : 'es. laboratorio di italiano per comunicare, piccolo gruppo'},
           {h:'Tempi (ore settimanali, periodo)', w:3, ph:'es. 4 ore/settimana, ottobre-gennaio'},
-          {h:'Docente / referente', w:4, ph:'es. ins. Giulia Marini'}], righe:2, aggiungi:true},
+          {h:'Docente / referente', w:4, ph:'Cognome e nome dell’insegnante'}], righe:2, aggiungi:true},
         ...(inf ? [] : [
           {t:'scelta', id:'pdp', label:'Personalizzazione', opz:[
             'Si predispone un PDP transitorio per svantaggio linguistico, con obiettivi minimi e criteri di valutazione adattati',
             'Il PDP non si ritiene necessario al momento; la situazione si rivaluta alla data indicata']},
           {t:'nota', testo:'Il PDP transitorio è deliberato dal team / Consiglio di classe (C.M. 8/2013). Valutazione: nel primo periodo si privilegiano progressi nell’italiano L2 e osservazioni sul processo; i criteri adattati sono indicati nel PDP.'}]),
         {t:'riga', campi:[
-          {t:'testo', id:'referente', label:'Docente referente dell’accoglienza', w:8, ph:'es. ins. Giulia Marini, referente intercultura'},
+          {t:'testo', id:'referente', label:'Docente referente dell’accoglienza', w:8, ph:'es. referente intercultura (cognome e nome)'},
           {t:'data', id:'verifica', label:'Verifica del piano entro', w:4}]},
         H.privacy(),
         {t:'testofisso', testo:'Letto, confermato e sottoscritto.'},
@@ -6836,7 +6836,7 @@ function salvaModulo(man, nome){
   const PH_AS = {ph:'es. 2026/2027'};
 
   const firmeDocenti = (id = 'firme_docenti', label = 'Firme dei docenti', extra = {}) => Object.assign({t:'tabella', id, label,
-    col:[{h:'Docente', w:4, ph:'es. prof.ssa Anna Verdi'}, {h:'Disciplina / ambito', w:4, ph:'es. Matematica e scienze'},
+    col:[{h:'Docente', w:4, ph:'Cognome e nome della docente'}, {h:'Disciplina / ambito', w:4, ph:'es. Matematica e scienze'},
       {h:'Firma', w:4, ph:'lasciare vuoto: si firma sul documento stampato'}], righe:6, aggiungi:true, stampaVuota:true}, extra);
 
   /* Legenda per i documenti non deliberanti del singolo docente */
@@ -6880,9 +6880,9 @@ function salvaModulo(man, nome){
 
   const presidenzaEsame = () => [
     {t:'riga', campi:[
-      {t:'testo', id:'presidente', label:'Presidente (Coordinatore didattico)', w:6, nopdf:true, ph:'es. prof. Marco Rossi',
+      {t:'testo', id:'presidente', label:'Presidente (Coordinatore didattico)', w:6, nopdf:true, ph:'Cognome e nome del docente',
         obbl:true, rif:'Nelle paritarie presiede il Coordinatore delle attività educative e didattiche (D.Lgs. 62/2017, art. 8 c. 3)'},
-      {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'es. prof.ssa Laura Bianchi',
+      {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'Cognome e nome della docente',
         obbl:true, rif:'Firma del segretario verbalizzante essenziale (CdS sez. II n. 3544/2020)'}]},
     {t:'testofisso', testo:'Presiede {presidente}, Coordinatore delle attività educative e didattiche, Presidente della Commissione; funge da segretario verbalizzante {segretario}. Constatata la validità della seduta, il Presidente dichiara aperti i lavori.'},
   ];
@@ -6920,11 +6920,11 @@ function salvaModulo(man, nome){
       {t:'h', testo:'Composizione della Commissione e delle sottocommissioni'},
       {t:'testofisso', testo:'La Commissione d’esame è composta da tutti i docenti assegnati alle classi terze, compresi i docenti di sostegno e, per gli alunni che se ne avvalgono, i docenti di religione cattolica e di attività alternative, ed è articolata in tante sottocommissioni quante sono le classi terze. Ogni sottocommissione individua al proprio interno un docente coordinatore.'},
       {t:'tabella', id:'sottocommissioni', label:'Sottocommissioni',
-        col:[{h:'Classe', w:1.5, ph:'es. 3A'}, {h:'Docenti componenti', w:5, tipo:'area', ph:'es. Rossi (italiano), Bianchi (matematica), Verdi (inglese), Neri (spagnolo), Gialli (sostegno)…'},
-          {h:'Coordinatore', w:2.5, ph:'es. prof.ssa Verdi'}, {h:'Candidati interni', w:1.5, ph:'es. 22'}, {h:'Privatisti', w:1.5, ph:'es. 0'}],
+        col:[{h:'Classe', w:1.5, ph:'es. 3A'}, {h:'Docenti componenti', w:5, tipo:'area', ph:'es. docenti di italiano, matematica, inglese, spagnolo, sostegno (cognomi e nomi)…'},
+          {h:'Coordinatore', w:2.5, ph:'Cognome e nome della docente'}, {h:'Candidati interni', w:1.5, ph:'es. 22'}, {h:'Privatisti', w:1.5, ph:'es. 0'}],
         righe:2, aggiungi:true, obbl:true, rif:'Una sottocommissione per ogni classe terza, con tutti i docenti del consiglio di classe (D.M. 741/2017, art. 4)'},
       {t:'riga', campi:[
-        {t:'testo', id:'sostituto', label:'Sostituto del Presidente in caso di assenza o impedimento', w:8, nopdf:true, ph:'es. prof.ssa Anna Verdi'},
+        {t:'testo', id:'sostituto', label:'Sostituto del Presidente in caso di assenza o impedimento', w:8, nopdf:true, ph:'Cognome e nome della docente'},
         {t:'testo', id:'sost_atto', label:'Atto di delega (prot. n.)', w:4, nopdf:true, ph:'es. 398 del 03/06/2027'}]},
       {t:'testofisso', testo:'In caso di assenza o impedimento il Presidente è sostituito da {sostituto}, docente della Commissione (delega prot. n. {sost_atto}). I componenti delle sottocommissioni assenti sono sostituiti con provvedimento del Presidente.'},
       {t:'nota', testo:'Nelle paritarie la norma non disciplina espressamente il sostituto del Coordinatore: indicare la delega formale del Coordinatore o del Gestore, conservata agli atti.'},
@@ -7043,8 +7043,8 @@ function salvaModulo(man, nome){
       ...H.apertura('la Sottocommissione della classe {classe} dell’esame di Stato conclusivo del primo ciclo di istruzione, per la seguente fase dei lavori: {fase},'),
       ...H.presenti(['Coordinatore della sottocommissione', 'Docente', 'Docente', 'Docente', 'Docente di sostegno'], 'Componenti presenti'),
       {t:'riga', campi:[
-        {t:'testo', id:'coordinatore', label:'Coordinatore della sottocommissione', w:6, nopdf:true, ph:'es. prof.ssa Anna Verdi', obbl:true, rif:'Docente coordinatore individuato dalla sottocommissione (D.M. 741/2017, art. 4)'},
-        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'es. prof.ssa Laura Bianchi', obbl:true, rif:'Firma del segretario verbalizzante essenziale (CdS sez. II n. 3544/2020)'}]},
+        {t:'testo', id:'coordinatore', label:'Coordinatore della sottocommissione', w:6, nopdf:true, ph:'Cognome e nome della docente', obbl:true, rif:'Docente coordinatore individuato dalla sottocommissione (D.M. 741/2017, art. 4)'},
+        {t:'testo', id:'segretario', label:'Segretario verbalizzante', w:6, nopdf:true, ph:'Cognome e nome della docente', obbl:true, rif:'Firma del segretario verbalizzante essenziale (CdS sez. II n. 3544/2020)'}]},
       {t:'testofisso', testo:'Coordina i lavori {coordinatore}; funge da segretario verbalizzante {segretario}. La sottocommissione opera secondo i criteri deliberati dalla Commissione nella riunione preliminare.'},
 
       {t:'se', campo:'fase', vale:'correzione delle prove scritte', blocchi:[
@@ -7052,7 +7052,7 @@ function salvaModulo(man, nome){
         {t:'multi', id:'prove_corrette', label:'Prove corrette nella seduta', opz:PROVE, col:1},
         {t:'testofisso', testo:'La sottocommissione procede collegialmente alla correzione degli elaborati, applicando le griglie di valutazione deliberate nella riunione preliminare, e attribuisce a ciascuna prova un voto in decimi senza frazioni decimali. Per i candidati con PEI o PDP la valutazione tiene conto delle misure deliberate.'},
         {t:'tabella', id:'voti_scritti', label:'Esiti delle prove scritte',
-          col:[{h:'Candidato', w:3.5, ph:'es. Rossi Luca'}, {h:'Italiano', w:1.5, ph:'es. 7'}, {h:'Matematica', w:1.5, ph:'es. 8'}, {h:'Lingue', w:1.5, ph:'es. 7'},
+          col:[{h:'Candidato', w:3.5, ph:'Cognome e nome'}, {h:'Italiano', w:1.5, ph:'es. 7'}, {h:'Matematica', w:1.5, ph:'es. 8'}, {h:'Lingue', w:1.5, ph:'es. 7'},
             {h:'Osservazioni', w:4, tipo:'area', ph:'es. prova svolta con il tempo aggiuntivo previsto dal PDP'}],
           righe:6, aggiungi:true, obbl:true, rif:'Voto in decimi attribuito collegialmente a ciascuna prova (D.M. 741/2017, artt. 6-9)'},
         {t:'area', id:'assenti_scritti', label:'Candidati assenti e motivazione (eventuale sessione suppletiva)', righe:2,
@@ -7065,7 +7065,7 @@ function salvaModulo(man, nome){
         {t:'h', testo:'Colloqui'},
         {t:'testofisso', testo:'I colloqui si svolgono secondo il calendario pubblicato e sono condotti collegialmente dalla sottocommissione, con i criteri deliberati nella riunione preliminare; tengono conto delle competenze nelle lingue straniere e di educazione civica.'},
         {t:'tabella', id:'colloqui', label:'Colloqui svolti',
-          col:[{h:'Candidato', w:3, ph:'es. Rossi Luca'}, {h:'Ora', w:1, ph:'es. 9.00'},
+          col:[{h:'Candidato', w:3, ph:'Cognome e nome'}, {h:'Ora', w:1, ph:'es. 9.00'},
             {h:'Sintesi del colloquio (avvio, collegamenti, lingue, educazione civica)', w:6.5, tipo:'area', ph:'es. avvio dall’esperienza del laboratorio di scienze; collegamenti con storia e tecnologia; breve dialogo in inglese e spagnolo; riflessione sulla tutela dell’ambiente'},
             {h:'Voto', w:1.5, ph:'es. 8'}],
           righe:6, aggiungi:true, obbl:true, rif:'Voto in decimi del colloquio attribuito collegialmente (D.M. 741/2017, art. 10)'},
@@ -7080,7 +7080,7 @@ function salvaModulo(man, nome){
         {t:'h', testo:'Valutazione finale e proposta dei voti'},
         {t:'testofisso', testo:FORMULA_VOTO},
         {t:'tabella', id:'voti_finali', label:'Prospetto dei voti',
-          col:[{h:'Candidato', w:3, ph:'es. Rossi Luca'}, {h:'Prova italiano', w:1.2, ph:'es. 7'}, {h:'Prova matematica', w:1.2, ph:'es. 8'}, {h:'Prova lingue', w:1.2, ph:'es. 7'}, {h:'Colloquio', w:1.2, ph:'es. 8'},
+          col:[{h:'Candidato', w:3, ph:'Cognome e nome'}, {h:'Prova italiano', w:1.2, ph:'es. 7'}, {h:'Prova matematica', w:1.2, ph:'es. 8'}, {h:'Prova lingue', w:1.2, ph:'es. 7'}, {h:'Colloquio', w:1.2, ph:'es. 8'},
             {h:'Voto ammissione', w:1.2, ph:'es. 8'}, {h:'Voto finale proposto', w:1.5, ph:'es. 8'}, {h:'Lode proposta', w:1.5, tipo:'sn'}],
           righe:8, aggiungi:true, obbl:true, rif:'Proposta del voto finale per ciascun candidato (D.Lgs. 62/2017, art. 8 c. 7; D.M. 741/2017, art. 13)'},
         {t:'nota', testo:'Esempio: ammissione 8; prove 7, 8, 7 e colloquio 8 (media 7,5); voto finale (8 + 7,5) / 2 = 7,75 arrotondato a 8. Per i privatisti lasciare vuoto il voto di ammissione.'},
@@ -7148,7 +7148,7 @@ function salvaModulo(man, nome){
           {h:'Lodi', w:1.6, ph:'es. 2'}, {h:'di cui privatisti licenziati', w:2, ph:'es. 0'}],
         righe:3, aggiungi:true, obbl:true, rif:'Ratifica degli esiti da parte della Commissione in plenaria (D.M. 741/2017, art. 13)'},
       {t:'tabella', id:'lodi', label:'Lodi deliberate',
-        col:[{h:'Candidato', w:5, ph:'es. Rossi Luca'}, {h:'Sottocommissione', w:3, ph:'es. 3A'}, {h:'Votazione', w:4, ph:'all’unanimità'}], righe:2, aggiungi:true, init:[['', '', 'all’unanimità'], ['', '', 'all’unanimità']],
+        col:[{h:'Candidato', w:5, ph:'Cognome e nome'}, {h:'Sottocommissione', w:3, ph:'es. 3A'}, {h:'Votazione', w:4, ph:'all’unanimità'}], righe:2, aggiungi:true, init:[['', '', 'all’unanimità'], ['', '', 'all’unanimità']],
         nota:'La lode richiede la deliberazione all’unanimità della Commissione (D.Lgs. 62/2017, art. 8 c. 8): senza unanimità non può essere attribuita.'},
       {t:'testofisso', testo:FORMULA_LODE},
       {t:'area', id:'casi', label:'Casi particolari discussi (non licenziati, candidati con prove differenziate, sessione suppletiva)', righe:3,
@@ -7224,7 +7224,7 @@ function salvaModulo(man, nome){
         {t:'se', campo:'firma_fam' + suf, vale:'I genitori', blocchi:[
           {t:'firme', id:'firme_gen' + suf, ruoli:['La madre', 'Il padre']}]},
         {t:'se', campo:'firma_fam' + suf, vale:'Il tutore legale', blocchi:[
-          {t:'testo', id:'tutore' + suf, label:'Tutore legale (nome, cognome ed estremi del provvedimento di nomina)', ph:'es. avv. Giulia Rossi, nominata con decreto del Giudice tutelare di Brescia del 12/03/2025'},
+          {t:'testo', id:'tutore' + suf, label:'Tutore legale (nome, cognome ed estremi del provvedimento di nomina)', ph:'es. cognome e nome, nominato/a con decreto del Giudice tutelare di Brescia del 12/03/2025'},
           {t:'firme', id:'firme_tut' + suf, ruoli:['Il tutore legale']}]},
       ];
       const organo = s === 'S' ? 'Consiglio di classe' : 'Team docenti';
@@ -7286,11 +7286,11 @@ function salvaModulo(man, nome){
           {t:'h', testo:'Dati anagrafici'},
           {t:'riga', campi:[
             {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico(), ph:'es. 2026/2027', obbl:true, rif:'Il PDP ha validità annuale (Linee guida DSA 2011, par. 3.1)'},
-            {t:'testo', id:'alunno', label:'Nome e cognome', w:5, ph:'es. Luca Rossi', obbl:true, rif:'Identificazione dell’alunno (Linee guida DSA 2011, par. 3.1: dati anagrafici)'},
+            {t:'testo', id:'alunno', label:'Nome e cognome', w:5, ph:'Cognome e nome', obbl:true, rif:'Identificazione dell’alunno (Linee guida DSA 2011, par. 3.1: dati anagrafici)'},
             {t:'testo', id:'nascita', label:'Luogo e data di nascita', w:4, ph:'es. Chiari, 12/03/2015'}]},
           {t:'riga', campi:[
             {t:'testo', id:'classe', label:'Classe', w:3, ph:s === 'S' ? 'es. 2B' : 'es. 4A', obbl:true, rif:'Identificazione dell’alunno e dell’organo competente'},
-            {t:'testo', id:'referente', label:s === 'S' ? 'Coordinatore di classe' : 'Docente prevalente / coordinatore', w:5, ph:s === 'S' ? 'es. prof.ssa Anna Verdi' : 'es. ins. Maria Neri'},
+            {t:'testo', id:'referente', label:s === 'S' ? 'Coordinatore di classe' : 'Docente prevalente / coordinatore', w:5, ph:s === 'S' ? 'Cognome e nome della docente' : 'Cognome e nome dell’insegnante'},
             {t:'testo', id:'ripetenze', label:'Eventuali ripetenze (a.s. – scuola)', w:4, ph:'es. nessuna'}]},
           {t:'nota', testo:'Minimizzazione dei dati (art. 5 GDPR): indirizzo, recapiti e composizione del nucleo familiare non si riportano nel PDP; sono disponibili in segreteria.'},
 
@@ -7368,7 +7368,7 @@ function salvaModulo(man, nome){
 
           {t:'h', testo:'Consiglio di classe – Team docenti'},
           {t:'riga', campi:[
-            {t:'testo', id:'rel_cdc_da', label:'Relazione redatta da', w:8, ph:s === 'S' ? 'es. prof.ssa Anna Verdi, coordinatrice di classe' : 'es. ins. Maria Neri, docente prevalente'},
+            {t:'testo', id:'rel_cdc_da', label:'Relazione redatta da', w:8, ph:s === 'S' ? 'es. coordinatrice di classe (cognome e nome)' : 'es. docente prevalente (cognome e nome)'},
             {t:'data', id:'rel_cdc_data', label:'In data', w:4}]},
           {t:'matrice', id:'bisogni', label:'Dopo un primo periodo di osservazione sono emersi i seguenti bisogni – difficoltà di apprendimento in:', voci:DIFF, opz:['Sì', 'No']},
           {t:'matrice', id:'metodo', label:'Metodo di lavoro', voci:['Sa organizzare il lavoro da solo', 'Se aiutato, sa organizzare il lavoro'], opz:['Sì', 'A volte', 'No']},
@@ -7515,7 +7515,7 @@ function salvaModulo(man, nome){
         {t:'se', campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico', blocchi:[
           {t:'h', testo:'Osservazioni alla conclusione dell’anno scolastico'},
           {t:'riga', campi:[
-            {t:'testo', id:'alunno_fine', label:'Alunno/a', w:6, ph:'es. Luca Rossi'},
+            {t:'testo', id:'alunno_fine', label:'Alunno/a', w:6, ph:'Cognome e nome'},
             {t:'data', id:'data_fine', label:'Data', w:6}]},
           {t:'area', id:'oss_fine', label:'Efficacia delle misure adottate, progressi, criticità e indicazioni per l’anno successivo', righe:6,
             ph:'es. le mappe e il tempo aggiuntivo si sono rivelati efficaci; migliorata l’autonomia nello studio; da rivedere la dispensa dalla lettura ad alta voce',
@@ -7573,7 +7573,7 @@ function salvaModulo(man, nome){
       return guida([
         ...H.testata(s, [{t:'testo', id:'classe', label:'Classe', ph:s === 'P' ? 'es. 4A' : 'es. 2B', obbl:true, rif:'Identificazione della classe'}]),
         {t:'riga', campi:[
-          {t:'testo', id:'docente', label:'Docente', w:5, ph:s === 'P' ? 'es. ins. Maria Neri' : 'es. prof.ssa Anna Verdi', obbl:true, rif:'Attribuzione del documento al docente'},
+          {t:'testo', id:'docente', label:'Docente', w:5, ph:s === 'P' ? 'Cognome e nome dell’insegnante' : 'Cognome e nome della docente', obbl:true, rif:'Attribuzione del documento al docente'},
           {t:'testo', id:'disciplina', label:'Disciplina', w:5, ph:s === 'P' ? 'es. Italiano' : 'es. Matematica e scienze', obbl:true, rif:'Oggetto della relazione'},
           {t:'num', id:'ore', label:'Ore settimanali', w:2}]},
 
@@ -7726,7 +7726,7 @@ function salvaModulo(man, nome){
         {t:'testo', id:'alunno', label:`${AL_CAP(s)} (codice)`, ph:'es. codice o iniziali, es. L.R.', obbl:true, rif:'Identificazione dell’alunno/a (con codice o iniziali per minimizzazione)'},
         {t:'testo', id:'classe', label:CLASSE(s), ph:s === 'I' ? 'es. Sezione Gialli' : (s === 'P' ? 'es. 3A' : 'es. 2B'), obbl:true, rif:'Identificazione della ' + CLASSE(s).toLowerCase()}]),
       {t:'riga', campi:[
-        {t:'testo', id:'docente', label:'Docente di sostegno', w:6, ph:s === 'S' ? 'es. prof.ssa Giulia Gialli' : 'es. ins. Giulia Gialli', obbl:true, rif:'Attribuzione del documento al docente'},
+        {t:'testo', id:'docente', label:'Docente di sostegno', w:6, ph:s === 'S' ? 'Cognome e nome della docente' : 'Cognome e nome dell’insegnante', obbl:true, rif:'Attribuzione del documento al docente'},
         {t:'num', id:'ore_sost', label:'Ore settimanali di sostegno', w:3},
         {t:'num', id:'ore_aec', label:'Ore di assistenza all’autonomia', w:3}]},
       {t:'riga', campi:[
@@ -7841,7 +7841,7 @@ function salvaModulo(man, nome){
       return guida([
         ...H.testata(s, [{t:'testo', id:'classe', label:'Classe', ph:s === 'P' ? 'es. 1A' : 'es. 1B', obbl:true, rif:'Identificazione della classe'}]),
         {t:'riga', campi:[
-          {t:'testo', id:'docente', label:'Docente', w:5, ph:s === 'P' ? 'es. ins. Maria Neri' : 'es. prof.ssa Anna Verdi', obbl:true, rif:'Attribuzione del documento al docente'},
+          {t:'testo', id:'docente', label:'Docente', w:5, ph:s === 'P' ? 'Cognome e nome dell’insegnante' : 'Cognome e nome della docente', obbl:true, rif:'Attribuzione del documento al docente'},
           {t:'testo', id:'disciplina', label:'Disciplina', w:5, ph:s === 'P' ? 'es. Matematica' : 'es. Inglese', obbl:true, rif:'Oggetto del piano'},
           {t:'num', id:'ore', label:'Ore settimanali', w:2}]},
         {t:'scelta', id:'riferimento', label:'Documento di riferimento', col:1, opz:[RIF_NUOVE, RIF_2012],
@@ -8198,9 +8198,9 @@ function salvaModulo(man, nome){
       {t:'h', testo:'Orario insegnanti ed educatrici'},
       {t:'nota', testo:'Da compilare ogni anno. Se le tabelle restano vuote vengono stampate righe in bianco da completare a mano.'},
       {t:'tabella', id:'orario_settembre', label:'Settembre', aggiungi:true, stampaVuota:true, righe:3,
-        col:[{h:'Insegnante / educatrice', w:4, ph:'es. Assirati Chiara'}, {h:'Giorni', w:4, ph:'es. dal lunedì al venerdì'}, {h:'Orario', w:4, ph:'es. 8:30-12:30'}]},
+        col:[{h:'Insegnante / educatrice', w:4, ph:'Cognome e nome'}, {h:'Giorni', w:4, ph:'es. dal lunedì al venerdì'}, {h:'Orario', w:4, ph:'es. 8:30-12:30'}]},
       {t:'tabella', id:'orario_ottobre', label:'Ottobre – giugno', aggiungi:true, stampaVuota:true, righe:3,
-        col:[{h:'Insegnante / educatrice', w:4, ph:'es. Assirati Chiara'}, {h:'Giorni', w:4, ph:'es. lunedì, mercoledì, venerdì'}, {h:'Orario', w:4, ph:'es. 8:30-15:30'}]},
+        col:[{h:'Insegnante / educatrice', w:4, ph:'Cognome e nome'}, {h:'Giorni', w:4, ph:'es. lunedì, mercoledì, venerdì'}, {h:'Orario', w:4, ph:'es. 8:30-15:30'}]},
 
       {t:'h', testo:'Utilizzo degli spazi e sorveglianza'},
       T('L’accoglienza dei bambini e delle bambine avviene dalle 7:30 alle 8:30 (servizio di anticipo) nella sezione gialla della scuola dell’infanzia con la sorveglianza di un’educatrice. Alle 8:30 le insegnanti e/o educatrici entrano in servizio e ogni gruppo entra nella propria sezione.'),
@@ -8213,18 +8213,18 @@ function salvaModulo(man, nome){
       T('Dalle 15:00 alle 15:40: riordino, conversazione, igiene personale e merenda.'),
       T('Dalle 15:40 alle 16:00: uscita, gestita dalle insegnanti ed educatrici della scuola dell’infanzia.'),
       T('Dalle 16:00 alle 18:00: posticipo gestito dalle educatrici della scuola dell’infanzia e del Green Nido.'),
-      {t:'testo', id:'sorveglianza_nomi', label:'Personale incaricato di anticipo e posticipo', ph:'es. anticipo: educatrice Rossi Anna; posticipo: educatrici Bianchi Sara e Verdi Paola'},
+      {t:'testo', id:'sorveglianza_nomi', label:'Personale incaricato di anticipo e posticipo', ph:'es. anticipo: un’educatrice; posticipo: due educatrici (cognomi e nomi)'},
 
       {t:'h', testo:'Gruppo di lavoro – insegnanti di riferimento rispetto ai diversi contesti'},
       {t:'nota', testo:'Aggiornare ogni anno: abbinamento sezione / gruppo omogeneo e nomi delle insegnanti (indicare tra parentesi eventuali periodi di servizio).'},
       {t:'tabella', id:'gruppo_lavoro', aggiungi:true, stampaVuota:true,
-        col:[{h:'Sezione / contesto', w:5, ph:'es. Sezione Gialla – gruppo omogeneo 3 anni'}, {h:'Insegnanti di riferimento', w:7, tipo:'area', ph:'es. Assirati Chiara, Zappa Eleonora'}],
+        col:[{h:'Sezione / contesto', w:5, ph:'es. Sezione Gialla – gruppo omogeneo 3 anni'}, {h:'Insegnanti di riferimento', w:7, tipo:'area', ph:'Cognomi e nomi delle insegnanti'}],
         init:[
-          RIGA('Sezione Gialla – gruppo omogeneo 3 anni', 'Assirati Chiara\nZappa Eleonora'),
-          RIGA('Sezione Rossa – gruppo omogeneo 5 anni', 'Torchiani Stefania\nVolpi Aurora (settembre – maggio)\nZupelli Serena (giugno)'),
-          RIGA('Sezione Azzurra – gruppo omogeneo 4 anni', 'Gatti Michela\nMartinelli Andrea'),
-          RIGA('Madrelingua', 'Rebecca Osei Akoto'),
-          RIGA('IRC', 'p. Gianmarco Paris')]},
+          RIGA('Sezione Gialla – gruppo omogeneo 3 anni', ''),
+          RIGA('Sezione Rossa – gruppo omogeneo 5 anni', ''),
+          RIGA('Sezione Azzurra – gruppo omogeneo 4 anni', ''),
+          RIGA('Madrelingua', ''),
+          RIGA('IRC', '')]},
 
       {t:'h', testo:'L’osservazione'},
       T('Osservando sistematicamente e progettando l’osservazione (chi, cosa, quando e come osservare) così come si progettano le attività e i percorsi didattici e il modo di realizzarli, si costruirà un modo di essere e di procedere nel nostro lavoro che rende coerente l’azione educativa con la realtà e le esigenze di ogni bambino.'),
@@ -8257,18 +8257,18 @@ function salvaModulo(man, nome){
       T('{luogo}, {data}'),
       {t:'nota', testo:'Nomi precompilati dal gruppo di lavoro dell’a.s. 2026/2027: aggiornarli ogni anno. La colonna Firma resta vuota per la firma autografa sul PDF stampato.'},
       {t:'tabella', id:'firme_tab', aggiungi:true, stampaVuota:true,
-        col:[{h:'Cognome e nome', w:4, ph:'es. Rossi Maria'}, {h:'Ruolo', w:4, ph:'es. insegnante di sezione'}, {h:'Firma', w:4, ph:'lasciare vuoto: firma autografa'}],
+        col:[{h:'Cognome e nome', w:4, ph:'Cognome e nome'}, {h:'Ruolo', w:4, ph:'es. insegnante di sezione'}, {h:'Firma', w:4, ph:'lasciare vuoto: firma autografa'}],
         init:[
           RIGA('', 'Coordinatore didattico', ''),
-          RIGA('Assirati Chiara', 'Insegnante – sezione Gialla', ''),
-          RIGA('Zappa Eleonora', 'Insegnante – sezione Gialla', ''),
-          RIGA('Torchiani Stefania', 'Insegnante – sezione Rossa', ''),
-          RIGA('Volpi Aurora', 'Insegnante – sezione Rossa', ''),
-          RIGA('Zupelli Serena', 'Insegnante – sezione Rossa', ''),
-          RIGA('Gatti Michela', 'Insegnante – sezione Azzurra', ''),
-          RIGA('Martinelli Andrea', 'Insegnante – sezione Azzurra', ''),
-          RIGA('Rebecca Osei Akoto', 'Insegnante madrelingua', ''),
-          RIGA('p. Gianmarco Paris', 'Insegnante di religione cattolica', ''),
+          RIGA('', 'Insegnante – sezione Gialla', ''),
+          RIGA('', 'Insegnante – sezione Gialla', ''),
+          RIGA('', 'Insegnante – sezione Rossa', ''),
+          RIGA('', 'Insegnante – sezione Rossa', ''),
+          RIGA('', 'Insegnante – sezione Rossa', ''),
+          RIGA('', 'Insegnante – sezione Azzurra', ''),
+          RIGA('', 'Insegnante – sezione Azzurra', ''),
+          RIGA('', 'Insegnante madrelingua', ''),
+          RIGA('', 'Insegnante di religione cattolica', ''),
           RIGA('', 'Educatrice', '')]},
     ],
   });
@@ -8289,7 +8289,7 @@ function salvaModulo(man, nome){
     'Reg. UE 2016/679 (GDPR), artt. 5 e 9 – dati personali di minori: minimizzazione, nessuna diagnosi, conservazione riservata nel fascicolo.',
   ];
   const FIRME_INS = (id, label) => ({t:'tabella', id, label,
-    col:[{h:'Insegnante', w:6, ph:'es. Stefania Torchiani'}, {h:'Firma', w:6, ph:'lasciare vuoto: firma autografa sul PDF'}],
+    col:[{h:'Insegnante', w:6, ph:'Cognome e nome'}, {h:'Firma', w:6, ph:'lasciare vuoto: firma autografa sul PDF'}],
     righe:3, aggiungi:true, stampaVuota:true, obbl:true, rif:'Identificazione delle insegnanti che redigono il documento'});
 
   /* ---------- ANALISI DELLA SEZIONE ---------- */
@@ -8416,7 +8416,7 @@ function salvaModulo(man, nome){
     blocchi:(s) => [
       {t:'h', testo:'Dati generali'},
       {t:'riga', campi:[
-        {t:'testo', id:'nome', label:'Profilo intermedio di (nome del bambino / della bambina)', w:6, ph:'es. Marco Rossi', obbl:true, rif:'Identificazione del bambino'},
+        {t:'testo', id:'nome', label:'Profilo intermedio di (nome del bambino / della bambina)', w:6, ph:'Cognome e nome', obbl:true, rif:'Identificazione del bambino'},
         {t:'data', id:'data', label:'Data', w:3, oggi:true, obbl:true, rif:'Data dell’osservazione'},
         {t:'testo', id:'sezione', label:'Sezione', w:3, ph:'es. Rossa'}]},
       {t:'scelta', id:'eta', label:'Fascia d’età', opz:['3 anni', '4-5 anni'], def:'3 anni', col:2, obbl:true, rif:'Determina le voci del profilo', nopdf:true},
@@ -8450,17 +8450,17 @@ function salvaModulo(man, nome){
     blocchi:(s) => [
       {t:'h', testo:'Dati generali'},
       {t:'riga', campi:[
-        {t:'testo', id:'nome', label:'Profilo finale dell’alunno/a', w:6, ph:'es. Marco Rossi', obbl:true, rif:'Identificazione del bambino'},
+        {t:'testo', id:'nome', label:'Profilo finale dell’alunno/a', w:6, ph:'Cognome e nome', obbl:true, rif:'Identificazione del bambino'},
         {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico(), ph:'es. 2026/2027', obbl:true, rif:'Identificazione dell’anno'},
         {t:'testo', id:'sezione', label:'Sezione', w:3, ph:'es. Azzurra'}]},
       {t:'h', testo:'Firmatari dell’anno'},
       {t:'nota', testo:'Elenco dei firmatari da aggiornare ogni anno: nomi e ruoli come compaiono nel profilo (dirigente, direttore educativo, insegnanti, insegnante madrelingua, educatrice). La colonna Firma resta vuota per la firma autografa.'},
-      {t:'tabella', id:'firmatari', col:[{h:'Cognome e nome', w:5, ph:'es. Stefania Torchiani'}, {h:'Ruolo', w:3, ph:'es. insegnante'}, {h:'Firma', w:4, ph:'firma autografa sul PDF'}],
+      {t:'tabella', id:'firmatari', col:[{h:'Cognome e nome', w:5, ph:'Cognome e nome'}, {h:'Ruolo', w:3, ph:'es. insegnante'}, {h:'Firma', w:4, ph:'firma autografa sul PDF'}],
         init:[['', 'dirigente scolastica', ''], ['', 'direttore educativo', ''], ['', 'insegnante', ''], ['', 'madrelingua', ''], ['', 'educatrice', '']],
         righe:5, aggiungi:true, stampaVuota:true, obbl:true, rif:'Sottoscrizione del profilo da parte del personale della sezione'},
       {t:'h', testo:'Profilo descrittivo'},
       {t:'area', id:'profilo', label:'Profilo descrittivo steso utilizzando le griglie di osservazione', righe:8, obbl:true, rif:'Contenuto essenziale del profilo',
-        ph:'es. Marco ha concluso il percorso con serenità. Si relaziona positivamente con compagni e adulti, partecipa con interesse alle attività e porta a termine le consegne in autonomia…',
+        ph:'es. Ha concluso il percorso con serenità. Si relaziona positivamente con compagni e adulti, partecipa con interesse alle attività e porta a termine le consegne in autonomia…',
         frasi:[
           'Ha vissuto l’anno scolastico con serenità, consolidando la relazione con compagni e insegnanti.',
           'Partecipa con interesse e curiosità alle attività proposte, intervenendo in modo pertinente nelle conversazioni.',
