@@ -41,6 +41,8 @@ a{color:var(--blu)}
 .top img{width:44px;height:44px}
 .brand b{display:block;color:var(--blu);font-size:17px;letter-spacing:.2px}
 .brand span{font-size:12.5px;color:var(--muted)}
+.brand{min-width:0}
+.brand>span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(760px,62vw)}
 .top .sp{flex:1}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--verde);background:var(--verde-t);border-radius:99px;padding:5px 11px;font-weight:500}
 .pill svg{width:14px;height:14px}
@@ -68,6 +70,8 @@ a{color:var(--blu)}
 .doc p{margin:0;font-size:13px;color:var(--muted);flex:1}
 .badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
 .bdg{font-size:11.5px;font-weight:600;border-radius:6px;padding:3px 8px;color:#fff;border:0;cursor:pointer}
+/* etichetta NEW: moduli dell'ultimo inserimento (blu istituzionale, mai rosso) */
+.nuovo{display:inline-block;background:var(--blu);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.8px;border-radius:5px;padding:2px 6px;margin-left:7px;vertical-align:2px}
 .bdg.N{background:var(--N)}.bdg.I{background:var(--I)}.bdg.P{background:var(--P)}.bdg.S{background:var(--S)}
 .bdg:hover{filter:brightness(.92)}
 .vuoto{color:var(--muted);padding:30px 0}
@@ -140,6 +144,13 @@ details.norme p{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
 .firme{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;grid-column:1/-1}
 .firme .f{background:#fafbfd;border:1px solid var(--line);border-radius:8px;padding:10px}
 .nascosto{display:none!important}
+/* suggerimenti a comparsa ("?" accanto all'etichetta) */
+.sugg-w{position:relative;display:inline-flex;vertical-align:middle;margin-left:6px}
+.sugg{width:20px;height:20px;border-radius:50%;border:1px solid #b9c6de;background:#fff;color:var(--blu);font-weight:700;font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;text-transform:none;letter-spacing:0}
+.sugg:hover,.sugg[aria-expanded=true]{background:var(--blu);color:#fff;border-color:var(--blu)}
+.pop{position:absolute;z-index:30;top:26px;left:-10px;width:min(340px,80vw);background:#fff;border:1px solid #c9d4ea;border-radius:10px;box-shadow:0 10px 28px rgba(18,62,144,.18);padding:11px 13px;font-size:13.5px;font-weight:400;color:#2d3748;line-height:1.45;text-transform:none;letter-spacing:0}
+.pop b{color:var(--blu-2)}
+@media (pointer:coarse){.sugg{width:26px;height:26px;font-size:14px}}
 /* elementi essenziali (obbligatori pena invalidita') */
 .obbl>label::after,.obbl>.lbl::after{content:" *";color:var(--ambra);font-weight:700}
 .obbl-rif{font-size:11.5px;color:var(--ambra);display:flex;gap:5px;align-items:flex-start}
@@ -273,8 +284,15 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-08';
-document.getElementById('agg').textContent = 'aggiornata il ' + AGGIORNAMENTO.split('-').reverse().join('/');
+const AGGIORNAMENTO = '2026-10-10';
+/* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
+const AGGIORNAMENTO_NOTE = 'nuova Programmazione Annuale Classica (sostituisce il Piano di lavoro annuale) e suggerimenti a comparsa «?» nei moduli';
+(() => {
+  const d = AGGIORNAMENTO.split('-').reverse().join('/');
+  const a = document.getElementById('agg');
+  a.textContent = `aggiornata il ${d}: ${AGGIORNAMENTO_NOTE}`;
+  a.title = `Ultimo aggiornamento (${d}): ${AGGIORNAMENTO_NOTE}`;
+})();
 const IOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const SCUOLA_NOME = 'Scuola Sacra Famiglia';
 const SCUOLA_SUB = "S. Paola Elisabetta Cerioli – Via Milano, 75 – 25034 Orzinuovi (BS)";
@@ -418,6 +436,13 @@ function toast(msg){ const t = el('div', {class:'toast', role:'status'}, msg); d
 /* =====================================================================
    HOME
    ===================================================================== */
+/* Etichetta NEW: i moduli con la data di inserimento (inserito:'AAAA-MM-GG') piu' recente.
+   Quando si aggiunge un nuovo modulo con una data successiva, l'etichetta passa automaticamente a quello. */
+function eNuovo(m){
+  if (!m || !m.inserito) return false;
+  const ultima = MODULI.reduce((a, x) => x.inserito && x.inserito > a ? x.inserito : a, '');
+  return m.inserito === ultima;
+}
 function home(){
   MOD = null; SCU = null; azzera();
   const app = $('#app'); app.innerHTML = '';
@@ -443,7 +468,7 @@ function home(){
   w.append(el('div', {class:'filtri'}, seg, el('div', {class:'cerca', html:SVG.cerca}, inp)));
   const lista = el('div');
   w.append(lista);
-  w.append(el('footer', {class:'pie'}, `Scuola Sacra Famiglia – Orzinuovi (BS) · Ultimo aggiornamento dell’app: ${AGGIORNAMENTO.split('-').reverse().join('/')} · I moduli seguono la normativa vigente.`));
+  w.append(el('footer', {class:'pie'}, `Scuola Sacra Famiglia – Orzinuovi (BS) · Ultimo aggiornamento dell’app: ${AGGIORNAMENTO.split('-').reverse().join('/')} – ${AGGIORNAMENTO_NOTE} · I moduli seguono la normativa vigente.`));
   app.append(w);
   disegnaElenco(lista);
   window.scrollTo(0, 0);
@@ -462,7 +487,7 @@ function disegnaElenco(lista){
       const scuole = FILTRO === 'tutte' ? m.scuole : [FILTRO];
       const card = el('div', {class:'doc', tabindex:'0', role:'button',
         onclick:() => apri(m.id, scuole[0]), onkeydown:e => { if (e.key === 'Enter') apri(m.id, scuole[0]); }},
-        el('b', {}, m.titolo), el('p', {}, m.descrizione || ''),
+        el('b', {}, m.titolo, eNuovo(m) ? el('span', {class:'nuovo', title:'Ultimo modulo inserito'}, 'NEW') : null), el('p', {}, m.descrizione || ''),
         el('div', {class:'badges'}, m.scuole.filter(s => FILTRO === 'tutte' || s === FILTRO).map(s =>
           el('button', {class:'bdg ' + s, title:'Apri per ' + SCUOLE[s].nome,
             onclick:e => { e.stopPropagation(); apri(m.id, s); }}, SCUOLE[s].breve))));
@@ -484,7 +509,7 @@ function apri(id, s){
   const app = $('#app'); app.innerHTML = '';
   const bar = el('div', {class:'bar'}, el('div', {class:'wrap'},
     el('button', {class:'btn', onclick:esci, html:SVG.indietro + 'Elenco'}),
-    el('div', {style:'flex:1;min-width:200px'}, el('h1', {}, MOD.titolo),
+    el('div', {style:'flex:1;min-width:200px'}, el('h1', {}, MOD.titolo, eNuovo(MOD) ? el('span', {class:'nuovo'}, 'NEW') : null),
       el('div', {class:'meta'}, el('span', {class:'bdg ' + s, style:'cursor:default;margin-right:6px'}, SCUOLE[s].breve), MOD.sottotitolo || '')),
     el('label', {class:'chk-inline', title:'Se attivo, nel PDF vengono omesse le voci non compilate e le opzioni non spuntate'},
       el('input', {type:'checkbox', id:'compatto', checked:true}), 'PDF compatto'),
@@ -506,8 +531,7 @@ function apri(id, s){
    chiusura/firme: copre i casi non previsti. Vuota = non stampata. Disattivabile con libere:false. */
 function conAnnotazioni(bl){
   if (MOD.libere === false || bl.some(b => b.t === 'libere')) return bl;
-  const extra = [{t:'h', testo:'Annotazioni aggiuntive'},
-    {t:'nota', testo:'Sezione facoltativa: aggiungi qui punti non previsti dal modulo (ogni sezione ha titolo e testo). Se resta vuota non compare nel PDF.'},
+  const extra = [{t:'h', testo:'Annotazioni aggiuntive', sugg:'Sezione facoltativa: aggiungi qui punti non previsti dal modulo (ogni annotazione ha titolo e testo). Se resta vuota non compare nel PDF.'},
     {t:'libere', id:'_annotazioni', init:[], sottotitoli:true, aggiungi:'Aggiungi annotazione'}];
   let i = bl.length;
   for (let k = bl.length - 1; k >= 0; k--){
@@ -557,12 +581,9 @@ function sezioneProtocollo(){
   const attiva = () => { const c = $('#protocollo'); if (c && !c.disabled && (STATO._prot_n || STATO._prot_data)) c.checked = true; };
   n.addEventListener('input', () => { STATO._prot_n = n.value; attiva(); segna(); });
   d.addEventListener('input', () => { STATO._prot_data = d.value; attiva(); segna(); });
-  return el('section', {class:'sez'}, el('h3', {}, 'Protocollo'), el('div', {class:'g'},
+  return el('section', {class:'sez'}, el('h3', {}, 'Protocollo', bottoneSugg(MOD.protocollo ? 'Per questo documento il protocollo è obbligatorio. Inserisci il numero e la data forniti dalla segreteria: compariranno nel riquadro della prima pagina. Se non li hai ancora, lascia vuoto: il riquadro resterà da compilare a mano.' : 'Facoltativo. Se la segreteria ti ha fornito un numero di protocollo, inseriscilo qui: il riquadro viene aggiunto alla prima pagina del PDF (casella «Spazio protocollo»).')), el('div', {class:'g'},
     el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_n'}, 'Prot. n.'), n),
-    el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_data'}, 'del'), d),
-    el('div', {class:'nota', html:SVG.info}, el('span', {}, MOD.protocollo
-      ? 'Per questo documento il protocollo è obbligatorio. Inserisci il numero e la data forniti dalla segreteria: compariranno nel riquadro della prima pagina. Se non li hai ancora, lascia vuoto: il riquadro resterà da compilare a mano.'
-      : 'Facoltativo. Se la segreteria ti ha fornito un numero di protocollo, inseriscilo qui: il riquadro viene aggiunto alla prima pagina del PDF (casella «Spazio protocollo»).'))));
+    el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_data'}, 'del'), d)));
 }
 function haObbl(bl){ return bl.some(b => b.obbl || (b.campi && haObbl(b.campi)) || (b.blocchi && haObbl(b.blocchi))); }
 function disegnaForm(root){
@@ -574,14 +595,17 @@ function disegnaForm(root){
     el('p', {}, 'I riferimenti servono a chi compila e non vengono stampati nel PDF.')));
   root.append(sezioneProtocollo());
   if (haObbl(BLOCCHI)){
+    // legenda compatta: una riga, spiegazione nel suggerimento a comparsa
     const spec = MOD.legenda ? MOD.legenda(SCU) : null;
-    root.append(el('div', {class:'legenda', html:'<b>*</b> ' + (spec ? esc(spec) : 'Elementi essenziali del verbale: se mancano, il verbale o le deliberazioni possono essere invalidi o impugnabili.') + ' Sotto ciascuno è indicato il riferimento normativo; al salvataggio l\u2019app segnala quelli non compilati.'}));
+    const testo = (spec || 'Elementi essenziali del verbale: se mancano, il verbale o le deliberazioni possono essere invalidi o impugnabili.') + ' Sotto ciascuno è indicato il riferimento normativo; al salvataggio l’app segnala quelli non compilati.';
+    root.append(el('div', {class:'legenda', style:'padding:8px 14px;display:flex;align-items:center'}, el('span', {html:'<b>*</b> Elemento essenziale del documento'}), bottoneSugg(testo)));
   }
+
   let sez = null, grid = null;
   // conds: condizioni "se" annidate (tutte devono valere). Ogni titolo apre una scheda propria,
   // anche dentro un blocco condizionale: la scheda eredita le condizioni e si nasconde con esse.
-  const nuovaSez = (titolo, conds) => {
-    sez = el('section', {class:'sez'}); if (titolo) sez.append(el('h3', {}, titolo));
+  const nuovaSez = (titolo, conds, sugg) => {
+    sez = el('section', {class:'sez'}); if (titolo) sez.append(el('h3', {}, titolo, sugg ? bottoneSugg(sugg) : null));
     if (conds.length) sez.dataset.se = JSON.stringify(conds);
     grid = el('div', {class:'g'}); sez.append(grid); root.append(sez);
   };
@@ -589,7 +613,7 @@ function disegnaForm(root){
   const disegna = (blocchi, dest, conds) => {
     let aperte = false;
     for (const b of blocchi){
-      if (b.t === 'h'){ nuovaSez(b.testo, conds); dest = grid; aperte = true; continue; }
+      if (b.t === 'h'){ nuovaSez(b.testo, conds, b.sugg); dest = grid; aperte = true; continue; }
       if (b.t === 'se'){
         const nc = [...conds, [b.campo, b.vale]];
         if (b.blocchi[0] && b.blocchi[0].t === 'h'){
@@ -635,8 +659,27 @@ function selettoreFrasi(frasi, area, aggiorna){
 }
 function span(b){ return `grid-column:span ${Math.round(b.w || 12)}`; }
 
+/* Pulsante "?" con suggerimento a comparsa (tocco o clic; si chiude toccando altrove o con Esc) */
+function bottoneSugg(testo){
+  const pop = el('div', {class:'pop nascosto', role:'tooltip'}, testo);
+  const btn = el('button', {type:'button', class:'sugg', 'aria-label':'Suggerimento', 'aria-expanded':'false'}, '?');
+  btn.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const apri = pop.classList.contains('nascosto');
+    document.querySelectorAll('.pop').forEach(p => p.classList.add('nascosto'));
+    document.querySelectorAll('.sugg').forEach(x => x.setAttribute('aria-expanded', 'false'));
+    if (apri){ pop.classList.remove('nascosto'); btn.setAttribute('aria-expanded', 'true'); }
+  });
+  return el('span', {class:'sugg-w'}, btn, pop);
+}
+document.addEventListener('click', e => { if (!e.target.closest || !e.target.closest('.sugg-w')){ document.querySelectorAll('.pop').forEach(p => p.classList.add('nascosto')); document.querySelectorAll('.sugg').forEach(x => x.setAttribute('aria-expanded', 'false')); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.pop').forEach(p => p.classList.add('nascosto')); });
 function campo(b){
   const e = campoBase(b);
+  if (e && b.sugg){
+    const lab = e.querySelector(':scope > label, :scope > .lbl, :scope > div > .lbl');
+    (lab || e).append(bottoneSugg(b.sugg));
+  }
   if (e && b.obbl){
     e.classList.add('obbl'); e.dataset.obbl = b.id;
     e.append(el('span', {class:'obbl-rif'}, 'Elemento essenziale' + (b.rif ? ' – ' + b.rif : '')));
@@ -7825,152 +7868,7 @@ function salvaModulo(man, nome){
   /* =====================================================================
      7. PIANO DI LAVORO ANNUALE DEL DOCENTE
      ===================================================================== */
-  registra({
-    id:'piano-lavoro',
-    titolo:'Piano di lavoro annuale',
-    sottotitolo:'Programmazione disciplinare del docente – Indicazioni nazionali; D.M. 221/2025 per le classi prime dal 2026/27',
-    descrizione:'Situazione di partenza, obiettivi, contenuti per periodo, metodi e valutazione',
-    argomento:'relazioni',
-    scuole:['P', 'S'],
-    file:'Piano_lavoro_annuale',
-    norme:NORME_DOC,
-    legenda:LEG_DOC,
-    blocchi:(s) => {
-      const RIF_NUOVE = 'Nuove Indicazioni nazionali – classe prima';
-      const RIF_2012 = 'Indicazioni nazionali 2012 e Nuovi scenari 2018 – classi successive';
-      return guida([
-        ...H.testata(s, [{t:'testo', id:'classe', label:'Classe', ph:s === 'P' ? 'es. 1A' : 'es. 1B', obbl:true, rif:'Identificazione della classe'}]),
-        {t:'riga', campi:[
-          {t:'testo', id:'docente', label:'Docente', w:5, ph:s === 'P' ? 'Cognome e nome dell’insegnante' : 'Cognome e nome della docente', obbl:true, rif:'Attribuzione del documento al docente'},
-          {t:'testo', id:'disciplina', label:'Disciplina', w:5, ph:s === 'P' ? 'es. Matematica' : 'es. Inglese', obbl:true, rif:'Oggetto del piano'},
-          {t:'num', id:'ore', label:'Ore settimanali', w:2}]},
-        {t:'scelta', id:'riferimento', label:'Documento di riferimento', col:1, opz:[RIF_NUOVE, RIF_2012],
-          nota:'Nuove Indicazioni: D.M. 221/2025. Indicazioni 2012: D.M. 254/2012; Nuovi scenari: Nota MIUR 3645/2018.'},
-        {t:'nota', testo:'Dal 2026/27 le Nuove Indicazioni (D.M. 221/2025, Nota MIM 1312/2026) si applicano alle classi prime; le altre classi proseguono con le Indicazioni 2012 fino al completamento graduale.'},
-
-        {t:'h', testo:'Situazione di partenza'},
-        {t:'multi', id:'rilevazione', label:'Strumenti di rilevazione', col:3, altro:true, opz:[
-          'Prove d’ingresso', 'Osservazioni sistematiche', 'Colloqui', 'Informazioni dal grado precedente', 'Esiti dell’anno precedente']},
-        {t:'area', id:'partenza', label:'Descrizione della classe (partecipazione, metodo di lavoro, prerequisiti)', righe:3,
-          ph:'es. classe di 22 alunni, vivace e partecipe; le prove d’ingresso mostrano prerequisiti adeguati per la maggior parte degli alunni',
-          frasi:[
-            'La classe si presenta vivace e partecipe; gli alunni intervengono volentieri e mostrano curiosità verso le proposte.',
-            'Le prove d’ingresso evidenziano prerequisiti complessivamente adeguati, con alcune fragilità nelle abilità di base.',
-            s === 'P'
-              ? 'La maggior parte degli alunni esegue le consegne con autonomia; alcuni necessitano della guida dell’insegnante.'
-              : 'Il metodo di studio è ancora in via di consolidamento per una parte della classe.',
-            'Il gruppo classe è eterogeneo per ritmi di apprendimento e livelli di autonomia.',
-            'Il clima relazionale è positivo e favorisce il lavoro cooperativo.',
-            'Nella classe sono presenti alunni con PEI o PDP, per i quali si rinvia ai documenti agli atti.']},
-        {t:'tabella', id:'fasce', label:'Fasce di livello',
-          col:[{h:'Fascia', w:3}, {h:'N. alunni', w:2, ph:'es. 5'},
-            {h:'Caratteristiche', w:7, tipo:'area', ph:'es. conoscenze sicure, lavoro autonomo e ordinato, buone capacità di collegamento'}], fisse:['Avanzato', 'Intermedio', 'Base', 'Iniziale']},
-
-        {t:'h', testo:'Traguardi e obiettivi'},
-        {t:'se', campo:'riferimento', vale:RIF_NUOVE, blocchi:[
-          {t:'testofisso', testo:s === 'S'
-            ? 'La progettazione fa riferimento alle competenze attese al termine della classe terza e agli obiettivi di apprendimento delle Nuove Indicazioni nazionali.'
-            : 'La progettazione fa riferimento ai traguardi per lo sviluppo delle competenze e agli obiettivi di apprendimento delle Nuove Indicazioni nazionali.'}]},
-        {t:'se', campo:'riferimento', vale:RIF_2012, blocchi:[
-          {t:'testofisso', testo:'La progettazione fa riferimento ai traguardi per lo sviluppo delle competenze e agli obiettivi di apprendimento delle Indicazioni nazionali 2012, integrati dai Nuovi scenari 2018 e dal curricolo d’istituto.'}]},
-        {t:'area', id:'traguardi', label:s === 'S' ? 'Competenze attese / traguardi di riferimento' : 'Traguardi per lo sviluppo delle competenze', righe:3,
-          ph:s === 'S' ? 'es. comprende i punti essenziali di testi in lingua standard su argomenti familiari' : 'es. si muove con sicurezza nel calcolo scritto e mentale con i numeri naturali',
-          frasi:s === 'S' ? [
-            'L’alunno comprende testi di vario tipo e ne ricava informazioni utili allo studio.',
-            'L’alunno espone oralmente argomenti di studio con ordine e lessico specifico, anche con l’ausilio di supporti.',
-            'L’alunno utilizza le conoscenze per affrontare problemi e situazioni reali, spiegando il procedimento seguito.',
-            'L’alunno collabora nel lavoro di gruppo, rispettando ruoli e tempi.',
-            'L’alunno utilizza in modo consapevole e responsabile le tecnologie digitali per lo studio.'] : [
-            'L’alunno ascolta e comprende testi orali e scritti, cogliendone il senso globale e le informazioni principali.',
-            'L’alunno si muove con sicurezza nel calcolo scritto e mentale con i numeri naturali.',
-            'L’alunno esplora la realtà formulando domande e ipotesi e verificandole con semplici esperimenti.',
-            'L’alunno partecipa a scambi comunicativi rispettando il turno e formulando messaggi chiari.',
-            'L’alunno riconosce e rispetta le regole della convivenza in classe e nella scuola.']},
-        {t:'area', id:'obiettivi', label:'Obiettivi di apprendimento dell’anno', righe:4,
-          ph:s === 'S' ? 'es. risolvere problemi con le frazioni e le proporzioni; leggere e costruire grafici' : 'es. leggere, scrivere e confrontare i numeri entro il 100; eseguire addizioni e sottrazioni',
-          frasi:[
-            'Consolidare le abilità di base necessarie alla prosecuzione del percorso.',
-            'Comprendere e utilizzare il lessico specifico della disciplina.',
-            'Applicare conoscenze e procedure in situazioni nuove e in compiti di realtà.',
-            'Organizzare le informazioni in schemi, tabelle e mappe.',
-            'Esporre in modo chiaro e ordinato quanto appreso.',
-            s === 'P'
-              ? 'Eseguire le consegne in modo autonomo, rispettando i tempi stabiliti.'
-              : 'Acquisire un metodo di studio autonomo ed efficace.']},
-
-        {t:'h', testo:'Contenuti per periodo'},
-        {t:'tabella', id:'contenuti', col:[{h:'Periodo', w:2},
-          {h:'Nuclei / contenuti', w:3.5, tipo:'area', ph:s === 'S' ? 'es. i numeri razionali; le frazioni' : 'es. i numeri fino a 20; prima e dopo'},
-          {h:'Obiettivi', w:3.25, tipo:'area', ph:'es. confrontare e ordinare numeri; eseguire semplici calcoli'},
-          {h:'Attività', w:3.25, tipo:'area', ph:'es. giochi con materiale strutturato, lavoro a coppie, schede operative'}],
-          fisse:['Settembre – ottobre', 'Novembre – dicembre', 'Gennaio – febbraio', 'Marzo – aprile', 'Maggio – giugno']},
-        {t:'area', id:'uda', label:'Unità di apprendimento interdisciplinari e compiti di realtà', righe:2,
-          ph:s === 'S' ? 'es. UdA «Il nostro territorio»: indagine sul fiume Oglio con scienze, geografia e tecnologia; prodotto finale: guida digitale' : 'es. UdA «Il mercato in classe»: uso del denaro, misure e testi regolativi',
-          frasi:[
-            'È prevista un’unità di apprendimento interdisciplinare per quadrimestre, con compito di realtà e rubrica di valutazione.',
-            'Il compito di realtà si conclude con un prodotto finale presentato alle famiglie o alle altre classi.',
-            'Le unità di apprendimento sono concordate nel ' + (s === 'S' ? 'consiglio di classe' : 'team docenti') + ' e riportate nella progettazione di classe.']},
-
-        {t:'h', testo:'Metodologie e strumenti'},
-        {t:'multi', id:'metodologie', label:'Metodologie', col:3, altro:true, opz:[
-          'Lezione frontale e dialogata', 'Apprendimento cooperativo', 'Didattica laboratoriale', 'Tutoraggio tra pari',
-          'Problem solving', 'Classe capovolta', 'Compiti di realtà', 'Uscite didattiche', 'Didattica digitale']},
-        {t:'multi', id:'strumenti', label:'Strumenti', col:3, altro:true, opz:[
-          'Libro di testo', 'Materiali digitali', 'LIM / monitor interattivo', 'Schede e dispense', 'Laboratori', 'Mappe e schemi']},
-
-        {t:'h', testo:'Verifiche e valutazione'},
-        {t:'multi', id:'verifiche', label:'Tipologie di verifica', col:3, altro:true, opz:[
-          'Prove scritte', 'Prove orali', 'Prove strutturate', 'Prove pratiche', 'Compiti autentici', 'Osservazioni sistematiche']},
-        {t:'riga', campi:[{t:'num', id:'n_verifiche', label:'Numero minimo di verifiche per quadrimestre', w:6}]},
-        {t:'testofisso', testo:s === 'P'
-          ? 'La valutazione periodica e finale è espressa con giudizi sintetici (Ottimo, Distinto, Buono, Discreto, Sufficiente, Non sufficiente) correlati ai livelli di apprendimento, secondo i criteri deliberati dal Collegio dei docenti.'
-          : 'La valutazione periodica e finale è espressa in decimi, secondo i criteri e le griglie deliberati dal Collegio dei docenti.'},
-        {t:'area', id:'criteri', label:'Criteri specifici della disciplina', righe:2,
-          ph:'es. nelle prove orali si valutano correttezza dei contenuti, uso del lessico specifico e capacità di collegamento',
-          frasi:[
-            'Nelle prove scritte si valutano la correttezza, la completezza e l’organizzazione del lavoro secondo le griglie comuni.',
-            'Nelle prove orali si valutano la conoscenza dei contenuti, l’uso del lessico specifico e la capacità di collegamento.',
-            'La valutazione finale tiene conto anche dei progressi, dell’impegno e della partecipazione.',
-            'Per gli alunni con PEI o PDP la valutazione è coerente con le misure previste dai rispettivi piani.']},
-
-        {t:'h', testo:'Educazione civica'},
-        {t:'riga', campi:[{t:'num', id:'civica_ore', label:'Ore previste per la disciplina (sul monte annuo di almeno 33 ore)', w:8}]},
-        {t:'multi', id:'civica_nuclei', label:'Nuclei concettuali delle Linee guida', col:1, opz:[
-          'Costituzione', 'Sviluppo economico e sostenibilità', 'Cittadinanza digitale'], nota:'Linee guida per l’educazione civica, D.M. 183/2024.'},
-        {t:'area', id:'civica_temi', label:'Tematiche e attività', righe:2,
-          ph:s === 'S' ? 'es. il lavoro nella Costituzione; uso responsabile dei social network' : 'es. le regole della classe; la raccolta differenziata a scuola',
-          frasi:[
-            'Riflessione sulle regole della convivenza e sui diritti e doveri a partire dall’esperienza della classe.',
-            'Attività sulla tutela dell’ambiente e sull’uso responsabile delle risorse.',
-            'Percorso sull’uso consapevole e sicuro della rete e dei dispositivi digitali.',
-            'Attività di educazione alla salute, al benessere e alla sicurezza.']},
-
-        {t:'h', testo:'Inclusione, recupero e potenziamento'},
-        {t:'area', id:'inclusione', label:'Adattamenti per alunni con PEI o PDP (rinvio ai documenti agli atti)', righe:2,
-          ph:'es. si applicano le misure previste dai PEI e dai PDP, a cui si rinvia',
-          frasi:[
-            'Per gli alunni con PEI o PDP si applicano le misure previste dai rispettivi piani, a cui si rinvia.',
-            'Le verifiche sono adattate nei tempi e nelle modalità secondo quanto previsto dai piani personalizzati.',
-            'Si predispongono mappe e materiali semplificati, utilizzabili anche dal resto della classe.']},
-        {t:'area', id:'recupero', label:'Recupero e consolidamento', righe:2,
-          ph:'es. recupero in itinere con lavori a piccoli gruppi e schede graduate',
-          frasi:[
-            'Il recupero si svolge in itinere, con attività differenziate e lavoro a piccoli gruppi.',
-            'Dopo ogni unità si prevedono attività di ripasso e verifiche di recupero.',
-            'Si utilizza il tutoraggio tra pari per il consolidamento delle abilità di base.']},
-        {t:'area', id:'potenziamento', label:'Potenziamento e valorizzazione', righe:2,
-          ph:'es. approfondimenti individuali, partecipazione a concorsi e gare disciplinari',
-          frasi:[
-            'Gli alunni con buoni risultati svolgono attività di approfondimento e ricerca.',
-            'È prevista la partecipazione a concorsi e gare disciplinari.',
-            'Si propongono compiti di realtà a complessità crescente.']},
-        H.privacy(),
-        {t:'riga', campi:[{t:'testo', id:'luogo', label:'Luogo', w:6, def:'Orzinuovi', ph:'es. Orzinuovi'}]},
-        {t:'firme', ruoli:['Il/La docente']},
-      ], {data:{obbl:true, rif:'Data del documento'}, as:PH_AS});
-    },
-  });
-})();
+  })();
 
 </script>
 <script data-schemi="infanzia">
@@ -8489,6 +8387,183 @@ function salvaModulo(man, nome){
       {t:'riga', campi:[{t:'data', id:'data', label:'Data', w:4, oggi:true, obbl:true, rif:'Data del documento'}]},
       {t:'nota', testo:'Il profilo contiene dati personali di un minore: consegnarlo alla famiglia in modo riservato e conservarne copia nel fascicolo. Nessuna diagnosi o informazione sanitaria.'},
     ],
+  });
+})();
+
+</script>
+<script data-schemi="programmazione_annuale">
+(() => {
+  /* ---------------------------------------------------------------
+     Programmazione Annuale Classica (ottobre 2026).
+     Struttura in 10 sezioni + cronoprogramma, ispirata all'impianto del
+     "Modello di Programmazione Didattica Annuale" (kit RegisPro 2026), con
+     testi, esempi e frasi originali e normativa aggiornata (il kit cita le
+     Indicazioni 2012: per le classi prime dal 2026/27 valgono le Nuove
+     Indicazioni del 2025; ed. civica: Linee guida 2024).
+     --------------------------------------------------------------- */
+  const COMP_UE = ['Competenza alfabetica funzionale', 'Competenza multilinguistica',
+    'Competenza matematica e competenza in scienze, tecnologie e ingegneria', 'Competenza digitale',
+    'Competenza personale, sociale e capacità di imparare a imparare', 'Competenza in materia di cittadinanza',
+    'Competenza imprenditoriale', 'Competenza in materia di consapevolezza ed espressione culturali'];
+  const MESI = ['Settembre', 'Ottobre', 'Novembre', 'Dicembre', 'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno'];
+
+  registra({
+    id:'programmazione-annuale-classica', argomento:'programmazione', scuole:['P', 'S'], file:'Programmazione-annuale',
+    inserito:'2026-10-10',
+    titolo:'Programmazione Annuale Classica',
+    occhiello:'Programmazione didattica annuale del docente per la propria disciplina e classe',
+    sottotitolo:'10 sezioni + cronoprogramma – Nuove Indicazioni 2025 (classi prime), Linee guida ed. civica 2024',
+    descrizione:'Programmazione didattica annuale per disciplina: obiettivi, contenuti, metodologie, verifiche, inclusione, cronoprogramma',
+    legenda:() => 'Documento del singolo docente, non deliberativo: gli elementi segnati con * sono il minimo che rende la programmazione identificabile e verificabile (chi, che cosa, per quale classe, con quante ore). Se mancano è un’irregolarità documentale, non un’invalidità.',
+    norme:(s) => [
+      'D.P.R. 275/1999 (Regolamento dell’autonomia), artt. 4 e 8 – la programmazione del docente attua il curricolo d’istituto e il PTOF nella propria classe.',
+      'L. 62/2000, art. 1 c. 4 – nella scuola paritaria il progetto educativo e il PTOF sono coerenti con gli ordinamenti; L. 107/2015, art. 1 c. 14 – PTOF triennale.',
+      'D.M. 221/2025 – Nuove Indicazioni nazionali per la scuola dell’infanzia e il primo ciclo: dal 2026/27 per le classi prime; per le altre classi restano le Indicazioni 2012 (D.M. 254/2012) e i Nuovi scenari 2018 fino al completamento della transizione (Nota MIM 1312/2026).',
+      'Raccomandazione del Consiglio dell’Unione europea del 22 maggio 2018 (2018/C 189/01) – otto competenze chiave per l’apprendimento permanente; D.M. 14/2024 – modelli di certificazione delle competenze.',
+      'L. 92/2019 e Linee guida per l’educazione civica (D.M. 183/2024) – almeno 33 ore annue, nuclei: Costituzione; sviluppo economico e sostenibilità; cittadinanza digitale.',
+      s === 'P'
+        ? 'D.Lgs. 62/2017 e L. 150/2024; O.M. 3/2025 – nella primaria valutazione con giudizi sintetici correlati ai descrittori.'
+        : 'D.Lgs. 62/2017 come modificato dalla L. 150/2024 – valutazione in decimi; voto di comportamento in decimi.',
+      'L. 170/2010 e D.M. 5669/2011 (DSA); Dir. 27/12/2012 e C.M. 8/2013 (BES); D.Lgs. 66/2017 e D.I. 182/2020 mod. D.I. 153/2023 (PEI): misure previste nei piani individuali.',
+      'Reg. UE 2016/679 – nella programmazione i casi individuali si indicano in forma anonima (numeri, non nomi).',
+    ],
+    blocchi:(s) => {
+      const voto = s === 'P' ? 'giudizi sintetici (da Ottimo a Non sufficiente) correlati ai descrittori' : 'voti in decimi';
+      return [
+
+        {t:'h', testo:'1. Dati identificativi', sugg:'Le ore settimanali sono indispensabili: servono a verificare che contenuti e cronoprogramma stiano nel tempo disponibile. Ore annue ≈ 33 settimane × ore settimanali.'},
+        {t:'riga', campi:[
+          {t:'testo', id:'docente', label:'Docente', w:6, ph:'Cognome e nome del docente', obbl:true, rif:'Identificazione dell’autore della programmazione'},
+          {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico(), ph:'es. 2026/2027', obbl:true, rif:'Anno di riferimento'},
+          {t:'testo', id:'classe', label:'Classe e sezione', w:3, ph:s === 'P' ? 'es. 3ª A' : 'es. 2ª B', obbl:true, rif:'Classe a cui si riferisce la programmazione'}]},
+        {t:'riga', campi:[
+          {t:'testo', id:'disciplina', label:'Disciplina', w:6, ph:s === 'P' ? 'es. Italiano' : 'es. Matematica e scienze', obbl:true, rif:'Disciplina programmata'},
+          {t:'num', id:'ore_sett', label:'Ore settimanali', w:3, obbl:true, rif:'Necessarie per calibrare contenuti e cronoprogramma'},
+          {t:'num', id:'ore_annue', label:'Ore annue stimate', w:3, sugg:'Circa 33 settimane di lezione moltiplicate per le ore settimanali.'}]},
+        {t:'testo', id:'codocenza', label:'Eventuale compresenza / codocenza', ph:'es. compresenza con il docente di sostegno per 6 ore settimanali'},
+
+        {t:'h', testo:'2. Analisi della situazione di partenza', sugg:'Usa dati concreti (numeri, livelli emersi dalle prove d’ingresso, dinamiche osservate) invece di formule generiche come «classe eterogenea». Mai nomi né diagnosi: le misure individuali stanno nei PEI e PDP.'},
+        {t:'riga', campi:[
+          {t:'num', id:'n_alunni', label:'Numero alunni', w:3},
+          {t:'num', id:'n_m', label:'Maschi', w:3},
+          {t:'num', id:'n_f', label:'Femmine', w:3},
+          {t:'num', id:'n_bes', label:'Alunni con PEI / PDP / altri BES', w:3}]},
+        {t:'area', id:'livelli', label:'Livelli emersi dalle prove d’ingresso e dalle prime osservazioni', righe:4,
+          ph:'es. Su 22 alunni: 6 di livello avanzato, 9 intermedio, 5 base, 2 in fase iniziale nella comprensione del testo; più disomogenea la produzione scritta.',
+          frasi:[
+            'Le prove d’ingresso evidenziano un gruppo di livello avanzato, una fascia intermedia ampia e alcuni alunni in fase iniziale.',
+            'Nella comprensione del testo la classe raggiunge risultati mediamente adeguati; più fragile la produzione scritta autonoma.',
+            'Nel calcolo la maggior parte degli alunni è sicura; emergono difficoltà nella risoluzione di problemi con più passaggi.',
+            'Alcuni alunni necessitano di consolidare le abilità di base prima di affrontare i nuovi contenuti.',
+            'Il metodo di studio è ancora poco autonomo per una parte della classe: si prevede di lavorarci nel primo periodo.',
+            'Le prime osservazioni confermano quanto emerso dalle prove, con una buona disponibilità all’impegno.']},
+        {t:'area', id:'dinamiche', label:'Dinamiche relazionali e clima di classe', righe:3,
+          ph:'es. Classe collaborativa e vivace; alcuni gruppi tendono a chiudersi, si favoriscono lavori a coppie variabili.',
+          frasi:[
+            'Il clima di classe è sereno e collaborativo; gli alunni lavorano volentieri in gruppo.',
+            'La classe è vivace e partecipe, ma fatica a rispettare i tempi di intervento: si lavora sulle regole della discussione.',
+            'Si osservano alcuni sottogruppi chiusi: si propongono attività a coppie e gruppi variabili.',
+            'Alcuni alunni intervengono raramente: si prevedono momenti strutturati per dare voce a tutti.',
+            'Il rapporto con il docente è positivo e basato sulla fiducia.']},
+
+        {t:'h', testo:'3. Obiettivi di apprendimento', sugg:'Da 3 a 5 obiettivi per periodo. Ogni obiettivo dice che cosa l’alunno sa (conoscenze) e sa fare (abilità), in modo osservabile e misurabile, adattato alla classe e collegato a una competenza chiave europea.'},
+        {t:'scelta', id:'quadro', sugg:'Classi prime dal 2026/27: Nuove Indicazioni 2025. Classi successive: Indicazioni 2012 fino al completamento della transizione.', label:'Quadro di riferimento per i traguardi', col:1, obbl:true, rif:'Le classi prime dal 2026/27 seguono le Nuove Indicazioni (D.M. 221/2025); le altre classi le Indicazioni 2012 fino al termine della transizione',
+          opz:['Nuove Indicazioni nazionali 2025 (classi prime dal 2026/27)', 'Indicazioni nazionali 2012 e Nuovi scenari (classi successive, fino alla transizione)']},
+        {t:'multi', id:'competenze', label:'Competenze chiave europee a cui concorre la disciplina', opz:COMP_UE, col:2},
+        {t:'tabella', id:'obiettivi', sugg:'Esempio di abilità misurabile: «individua in un testo letto le informazioni principali e le riordina in sequenza». Evita obiettivi copiati dai documenti nazionali senza adattarli.', label:'Obiettivi per periodo (3-5 per periodo)',
+          col:[{h:'Periodo', w:1.6, ph:'es. I quadr.'}, {h:'Competenza chiave', w:2.4, ph:'es. Alfabetica funzionale'},
+            {h:'Conoscenze (sa)', w:4, tipo:'area', ph:'es. Le caratteristiche del testo narrativo: personaggi, luoghi, tempi, sequenze'},
+            {h:'Abilità (sa fare)', w:4, tipo:'area', ph:'es. Individua in un testo letto le informazioni principali e le riordina in sequenza'}],
+          righe:4, aggiungi:true, obbl:true, rif:'Almeno un obiettivo misurabile per periodo'},
+
+        {t:'h', testo:'4. Contenuti e nuclei tematici', sugg:'Organizza i contenuti in moduli o UdA con ore e periodo. Il totale delle ore deve stare nelle ore annue al netto di festività, uscite e verifiche: se supera, taglia ora e non a marzo.'},
+        {t:'tabella', id:'moduli', label:'Moduli / unità di apprendimento',
+          col:[{h:'Modulo / UdA', w:3, ph:'es. 1. Il testo narrativo'}, {h:'Contenuti principali', w:4.5, tipo:'area', ph:'es. struttura del racconto, sequenze, tempo della storia, discorso diretto'},
+            {h:'Ore', w:1, ph:'es. 20'}, {h:'Periodo', w:1.7, ph:'es. ott.–nov.'}, {h:'Raccordi', w:1.8, ph:'es. storia, arte'}],
+          righe:4, aggiungi:true, obbl:true, rif:'Contenuti organizzati con tempi associati'},
+        {t:'riga', campi:[{t:'num', id:'ore_moduli', label:'Totale ore dei moduli', w:4, sugg:'Deve stare entro le ore annue al netto di festività, uscite e verifiche.'}]},
+
+        {t:'h', testo:'5. Metodologie didattiche', sugg:'Dichiara solo le metodologie che userai davvero, spiegando in quali momenti e perché.'},
+        {t:'multi', id:'metodologie', label:'Metodologie previste', col:2, altro:true, opz:[
+          'Lezione frontale breve e dialogata', 'Apprendimento cooperativo', 'Classe capovolta', 'Didattica laboratoriale',
+          'Problem solving', 'Tutoraggio tra pari', 'Discussione guidata e dibattito', 'Compito di realtà',
+          'Uscite e apprendimento esperienziale', 'Uso didattico di strumenti digitali']},
+        {t:'area', id:'metodologie_uso', label:'Quando e perché si useranno le metodologie scelte', righe:3,
+          ph:'es. La lezione frontale breve introduce ogni nuovo nucleo; l’apprendimento cooperativo si usa nelle attività di ricerca a gruppi di quattro con ruoli assegnati.',
+          frasi:[
+            'Ogni nuovo argomento è introdotto con una breve spiegazione dialogata, seguita da esercitazione guidata.',
+            'Le attività di ricerca e di produzione si svolgono in gruppi cooperativi con ruoli assegnati.',
+            'Per alcuni moduli si propone la classe capovolta: materiali a casa e lezione dedicata all’applicazione.',
+            'Il laboratorio permette di costruire le conoscenze attraverso l’esperienza diretta.',
+            'Il tutoraggio tra pari sostiene gli alunni in difficoltà e valorizza chi ha raggiunto livelli avanzati.',
+            'Un compito di realtà per periodo consente di verificare le competenze in una situazione concreta.']},
+
+        {t:'h', testo:'6. Verifica e valutazione', sugg:'Indica numero e tipo di prove per periodo e il peso tra valutazioni formative e sommative. Almeno una verifica sommativa per modulo, distribuite nel tempo.'},
+        {t:'riga', campi:[
+          {t:'num', id:'n_scritte', label:'Verifiche scritte per periodo', w:3, obbl:true, rif:'Numero minimo di prove per periodo'},
+          {t:'num', id:'n_orali', label:'Verifiche orali per periodo', w:3},
+          {t:'testo', id:'peso', label:'Peso valutazioni formative / sommative', w:6, ph:'es. formative 30%, sommative 70%'}]},
+        {t:'multi', id:'tipologie', label:'Tipologie di prove', col:3, altro:true, opz:['Prove scritte strutturate', 'Prove scritte aperte', 'Interrogazioni orali', 'Prove pratiche', 'Compiti di realtà', 'Osservazioni sistematiche', 'Autovalutazione']},
+        {t:'testofisso', testo:`La valutazione si esprime con ${voto}, secondo i criteri e le griglie approvati dal Collegio dei docenti e allegati.`},
+        {t:'testo', id:'griglie', label:'Griglie di valutazione di riferimento', ph:'es. griglia d’istituto per la produzione scritta (allegato A)'},
+        {t:'area', id:'recupero', sugg:'Prevedi come recuperare gli obiettivi non raggiunti (pause didattiche, esercizi graduati, tutoraggio) e come valorizzare chi è più avanti.', label:'Recupero e potenziamento in itinere', righe:3,
+          ph:'es. Pausa didattica dopo ogni verifica sommativa; esercizi graduati e tutoraggio tra pari per chi non ha raggiunto gli obiettivi.',
+          frasi:[
+            'Dopo ogni verifica sommativa si prevede una pausa didattica per il recupero degli obiettivi non raggiunti.',
+            'Il recupero si svolge in itinere con esercizi graduati e lavoro a piccoli gruppi.',
+            'Per gli alunni che hanno raggiunto livelli avanzati si propongono attività di approfondimento e ruoli di tutor.',
+            'Le verifiche sono restituite e corrette insieme in classe, per trasformare l’errore in occasione di apprendimento.']},
+
+        {t:'h', testo:'7. Inclusione', sugg:'Le strategie inclusive si prevedono anche se in classe non ci sono alunni con PEI o PDP. Qui si richiamano le misure dei piani individuali, senza dati personali.'},
+        {t:'area', id:'dispensative', label:'Misure dispensative previste', righe:3,
+          ph:'es. Come da PDP: dispensa dalla lettura ad alta voce e dalla scrittura sotto dettatura; tempi aggiuntivi nelle verifiche.',
+          frasi:['Si applicano le misure dispensative indicate nei PDP degli alunni con DSA.', 'Dispensa dalla lettura ad alta voce e dalla copiatura dalla lavagna, quando previsto dai piani.', 'Tempi aggiuntivi o riduzione del numero di esercizi nelle verifiche, senza modificare gli obiettivi.', 'Programmazione delle verifiche per evitare sovrapposizioni nella stessa giornata.']},
+        {t:'area', id:'compensativi', label:'Strumenti compensativi disponibili', righe:3,
+          ph:'es. Mappe e schemi durante le verifiche, sintesi vocale, tavola pitagorica, calcolatrice.',
+          frasi:['Mappe concettuali e schemi utilizzabili anche durante le verifiche.', 'Sintesi vocale e libri in formato digitale.', 'Tabelle, formulari e tavola pitagorica.', 'Calcolatrice e videoscrittura con correttore ortografico.']},
+        {t:'area', id:'adattamenti', label:'Adattamenti per alunni con PEI e valorizzazione delle eccellenze', righe:3,
+          ph:'es. Obiettivi e prove personalizzati secondo il PEI, concordati con il docente di sostegno; attività di approfondimento per gli alunni più avanzati.',
+          frasi:['Gli obiettivi e le prove per gli alunni con PEI sono personalizzati secondo quanto previsto nel PEI.', 'Le attività sono concordate con il docente di sostegno per favorire la partecipazione al lavoro della classe.', 'Si prevedono materiali semplificati e consegne frazionate.', 'Per gli alunni con livelli avanzati si propongono compiti di approfondimento e ruoli di tutor.']},
+
+        {t:'h', testo:'8. Educazione civica', sugg:'Almeno 33 ore annue per la classe, distribuite tra le discipline come deciso dal Consiglio di classe o dal team. Indica solo il contributo della tua disciplina, collegato ai contenuti che già svolgi.'},
+        {t:'tabella', id:'civica', label:'Contributo della disciplina all’educazione civica',
+          col:[{h:'Nucleo', w:3.5}, {h:'Tematica / attività', w:5, tipo:'area', ph:'es. le regole della convivenza in classe e il Regolamento d’istituto'}, {h:'Ore', w:1.3, ph:'es. 4'}, {h:'Periodo', w:2.2, ph:'es. ottobre'}],
+          fisse:['Costituzione', 'Sviluppo economico e sostenibilità', 'Cittadinanza digitale']},
+
+        {t:'h', testo:'9. Raccordi interdisciplinari', sugg:'Inserisci solo raccordi già concordati con i colleghi in Consiglio di classe o nel team.'},
+        {t:'tabella', id:'raccordi', col:[{h:'Disciplina', w:3, ph:'es. storia'}, {h:'Contenuto o attività condivisa', w:6, tipo:'area', ph:'es. lettura di fonti sulla vita quotidiana nell’antica Roma'}, {h:'Periodo', w:3, ph:'es. febbraio'}],
+          righe:2, aggiungi:true},
+
+        {t:'h', testo:'10. Rapporti con le famiglie', sugg:'Specifica strumenti e frequenza della comunicazione e come rendi trasparenti le valutazioni.'},
+        {t:'multi', id:'famiglie', label:'Strumenti di comunicazione', col:2, altro:true, opz:['Registro elettronico', 'Colloqui individuali settimanali', 'Colloqui generali', 'Assemblee di classe', 'Comunicazioni scritte sul diario']},
+        {t:'area', id:'famiglie_note', label:'Frequenza e trasparenza delle valutazioni', righe:2,
+          ph:'es. Voti e giudizi registrati entro 7 giorni dalla prova; colloqui individuali su prenotazione ogni settimana.',
+          frasi:['Gli esiti delle verifiche sono registrati sul registro elettronico entro una settimana dalla prova.', 'I colloqui individuali si svolgono settimanalmente su prenotazione.', 'Le famiglie sono informate tempestivamente in caso di difficoltà persistenti.', 'Le griglie di valutazione sono condivise con alunni e famiglie.']},
+
+        {t:'h', testo:'Cronoprogramma annuale', sugg:'Tre controlli: le ore dei moduli rientrano nelle ore disponibili? Le verifiche sono distribuite (non più prove nella stessa settimana)? Colloqui, consigli e scrutini sono previsti?'},
+        {t:'tabella', id:'crono', col:[{h:'Mese', w:1.8}, {h:'Attività didattiche', w:4, tipo:'area', ph:'es. accoglienza, prove d’ingresso, avvio del primo modulo'},
+            {h:'Appuntamenti della scuola', w:3, tipo:'area', ph:'es. consiglio di classe, colloqui generali'}, {h:'Verifiche previste', w:3.2, tipo:'area', ph:'es. prova d’ingresso non valutativa'}],
+          fisse:MESI},
+
+        {t:'h', testo:'Controllo finale prima della consegna', sugg:'Spunta le voci per controllare la completezza: questa lista serve solo a te e non viene stampata.'},
+        {t:'multi', id:'checklist', label:'Verifica di completezza', col:1, nopdf:true, opz:[
+          'Dati identificativi completi, comprese le ore settimanali',
+          'Situazione di partenza descritta con dati concreti e in forma anonima',
+          'Obiettivi misurabili, collegati alle competenze chiave e al quadro di riferimento corretto',
+          'Ogni modulo ha ore e periodo; il totale rientra nelle ore disponibili',
+          'Metodologie dichiarate davvero praticabili nella classe',
+          'Numero e tipologia delle verifiche indicati per periodo',
+          'Strategie di inclusione previste anche senza alunni con PEI o PDP',
+          'Contributo all’educazione civica indicato',
+          'Raccordi interdisciplinari concordati con i colleghi',
+          'Cronoprogramma compilato e coerente con i moduli']},
+
+        {t:'h', testo:'Firme'},
+        {t:'riga', campi:[{t:'data', id:'data', label:'Data', w:4, oggi:true, nopdf:true, obbl:true, rif:'Data di consegna della programmazione'}]},
+        {t:'testofisso', testo:'Orzinuovi, {data}'},
+        {t:'firme', ruoli:['Il docente', 'Visto: il Coordinatore didattico']},
+      ];
+    },
   });
 })();
 
