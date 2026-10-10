@@ -286,7 +286,7 @@ const LOGO = document.querySelector('.top img').src;
    Compare nell'intestazione del portale e nel piè di pagina della home. */
 const AGGIORNAMENTO = '2026-10-10';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'nuova Programmazione Annuale Classica (sostituisce il Piano di lavoro annuale) e suggerimenti a comparsa «?» nei moduli';
+const AGGIORNAMENTO_NOTE = 'nuova Programmazione Didattica Annuale Classica (sostituisce il Piano di lavoro annuale) e suggerimenti a comparsa «?» nei moduli';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -888,6 +888,8 @@ function pulisci(s){
 }
 function vuoto(v){ return v == null || v === '' || v === false || (Array.isArray(v) && (!v.length || v.every(vuoto))) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length); }
 
+/* Titolo stampato nel PDF: puo' differire da quello mostrato nella web app (es. senza "Classica") */
+function titoloStampa(){ return MOD.titoloStampa || MOD.titolo; }
 function creaPDF(man = []){
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
@@ -926,7 +928,7 @@ function creaPDF(man = []){
       }
       doc.setDrawColor(...acc); doc.setLineWidth(0.6); doc.line(PDF.M, 28.5, PDF.M + PDF.W, 28.5);
       y = 34;
-      const tl = split(MOD.titolo.toUpperCase(), PDF.W, 12.5, 'bold');
+      const tl = split(titoloStampa().toUpperCase(), PDF.W, 12.5, 'bold');
       font('bold', 12.5, BLU); doc.text(tl, PDF.M + PDF.W / 2, y + 1, {align:'center'}); y += tl.length * lh(12.5) + 0.5;
       if (MOD.occhiello){ // sottotitolo descrittivo stampabile (i riferimenti normativi restano solo a schermo)
         const sl = split(MOD.occhiello, PDF.W - 20, 8, 'italic');
@@ -936,7 +938,7 @@ function creaPDF(man = []){
     } else {
       doc.addImage(LOGO, 'JPEG', PDF.M, 6, 9, 9.2);
       font('bold', 8.5, BLU); doc.text(SCUOLA_NOME + ' – ' + pulisci(SCUOLE[SCU].breve), PDF.M + 11, 10.5);
-      font('normal', 8, GRIGIO); doc.text(pulisci(MOD.titolo), PDF.M + PDF.W, 10.5, {align:'right'});
+      font('normal', 8, GRIGIO); doc.text(pulisci(titoloStampa()), PDF.M + PDF.W, 10.5, {align:'right'});
       doc.setDrawColor(...acc); doc.setLineWidth(0.4); doc.line(PDF.M, 16.5, PDF.M + PDF.W, 16.5);
       y = PDF.TOPn;
     }
@@ -1208,7 +1210,7 @@ function creaPDF(man = []){
     doc.text(`Pagina ${i} di ${n}`, PDF.M + PDF.W, 291, {align:'right'});
     if (man.length){ font('bold', 7, [140, 90, 20]); doc.text('BOZZA INCOMPLETA', PDF.M + PDF.W / 2, 291, {align:'center'}); }
   }
-  doc.setProperties({title:pulisci(MOD.titolo), subject:pulisci(SCUOLE[SCU].nome), creator:'Modulistica docenti – Scuola Sacra Famiglia'});
+  doc.setProperties({title:pulisci(titoloStampa()), subject:pulisci(SCUOLE[SCU].nome), creator:'Modulistica docenti – Scuola Sacra Famiglia'});
   return doc;
 }
 
@@ -8408,9 +8410,10 @@ function salvaModulo(man, nome){
   const MESI = ['Settembre', 'Ottobre', 'Novembre', 'Dicembre', 'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno'];
 
   registra({
-    id:'programmazione-annuale-classica', argomento:'programmazione', scuole:['P', 'S'], file:'Programmazione-annuale',
+    id:'programmazione-annuale-classica', argomento:'programmazione', scuole:['P', 'S'], file:'Programmazione-didattica-annuale',
     inserito:'2026-10-10',
-    titolo:'Programmazione Annuale Classica',
+    titolo:'Programmazione Didattica Annuale Classica',
+    titoloStampa:'Programmazione Didattica Annuale', // «Classica» compare solo nella web app, mai nel PDF
     occhiello:'Programmazione didattica annuale del docente per la propria disciplina e classe',
     sottotitolo:'10 sezioni + cronoprogramma – Nuove Indicazioni 2025 (classi prime), Linee guida ed. civica 2024',
     descrizione:'Programmazione didattica annuale per disciplina: obiettivi, contenuti, metodologie, verifiche, inclusione, cronoprogramma',
