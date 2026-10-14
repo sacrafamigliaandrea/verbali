@@ -284,9 +284,9 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-10';
+const AGGIORNAMENTO = '2026-10-14';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'nuova Programmazione Didattica Annuale Classica (sostituisce il Piano di lavoro annuale) e suggerimenti a comparsa «?» nei moduli';
+const AGGIORNAMENTO_NOTE = 'nuova Progettazione didattica della Scuola dell’Infanzia, con griglia di osservazione per livelli';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -806,7 +806,7 @@ function tabella(b){
     if (b.label) wrap.append(el('span', {class:'lbl'}, b.label));
     const t = el('table');
     const hr = el('tr');
-    b.col.forEach(c => hr.append(el('th', {style:`width:${(c.w || 1) / tot * 100}%;${c.tipo === 'x' || c.tipo === 'pres' || c.tipo === 'sn' ? 'text-align:center' : ''}`}, c.h)));
+    b.col.forEach(c => hr.append(el('th', {style:`width:${(c.w || 1) / tot * 100}%;${['x', 'pres', 'sn', 'liv'].includes(c.tipo) ? 'text-align:center' : ''}`}, c.h)));
     if (b.aggiungi) hr.append(el('th', {style:'width:34px;border-color:transparent;background:transparent'}));
     t.append(el('thead', {}, hr));
     const tb = el('tbody');
@@ -819,8 +819,9 @@ function tabella(b){
           i.addEventListener('change', () => { riga[j] = i.checked; segna(); });
           tr.append(el('td', {class:'c'}, i)); return;
         }
-        if (c.tipo === 'pres' || c.tipo === 'sn'){
-          const opz = c.tipo === 'pres' ? ['P', 'A', 'AG'] : ['', 'Sì', 'No'];
+        if (c.tipo === 'pres' || c.tipo === 'sn' || c.tipo === 'liv'){
+          // liv = livello di osservazione: I iniziale, M intermedio, A avanzato
+          const opz = c.tipo === 'pres' ? ['P', 'A', 'AG'] : c.tipo === 'liv' ? ['', 'I', 'M', 'A'] : ['', 'Sì', 'No'];
           const s = el('select', {'aria-label':c.h, style:'border:0;background:transparent;width:100%;padding:7px 4px;text-align:center'},
             opz.map(o => el('option', {value:o, selected:riga[j] === o}, o || '–')));
           s.addEventListener('change', () => { riga[j] = s.value; segna(); });
@@ -1148,7 +1149,7 @@ function creaPDF(man = []){
         }
         case 'tabella': {
           const dati = STATO[b.id] || [];
-          const cols = b.col.map(c => ({h:c.h, w:c.w || 1, centro:['x', 'pres', 'sn'].includes(c.tipo)}));
+          const cols = b.col.map(c => ({h:c.h, w:c.w || 1, centro:['x', 'pres', 'sn', 'liv'].includes(c.tipo)}));
           let righe = dati.map((r, i) => r.map((v, j) => {
             if (b.fisse && j === 0) return b.fisse[i];
             if (b.col[j].tipo === 'x') return v ? 'X' : '';
@@ -8567,6 +8568,106 @@ function salvaModulo(man, nome){
         {t:'firme', ruoli:['Il docente', 'Visto: il Coordinatore didattico']},
       ];
     },
+  });
+})();
+
+</script>
+<script data-schemi="progettazione_infanzia">
+(() => {
+  /* ---------------------------------------------------------------
+     Progettazione didattica – Scuola dell'Infanzia (modello della scuola, ottobre 2026):
+     campi d'esperienza, competenze europee, competenza specifica, compito-sintesi,
+     indicatori; tre fasi (ambientamento, sviluppo/applicazione, ricostruzione) con
+     "cosa fanno le insegnanti" / "cosa fanno i bambini"; griglia di osservazione
+     per indicatore con livelli I (iniziale), M (intermedio), A (avanzato).
+     --------------------------------------------------------------- */
+  const CAMPI = ['Il sé e l’altro', 'Il corpo e il movimento', 'Immagini, suoni, colori', 'I discorsi e le parole', 'La conoscenza del mondo'];
+  const COMP_UE = ['Competenza alfabetica funzionale', 'Competenza multilinguistica',
+    'Competenza matematica e competenza in scienze, tecnologie e ingegneria', 'Competenza digitale',
+    'Competenza personale, sociale e capacità di imparare a imparare', 'Competenza in materia di cittadinanza',
+    'Competenza imprenditoriale', 'Competenza in materia di consapevolezza ed espressione culturali'];
+  const fase = (n, titolo, sugg, insegnanti, bambini) => [
+    {t:'h', testo:`Fase ${n} – ${titolo}`, sugg},
+    {t:'riga', campi:[
+      {t:'area', id:`f${n}_ins`, label:'Cosa fanno le insegnanti', w:6, righe:6, ph:insegnanti.ph, frasi:insegnanti.frasi},
+      {t:'area', id:`f${n}_bam`, label:'Cosa fanno i bambini e le bambine', w:6, righe:6, ph:bambini.ph, frasi:bambini.frasi}]},
+  ];
+  registra({
+    id:'progettazione-didattica-infanzia', argomento:'programmazione', scuole:['I'], file:'Progettazione-didattica',
+    inserito:'2026-10-14',
+    titolo:'Progettazione didattica',
+    occhiello:'Scuola dell’Infanzia – progettazione per competenze e osservazione',
+    sottotitolo:'Modello della scuola: campi d’esperienza, competenze, fasi del processo e griglia di osservazione',
+    descrizione:'Modello della scuola: competenze, compito-sintesi, tre fasi del percorso e griglia di osservazione per livelli',
+    legenda:() => 'Documento di progettazione del team, non deliberativo: gli elementi segnati con * sono il minimo che rende la progettazione identificabile (titolo, periodo, sezione o gruppo, campi d’esperienza). Se mancano è un’irregolarità documentale, non un’invalidità.',
+    norme:[
+      'D.M. 221/2025 – Nuove Indicazioni nazionali per la scuola dell’infanzia e il primo ciclo (in vigore dal 2026/27 per tutte le sezioni dell’infanzia): campi d’esperienza, traguardi per lo sviluppo della competenza, osservazione e valutazione formativa.',
+      'D.Lgs. 65/2017 – Sistema integrato 0-6; Linee pedagogiche per il sistema integrato 0-6 (D.M. 334/2021): progettazione, osservazione, documentazione.',
+      'Raccomandazione del Consiglio dell’Unione europea del 22 maggio 2018 – competenze chiave per l’apprendimento permanente.',
+      'D.P.R. 275/1999 – autonomia didattica; la progettazione attua il curricolo e il PTOF della scuola.',
+      'Reg. UE 2016/679 (GDPR) – dati personali dei bambini nella griglia di osservazione: uso interno, conservazione riservata.',
+    ],
+    blocchi:(s) => [
+      {t:'h', testo:'Progettazione didattica'},
+      {t:'testo', id:'titolo_prog', label:'Titolo della progettazione', ph:'es. Dal seme al frutto: osserviamo il nostro orto', obbl:true, rif:'Identificazione della progettazione'},
+      {t:'riga', campi:[
+        {t:'testo', id:'periodo', label:'Periodo', w:4, ph:'es. ottobre – dicembre', obbl:true, rif:'Collocazione temporale'},
+        {t:'testo', id:'gruppo', label:'Sezione / gruppo eterogeneo o omogeneo', w:5, ph:'es. sezione Gialla – oppure gruppo dei 4 anni', obbl:true, rif:'Destinatari della progettazione'},
+        {t:'testo', id:'as', label:'Anno scolastico', w:3, def:annoScolastico(), ph:'es. 2026/2027'}]},
+
+      {t:'h', testo:'Competenze e traguardi', sugg:'Scegli i campi d’esperienza coinvolti e le competenze europee a cui la progettazione concorre. La competenza specifica descrive che cosa il bambino sa fare alla fine del percorso; il compito-sintesi è il prodotto o la situazione finale in cui la mostra.'},
+      {t:'multi', id:'campi', label:'Campi d’esperienza', opz:CAMPI, col:2, obbl:true, rif:'Riferimento al curricolo per campi d’esperienza'},
+      {t:'multi', id:'comp_ue', label:'Competenze europee', opz:COMP_UE, col:2},
+      {t:'area', id:'comp_specifica', label:'Competenza specifica', righe:3,
+        ph:'es. Osserva con curiosità i fenomeni naturali, formula semplici ipotesi e racconta ciò che ha scoperto.',
+        frasi:[
+          'Osserva con curiosità i fenomeni naturali e ne descrive i cambiamenti.',
+          'Esprime emozioni ed esperienze attraverso il disegno, la pittura e la manipolazione.',
+          'Ascolta e comprende narrazioni, racconta e inventa storie.',
+          'Collabora con i compagni nel gioco e nelle attività, rispettando regole condivise.',
+          'Raggruppa, ordina e confronta oggetti secondo criteri diversi.',
+          'Controlla gli schemi motori di base e si muove con sicurezza nello spazio.']},
+      {t:'area', id:'compito', label:'Compito-sintesi', righe:3,
+        ph:'es. Realizzare insieme un cartellone che racconta le fasi di crescita della piantina, da presentare alle famiglie.',
+        frasi:[
+          'Realizzare un cartellone di gruppo che documenti il percorso svolto.',
+          'Allestire una piccola mostra degli elaborati per le famiglie.',
+          'Drammatizzare la storia ascoltata, assegnando ruoli e costumi.',
+          'Costruire con materiali di recupero un oggetto legato al tema del percorso.',
+          'Raccontare al gruppo, con l’aiuto delle immagini, le fasi dell’esperienza vissuta.']},
+      {t:'elenco', id:'indicatori', label:'Indicatori di competenza (evidenze) – numerati come nella griglia di osservazione', min:4, ph:'es. Descrive con parole proprie un cambiamento osservato',
+        sugg:'Gli indicatori sono comportamenti osservabili. Il numero di ciascun indicatore corrisponde alla colonna della griglia di osservazione (fino a 6).'},
+
+      ...fase(1, 'Ambientamento', 'Momento di avvio: si suscita curiosità, si raccolgono le conoscenze dei bambini e si presenta il tema.',
+        {ph:'es. Presentano un oggetto misterioso (un seme) e raccolgono in conversazione le ipotesi dei bambini.',
+          frasi:['Presentano il tema con un oggetto stimolo, una storia o un’uscita.', 'Raccolgono in conversazione le conoscenze e le domande dei bambini.', 'Organizzano lo spazio e i materiali per l’esplorazione.', 'Osservano interessi e reazioni per orientare il percorso.']},
+        {ph:'es. Osservano e manipolano i semi, esprimono ipotesi su che cosa potrebbe nascere.',
+          frasi:['Esplorano liberamente i materiali proposti.', 'Formulano domande e ipotesi sul tema.', 'Raccontano esperienze personali collegate all’argomento.', 'Disegnano ciò che immaginano di scoprire.']}),
+      ...fase(2, 'Sviluppo / applicazione', 'Cuore del percorso: esperienze, laboratori e attività in cui i bambini mettono alla prova le competenze.',
+        {ph:'es. Guidano la semina in piccoli gruppi e propongono la registrazione settimanale della crescita con disegni.',
+          frasi:['Propongono esperienze laboratoriali in piccolo gruppo.', 'Guidano l’osservazione con domande aperte.', 'Introducono strumenti di registrazione (disegni, tabelle illustrate, fotografie).', 'Sostengono la collaborazione e il rispetto dei turni.', 'Documentano le attività con foto e trascrizioni delle conversazioni.']},
+        {ph:'es. Seminano, annaffiano e disegnano ogni settimana la piantina, confrontando le osservazioni.',
+          frasi:['Sperimentano con materiali e strumenti diversi.', 'Lavorano in piccolo gruppo assumendo piccoli incarichi.', 'Registrano le osservazioni con disegni e simboli.', 'Confrontano le proprie idee con quelle dei compagni.', 'Risolvono piccoli problemi durante l’attività.']}),
+      ...fase(3, 'Ricostruzione', 'Momento finale: si ripercorre l’esperienza, si realizza il compito-sintesi e si riflette su ciò che si è imparato.',
+        {ph:'es. Ripercorrono con i bambini le fotografie del percorso e guidano la realizzazione del cartellone finale.',
+          frasi:['Ripercorrono il percorso con le immagini e la documentazione raccolta.', 'Guidano la realizzazione del compito-sintesi.', 'Favoriscono la riflessione su ciò che si è imparato.', 'Condividono il percorso con le famiglie.']},
+        {ph:'es. Raccontano le fasi della crescita, completano il cartellone e lo presentano ai genitori.',
+          frasi:['Raccontano con parole proprie l’esperienza vissuta.', 'Realizzano il compito-sintesi in gruppo.', 'Riconoscono che cosa hanno imparato e che cosa è piaciuto di più.', 'Presentano il lavoro ai compagni o alle famiglie.']}),
+
+      {t:'h', testo:'Griglia di osservazione', sugg:'Una riga per bambino (si possono aggiungere righe, fino a tutta la sezione o al gruppo). Per ogni indicatore numerato scegli il livello: I = iniziale, M = intermedio, A = avanzato. La colonna Gruppo serve se la griglia raccoglie più sezioni o gruppi.'},
+      {t:'testofisso', testo:'Livelli: I = iniziale; M = intermedio; A = avanzato. I numeri delle colonne corrispondono agli indicatori di competenza sopra elencati.'},
+      {t:'tabella', id:'griglia', aggiungi:true, righe:10,
+        col:[{h:'Bambino/a', w:3.6, ph:'Cognome e nome o iniziali'}, {h:'Gruppo / sezione', w:2.4, ph:'es. Gialla'},
+          {h:'1', w:1, tipo:'liv'}, {h:'2', w:1, tipo:'liv'}, {h:'3', w:1, tipo:'liv'}, {h:'4', w:1, tipo:'liv'}, {h:'5', w:1, tipo:'liv'}, {h:'6', w:1, tipo:'liv'}]},
+      {t:'area', id:'osservazioni', label:'Osservazioni sul gruppo', righe:3,
+        ph:'es. La maggior parte dei bambini ha raggiunto un livello intermedio negli indicatori 1 e 2; l’indicatore 4 richiede ulteriori esperienze.',
+        frasi:['La maggior parte del gruppo ha raggiunto un livello intermedio negli indicatori osservati.', 'Alcuni bambini hanno mostrato livelli avanzati, assumendo il ruolo di guida per i compagni.', 'Un indicatore richiede ulteriori esperienze, che verranno riprese nella prossima progettazione.', 'Il percorso ha favorito la collaborazione e la partecipazione di tutti.']},
+      {t:'h', testo:'Firme'},
+      {t:'riga', campi:[{t:'data', id:'data', label:'Data', w:4, oggi:true, nopdf:true}]},
+      {t:'testofisso', testo:'Orzinuovi, {data}'},
+      {t:'tabella', id:'firme_ins', label:'Le insegnanti', stampaVuota:true, righe:3, aggiungi:true,
+        col:[{h:'Cognome e nome', w:6, ph:'Cognome e nome'}, {h:'Firma', w:6, ph:'firma autografa sul PDF'}]},
+    ],
   });
 })();
 
