@@ -284,9 +284,9 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-14';
+const AGGIORNAMENTO = '2026-10-20';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'nuova Progettazione didattica della Scuola dell’Infanzia, con griglia di osservazione per livelli';
+const AGGIORNAMENTO_NOTE = 'casella «Modello completo (bozza)» in PEI, PDP e moduli con parti a scelta: stampa tutto il modello anche senza selezioni';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -397,6 +397,8 @@ function marcaEssenziali(bl){
    STATO (solo in memoria)
    ===================================================================== */
 let STATO = {}, MOD = null, SCU = null, BLOCCHI = [], SPORCO = false;
+/* Modello completo (bozza): mostra e stampa tutte le parti condizionate, anche vuote, senza controlli di validita' */
+let COMPLETO = false;
 let FILTRO = 'tutte', CERCA = '';
 
 function azzera(){ STATO = {}; SPORCO = false; }
@@ -503,6 +505,7 @@ function disegnaElenco(lista){
    ===================================================================== */
 function apri(id, s){
   MOD = MODULI.find(m => m.id === id); SCU = s; azzera();
+  COMPLETO = false;
   BLOCCHI = conAnnotazioni(MOD.blocchi(s));
   inizializza(BLOCCHI);
   STATO._prot_n = ''; STATO._prot_data = ''; // numero e data di protocollo forniti dalla segreteria
@@ -513,6 +516,14 @@ function apri(id, s){
       el('div', {class:'meta'}, el('span', {class:'bdg ' + s, style:'cursor:default;margin-right:6px'}, SCUOLE[s].breve), MOD.sottotitolo || '')),
     el('label', {class:'chk-inline', title:'Se attivo, nel PDF vengono omesse le voci non compilate e le opzioni non spuntate'},
       el('input', {type:'checkbox', id:'compatto', checked:true}), 'PDF compatto'),
+    haSe(BLOCCHI) ? el('label', {class:'chk-inline', title:'Bozza: mostra e stampa tutte le parti del modello, anche quelle legate a scelte non ancora fatte e i campi vuoti. Nessun controllo degli elementi essenziali; il PDF è marcato come bozza.'},
+      el('input', {type:'checkbox', id:'completo', onchange:e => {
+        COMPLETO = e.target.checked;
+        if (COMPLETO && $('#compatto')) $('#compatto').checked = false;
+        document.querySelectorAll('.obbl.manca').forEach(x => x.classList.remove('manca'));
+        aggiornaDinamici();
+        toast(COMPLETO ? 'Modello completo: tutte le parti sono visibili e verranno stampate come bozza.' : 'Documento definitivo: sono visibili solo le parti scelte.');
+      }}), 'Modello completo (bozza)') : null,
     MOD.protocollo
       ? el('span', {class:'chk-inline', title:'Per PEI e PDP il numero di protocollo è obbligatorio: il riquadro è sempre stampato'},
           el('input', {type:'checkbox', id:'protocollo', checked:true, disabled:true}), 'Protocollo obbligatorio')
@@ -585,6 +596,7 @@ function sezioneProtocollo(){
     el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_n'}, 'Prot. n.'), n),
     el('div', {class:'f', style:'grid-column:span 6'}, el('label', {for:'f__prot_data'}, 'del'), d)));
 }
+function haSe(bl){ return bl.some(b => b.t === 'se' || (b.campi && haSe(b.campi)) || (b.blocchi && haSe(b.blocchi))); }
 function haObbl(bl){ return bl.some(b => b.obbl || (b.campi && haObbl(b.campi)) || (b.blocchi && haObbl(b.blocchi))); }
 function disegnaForm(root){
   root.innerHTML = '';
@@ -864,6 +876,7 @@ function componi(tpl, perSchermo){
 }
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c])); }
 function condizione(campoId, vale){
+  if (COMPLETO) return true;
   const v = STATO[campoId], vv = Array.isArray(vale) ? vale : [vale];
   return Array.isArray(v) ? v.some(x => vv.includes(x)) : vv.includes(v);
 }
@@ -894,7 +907,7 @@ function titoloStampa(){ return MOD.titoloStampa || MOD.titolo; }
 function creaPDF(man = []){
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
-  const compatto = $('#compatto') ? $('#compatto').checked : true;
+  const compatto = COMPLETO ? false : ($('#compatto') ? $('#compatto').checked : true);
   const acc = SCUOLE[SCU].pdf;
   const tint = acc.map(c => Math.round(c + (255 - c) * 0.88));
   let y = 0;
@@ -1209,7 +1222,7 @@ function creaPDF(man = []){
     font('normal', 7, GRIGIO);
     doc.text('Scuola Sacra Famiglia – Orzinuovi (BS) · sacrafamiglia.edu.it', PDF.M, 291);
     doc.text(`Pagina ${i} di ${n}`, PDF.M + PDF.W, 291, {align:'right'});
-    if (man.length){ font('bold', 7, [140, 90, 20]); doc.text('BOZZA INCOMPLETA', PDF.M + PDF.W / 2, 291, {align:'center'}); }
+    if (man.length || COMPLETO){ font('bold', 7, [140, 90, 20]); doc.text(COMPLETO ? 'BOZZA - MODELLO COMPLETO' : 'BOZZA INCOMPLETA', PDF.M + PDF.W / 2, 291, {align:'center'}); }
   }
   doc.setProperties({title:pulisci(titoloStampa()), subject:pulisci(SCUOLE[SCU].nome), creator:'Modulistica docenti – Scuola Sacra Famiglia'});
   return doc;
@@ -1600,6 +1613,7 @@ function caricaStato(dati){
 
 /* elementi essenziali non compilati (solo nelle parti visibili) */
 function mancanti(){
+  if (COMPLETO) return []; // bozza del modello completo: nessun controllo
   const out = [];
   const pieno = (b) => {
     const v = STATO[b.id];
@@ -1680,7 +1694,7 @@ function scarica(forza){
   }
   document.querySelectorAll('.obbl.manca').forEach(e => e.classList.remove('manca'));
   dialogoNome({data:STATO.data || oggiISO(), grado:SCUOLE[SCU].breve, doc:(MOD.file || MOD.id).replace(/_/g, '-'),
-    classe:classeProposta(), autore:autoreProposto(), bozza:man.length > 0}, nome => salvaModulo(man, nome));
+    classe:classeProposta(), autore:autoreProposto(), bozza:man.length > 0 || COMPLETO}, nome => salvaModulo(man, nome));
 }
 function salvaModulo(man, nome){
   const doc = creaPDF(man);
