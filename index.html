@@ -137,6 +137,9 @@ details.norme p{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
 .ico:hover{color:var(--blu);background:var(--blu-t)}
 .ico svg{width:15px;height:15px}
 .agg{margin-top:8px}
+.agg-az{display:flex;flex-wrap:wrap;gap:8px}
+.imp-anteprima{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fbfcfe;font-size:13.5px;max-height:160px;overflow:auto;margin:0}
+.imp-anteprima li{margin-left:18px}
 .elenco{display:flex;flex-direction:column;gap:6px}
 .elenco .it{display:flex;gap:8px;align-items:center}
 .elenco .n{width:24px;font-weight:600;color:var(--blu);text-align:right}
@@ -286,7 +289,7 @@ const LOGO = document.querySelector('.top img').src;
    Compare nell'intestazione del portale e nel piè di pagina della home. */
 const AGGIORNAMENTO = '2026-10-26';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'PEI stampabile completo al primo incontro: le date di verifica finale e PEI provvisorio diventano obbligatorie solo quando quelle parti vengono compilate';
+const AGGIORNAMENTO_NOTE = 'importa elenco alunni da Excel o CSV (o incollato) nelle tabelle di alunni, bambini e candidati; avviso più chiaro se manca l’autore al salvataggio';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -431,6 +434,7 @@ const SVG = {
   pulisci:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>',
   piu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
   meno:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  importa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/><path d="M15 13v5M12.5 15.5 15 18l2.5-2.5"/></svg>',
   chiudi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
 };
 function toast(msg){ const t = el('div', {class:'toast', role:'status'}, msg); document.body.append(t); setTimeout(() => t.remove(), 3200); }
@@ -767,7 +771,9 @@ function campoBase(b){
           box.append(el('div', {class:'it'}, el('span', {class:'n'}, (i + 1) + '.'), inp,
             el('button', {class:'ico', title:'Rimuovi', html:SVG.meno, onclick:() => { STATO[b.id].splice(i, 1); draw(); segna(); }})));
         });
-        box.append(el('button', {class:'btn agg', html:SVG.piu + 'Aggiungi voce', onclick:() => { STATO[b.id].push(''); draw(); }}));
+        box.append(el('div', {class:'agg-az'},
+          el('button', {class:'btn agg', html:SVG.piu + 'Aggiungi voce', onclick:() => { STATO[b.id].push(''); draw(); }}),
+          eElencoAlunni(b) ? el('button', {class:'btn agg', html:SVG.importa + 'Importa elenco da Excel o CSV', onclick:() => importaElenco(b, draw)}) : null));
       };
       draw();
       return el('div', {class:'f', style:'grid-column:1/-1'}, b.label ? el('span', {class:'lbl'}, b.label) : null, box);
@@ -850,11 +856,223 @@ function tabella(b){
     });
     t.append(tb);
     wrap.append(el('div', {class:'tab'}, t));
-    if (b.aggiungi) wrap.append(el('button', {class:'btn agg', html:SVG.piu + 'Aggiungi riga',
-      onclick:() => { STATO[b.id].push(b.col.map(c => c.tipo === 'x' ? false : (c.tipo === 'pres' ? 'P' : ''))); draw(); }}));
+    if (b.aggiungi) wrap.append(el('div', {class:'agg-az'},
+      el('button', {class:'btn agg', html:SVG.piu + 'Aggiungi riga',
+        onclick:() => { STATO[b.id].push(b.col.map(c => c.tipo === 'x' ? false : (c.tipo === 'pres' ? 'P' : ''))); draw(); }}),
+      eElencoAlunni(b) ? el('button', {class:'btn agg', html:SVG.importa + 'Importa elenco da Excel o CSV', title:'Carica i nomi da un file .xlsx o .csv, oppure incollali da Excel',
+        onclick:() => importaElenco(b, draw)}) : null));
   };
   draw();
   return wrap;
+}
+
+/* =====================================================================
+   IMPORTA ELENCO ALUNNI da Excel (.xlsx), CSV o testo incollato
+   - nessuna libreria esterna: lo .xlsx e' uno zip, letto con DecompressionStream('deflate-raw')
+     (Safari 16.4+, Chrome, Edge, Firefox) e DOMParser su sharedStrings e primo foglio;
+   - CSV: separatore ; , o tabulazione rilevato dalla prima riga; UTF-8 con ripiego su Windows-1252
+     (CSV salvati da Excel in italiano);
+   - il file e' letto solo in memoria: niente upload, niente salvataggio.
+   Il pulsante compare nelle tabelle la cui prima colonna e' Alunno/Bambino/Candidato e negli elenchi
+   di alunni (oppure con la proprieta' importa:true del blocco).
+   ===================================================================== */
+const RX_ALUNNI = /^(alunn|bambin|candidat|student)/i;
+function eElencoAlunni(b){
+  if (b.importa != null) return !!b.importa;
+  if (b.t === 'tabella') return !!b.aggiungi && !b.fisse && RX_ALUNNI.test(b.col[0].h || '');
+  if (b.t === 'elenco') return RX_ALUNNI.test(b.label || '');
+  return false;
+}
+function inizialiDa(nome){
+  return String(nome).trim().split(/\s+/).filter(Boolean).map(p => p[0].toUpperCase() + '.').join('');
+}
+function parseCSV(testo){
+  testo = testo.replace(/^﻿/, '');
+  const prima = (testo.split(/\r?\n/).find(r => r.trim()) || '');
+  const sep = ['\t', ';', ','].map(c => [c, prima.split(c).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const righe = []; let riga = [], cella = '', q = false;
+  for (let i = 0; i < testo.length; i++){
+    const ch = testo[i];
+    if (q){
+      if (ch === '"'){ if (testo[i + 1] === '"'){ cella += '"'; i++; } else q = false; }
+      else cella += ch;
+    } else if (ch === '"' && cella === '') q = true;
+    else if (ch === sep){ riga.push(cella); cella = ''; }
+    else if (ch === '\n' || ch === '\r'){
+      if (ch === '\r' && testo[i + 1] === '\n') i++;
+      riga.push(cella); righe.push(riga); riga = []; cella = '';
+    } else cella += ch;
+  }
+  if (cella !== '' || riga.length){ riga.push(cella); righe.push(riga); }
+  return righe;
+}
+async function leggiZip(buf){
+  const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 66000); i--) if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  if (eocd < 0) throw new Error('il file non è un .xlsx valido');
+  const n = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+  const voci = {};
+  for (let k = 0; k < n; k++){
+    const metodo = dv.getUint16(p + 10, true), dim = dv.getUint32(p + 20, true);
+    const ln = dv.getUint16(p + 28, true), le = dv.getUint16(p + 30, true), lc = dv.getUint16(p + 32, true);
+    const off = dv.getUint32(p + 42, true);
+    voci[dec.decode(u8.subarray(p + 46, p + 46 + ln))] = {metodo, dim, off};
+    p += 46 + ln + le + lc;
+  }
+  return async (nome) => {
+    const v = voci[nome]; if (!v) return null;
+    const ini = v.off + 30 + dv.getUint16(v.off + 26, true) + dv.getUint16(v.off + 28, true);
+    const dati = u8.subarray(ini, ini + v.dim);
+    if (v.metodo === 0) return dec.decode(dati);
+    if (typeof DecompressionStream === 'undefined') throw new Error('questo browser non legge i file Excel: salva il foglio come CSV oppure copia e incolla le righe');
+    const flusso = new Blob([dati]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return await new Response(flusso).text();
+  };
+}
+async function leggiXlsx(buf){
+  const apri = await leggiZip(buf);
+  const xml = (t) => new DOMParser().parseFromString(t, 'application/xml');
+  const tag = (d, n) => Array.from(d.getElementsByTagNameNS('*', n));
+  const condivise = [];
+  const ss = await apri('xl/sharedStrings.xml');
+  if (ss) tag(xml(ss), 'si').forEach(si => condivise.push(tag(si, 't').filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join('')));
+  // primo foglio secondo l'ordine del workbook
+  let percorso = 'xl/worksheets/sheet1.xml';
+  const wb = await apri('xl/workbook.xml'), rel = await apri('xl/_rels/workbook.xml.rels');
+  if (wb && rel){
+    const primo = tag(xml(wb), 'sheet')[0];
+    const rid = primo && (primo.getAttribute('r:id') || primo.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id'));
+    const r = tag(xml(rel), 'Relationship').find(x => x.getAttribute('Id') === rid);
+    if (r){ const t = r.getAttribute('Target'); percorso = t.startsWith('/') ? t.slice(1) : 'xl/' + t.replace(/^\.\//, ''); }
+  }
+  const foglio = await apri(percorso);
+  if (!foglio) throw new Error('nessun foglio trovato nel file');
+  const col = (rif) => { let n = 0; for (const ch of rif.replace(/\d+/g, '')) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
+  return tag(xml(foglio), 'row').map(row => {
+    const out = [];
+    tag(row, 'c').forEach((c, i) => {
+      const t = c.getAttribute('t'), v = tag(c, 'v')[0];
+      let val = '';
+      if (t === 's') val = condivise[+(v && v.textContent)] || '';
+      else if (t === 'inlineStr') val = tag(c, 't').map(x => x.textContent).join('');
+      else val = v ? v.textContent : '';
+      out[c.getAttribute('r') ? col(c.getAttribute('r')) : i] = val;
+    });
+    return Array.from(out, x => x == null ? '' : String(x));
+  });
+}
+async function leggiTabellare(file){
+  const nome = file.name.toLowerCase();
+  if (nome.endsWith('.xls')) throw new Error('il vecchio formato .xls non è supportato: in Excel usa «Salva con nome» › .xlsx oppure .csv');
+  const buf = await file.arrayBuffer();
+  if (nome.endsWith('.xlsx') || nome.endsWith('.xlsm')) return leggiXlsx(buf);
+  let t = new TextDecoder('utf-8').decode(buf);
+  if (t.includes('�')) t = new TextDecoder('windows-1252').decode(buf);
+  return parseCSV(t);
+}
+function importaElenco(b, ridisegna){
+  const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const col0 = b.t === 'tabella' ? b.col[0] : {h:b.label || '', ph:b.ph || ''};
+  const soloIniziali = /iniziali/i.test(col0.h) || /^es\. [A-Z]\.[A-Z]\.$/.test(col0.ph || ''); // 'Cognome e nome o iniziali' resta nome intero
+  let righe = [], intest = null;
+  const msg = el('div', {class:'aiuto', style:'min-height:18px'});
+  const inFile = el('input', {type:'file', accept:'.xlsx,.csv,.txt,text/csv', 'aria-label':'File Excel o CSV'});
+  const inIncolla = el('textarea', {rows:4, placeholder:'oppure incolla qui le righe copiate dal foglio Excel (una riga per alunno)', style:'width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fbfcfe'});
+  const selNome = el('select', {'aria-label':'Colonna con il nome', style:'width:100%;padding:8px;border:1px solid var(--line);border-radius:8px'});
+  const chkIniz = el('input', {type:'checkbox', checked:soloIniziali, id:'imp_iniz'});
+  const chkSost = el('input', {type:'checkbox', id:'imp_sost'});
+  const chkInt = el('input', {type:'checkbox', id:'imp_int'});
+  const anteprima = el('ol', {class:'imp-anteprima'});
+  const opzioni = el('div', {style:'display:none;margin-top:10px'},
+    el('div', {class:'g', style:'margin-bottom:8px'},
+      el('div', {class:'f', style:'grid-column:span 12'}, el('label', {}, 'Nome dell’alunno preso da'), selNome)),
+    el('label', {style:'display:flex;gap:8px;align-items:center;font-size:14px'}, chkInt, 'La prima riga contiene le intestazioni (Cognome, Nome, Classe…)'),
+    el('label', {style:'display:flex;gap:8px;align-items:center;font-size:14px'}, chkIniz, 'Inserisci solo le iniziali (es. M.R.)'),
+    el('label', {style:'display:flex;gap:8px;align-items:center;font-size:14px;margin-bottom:8px'}, chkSost, 'Sostituisci anche le righe già compilate'),
+    el('div', {class:'lbl', style:'font-size:12.5px;font-weight:600;color:#39445a;margin-bottom:4px'}, 'Anteprima'), anteprima);
+  // colonne della tabella (oltre al nome) riempibili da colonne del file con la stessa intestazione
+  const abbina = () => {
+    if (b.t !== 'tabella' || !chkInt.checked || !intest) return {};
+    const m = {};
+    b.col.forEach((c, j) => {
+      if (j === 0 || ['x', 'pres', 'sn', 'liv'].includes(c.tipo)) return;
+      const h = norm(c.h);
+      const k = intest.findIndex(x => { const n = norm(x); return n.length >= 4 && !/^(cognome|nome)/.test(n) && (h === n || h.startsWith(n + ' ') || n.startsWith(h + ' ') || h.split(/[^a-z0-9]+/).includes(n)); });
+      if (k >= 0) m[j] = k;
+    });
+    return m;
+  };
+  const nomi = () => {
+    const corpo = chkInt.checked ? righe.slice(1) : righe;
+    const scelta = selNome.value;
+    return corpo.map(r => {
+      let v = scelta.includes('+') ? scelta.split('+').map(i => r[+i] || '').join(' ') : (r[+scelta] || '');
+      v = v.replace(/\s+/g, ' ').trim();
+      return {nome:chkIniz.checked ? inizialiDa(v) : v, riga:r};
+    }).filter(x => x.nome);
+  };
+  const aggiorna = () => {
+    const lista = nomi(), m = abbina();
+    anteprima.innerHTML = '';
+    lista.slice(0, 8).forEach(x => anteprima.append(el('li', {}, x.nome + Object.entries(m).map(([j, k]) => x.riga[k] ? ` · ${b.col[j].h}: ${x.riga[k]}` : '').join(''))));
+    if (lista.length > 8) anteprima.append(el('li', {style:'list-style:none;color:var(--muted)'}, `… e altri ${lista.length - 8}`));
+    msg.textContent = lista.length ? `${lista.length} nomi pronti da inserire.` : 'Nessun nome trovato nella colonna scelta.';
+    msg.style.color = lista.length ? 'var(--verde)' : 'var(--ambra)';
+    btnOk.disabled = !lista.length;
+  };
+  const prepara = (dati) => {
+    righe = dati.map(r => r.map(c => String(c == null ? '' : c).trim())).filter(r => r.some(Boolean));
+    if (!righe.length){ msg.textContent = 'Il file non contiene righe.'; msg.style.color = 'var(--ambra)'; return; }
+    const prima = righe[0].map(norm);
+    const haInt = prima.some(x => /^(cognome|nome|nominativo|alunn|bambin|candidat|student|classe|sezione)/.test(x));
+    chkInt.checked = haInt; intest = haInt ? righe[0] : null;
+    const ncol = Math.max(...righe.map(r => r.length));
+    const etich = (i) => intest && intest[i] ? `colonna ${i + 1} – ${intest[i]}` : `colonna ${i + 1}`;
+    selNome.innerHTML = '';
+    const iCogn = prima.findIndex(x => x.startsWith('cognome') && !x.includes('nome e') && x !== 'cognome e nome' && x !== 'cognome nome');
+    const iNome = prima.findIndex(x => x === 'nome' || x.startsWith('nome '));
+    const iUnico = prima.findIndex(x => /^(cognome e nome|cognome nome|nominativo|alunn|bambin|candidat|student)/.test(x));
+    if (ncol >= 2) selNome.append(el('option', {value:'0+1'}, `colonne 1 e 2 unite (${intest ? (intest[0] || '') + ' ' + (intest[1] || '') : 'es. cognome + nome'})`));
+    if (haInt && iCogn >= 0 && iNome >= 0 && !(iCogn === 0 && iNome === 1)) selNome.append(el('option', {value:`${iCogn}+${iNome}`}, `${intest[iCogn]} + ${intest[iNome]}`));
+    for (let i = 0; i < ncol; i++) selNome.append(el('option', {value:String(i)}, etich(i)));
+    selNome.value = iUnico >= 0 ? String(iUnico) : (haInt && iCogn >= 0 && iNome >= 0) ? `${iCogn}+${iNome}`
+      : (ncol >= 2 && righe.slice(haInt ? 1 : 0, 6).every(r => r[1] && !/\d/.test(r[0] + r[1]))) ? '0+1' : '0';
+    opzioni.style.display = '';
+    aggiorna();
+  };
+  inFile.addEventListener('change', async () => {
+    const f = inFile.files[0]; if (!f) return;
+    msg.textContent = 'Lettura del file…'; msg.style.color = 'var(--muted)';
+    try { prepara(await leggiTabellare(f)); }
+    catch (e){ msg.textContent = 'Impossibile leggere il file: ' + e.message + '.'; msg.style.color = 'var(--ambra)'; }
+    finally { inFile.value = ''; }
+  });
+  inIncolla.addEventListener('input', () => { if (inIncolla.value.trim()) prepara(parseCSV(inIncolla.value)); });
+  [selNome, chkIniz].forEach(x => x.addEventListener('change', aggiorna));
+  chkInt.addEventListener('change', () => { intest = chkInt.checked ? righe[0] : null; aggiorna(); });
+  const vuota = (r) => r.every((x, j) => (b.fisse && j === 0) || ['pres', 'x'].includes(b.col[j].tipo) || x === '' || x === false || (b.init && b.init[0] && b.init[0][j] === x));
+  const btnOk = el('button', {class:'btn pri', html:SVG.importa + 'Inserisci', disabled:true, onclick:() => {
+    const lista = nomi(), m = abbina();
+    if (b.t === 'elenco'){
+      const tieni = chkSost.checked ? [] : STATO[b.id].filter(x => x && x.trim());
+      STATO[b.id] = [...tieni, ...lista.map(x => x.nome)];
+    } else {
+      const tieni = chkSost.checked ? [] : STATO[b.id].filter(r => !vuota(r));
+      const base = (b.init && b.init[0]) || [];
+      const nuove = lista.map(x => b.col.map((c, j) => j === 0 ? x.nome : (m[j] != null && x.riga[m[j]]) ? x.riga[m[j]]
+        : c.tipo === 'x' ? false : c.tipo === 'pres' ? 'P' : (base[j] != null ? base[j] : '')));
+      STATO[b.id] = [...tieni, ...nuove];
+    }
+    m0.remove(); ridisegna(); segna();
+    toast(`Inseriti ${lista.length} nomi.`);
+  }});
+  const m0 = el('div', {class:'modal'}, el('div', {class:'box small', style:'width:min(640px,100%)'},
+    el('h3', {}, 'Importa elenco – ' + (b.label || col0.h)),
+    el('p', {style:'font-size:13.5px;color:var(--muted)'}, 'File Excel (.xlsx) o CSV con un alunno per riga: va bene l’elenco esportato dal registro elettronico. Il file viene letto solo sul dispositivo: non viene caricato né conservato.'),
+    inFile, el('div', {style:'margin-top:8px'}, inIncolla), msg, opzioni,
+    el('div', {class:'az', style:'margin-top:12px'}, el('button', {class:'btn', onclick:() => m0.remove()}, 'Annulla'), btnOk)));
+  document.body.append(m0);
 }
 
 /* testi fissi e sezioni condizionali si aggiornano a ogni modifica */
@@ -1450,7 +1668,14 @@ function autoreProposto(){
     const v = STATO[k]; if (typeof v === 'string' && v.trim()) return pulisciAutore(v);
   }
   const f = STATO.firme && STATO.firme[0];
-  return f ? pulisciAutore(f) : '';
+  if (f) return pulisciAutore(f);
+  /* moduli senza verbalizzante (es. Infanzia): primo nome nelle tabelle di firme o insegnanti */
+  for (const b of BLOCCHI.flatMap(function g(x){ return x.t === 'riga' ? x.campi.flatMap(g) : x.t === 'se' ? x.blocchi.flatMap(g) : [x]; })){
+    if (b.t !== 'tabella' || b.fisse || !/firm|insegnant|docent|compilat|redatt/i.test(b.id + ' ' + (b.label || '')) || !/insegnant|docent|cognome|nome/i.test(b.col[0].h)) continue;
+    const r = (STATO[b.id] || []).find(r => typeof r[0] === 'string' && r[0].trim());
+    if (r) return pulisciAutore(r[0]);
+  }
+  return '';
 }
 function classeProposta(){
   for (const k of ['classe', 'sezione', 'classi', 'gruppi', 'gruppo']){ const v = STATO[k]; if (typeof v === 'string' && v.trim()) return v.trim(); }
@@ -1463,6 +1688,9 @@ function dialogoNome(p, conferma){
   const inClasse = el('input', {type:'text', value:p.classe || '', placeholder:'es. 3A (facoltativo)', 'aria-label':'Classe o sezione'});
   const inNome = el('input', {type:'text', 'aria-label':'Nome del file', style:'font-family:ui-monospace,Menlo,monospace;font-size:13px'});
   let manuale = false;
+  const avviso = el('div', {role:'alert', style:'display:none;background:var(--ambra-t);border-left:4px solid var(--ambra);border-radius:8px;padding:8px 12px;margin:-4px 0 12px;font-size:14px'},
+    'Per salvare indica l’autore del documento (cognome e nome di chi lo redige): serve a comporre il nome del file.');
+  inAut.addEventListener('input', () => { if (inAut.value.trim()){ avviso.style.display = 'none'; inAut.style.boxShadow = ''; } });
   const ricalcola = () => { if (!manuale) inNome.value = nomeStandard({...p, autore:inAut.value, data:inData.value, classe:inClasse.value}); };
   [inAut, inData, inClasse].forEach(i => i.addEventListener('input', ricalcola));
   inNome.addEventListener('input', () => { manuale = true; });
@@ -1474,10 +1702,12 @@ function dialogoNome(p, conferma){
     el('div', {class:'g', style:'margin-bottom:12px'},
       f('Autore (cognome e nome) *', inAut, 6), f('Data del documento', inData, 3), f('Classe / sezione', inClasse, 3),
       f('Nome del file (modificabile)', inNome, 12)),
+    avviso,
     el('div', {class:'az'},
       el('button', {class:'btn', onclick:() => m.remove()}, 'Annulla'),
       el('button', {class:'btn pri', html:SVG.scarica + 'Salva PDF', onclick:() => {
-        if (!inAut.value.trim()){ inAut.focus(); inAut.style.borderColor = 'var(--ambra)'; toast('Indica l’autore del documento.'); return; }
+        /* avviso dentro la finestra: il toast in basso resta nascosto dalla tastiera su iPad */
+        if (!inAut.value.trim()){ avviso.style.display = ''; inAut.style.borderColor = 'var(--ambra)'; inAut.style.boxShadow = '0 0 0 3px var(--ambra-t)'; inAut.focus(); return; }
         let n = inNome.value.trim().replace(/[\\/:*?"<>|]+/g, '-');
         const ext = p.ext || '.pdf';
         if (!n.toLowerCase().endsWith(ext)) n = n.replace(/\.[a-z]{2,5}$/i, '') + ext;
