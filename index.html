@@ -287,9 +287,9 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-26';
+const AGGIORNAMENTO = '2026-10-27';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'importa elenco alunni da Excel o CSV (o incollato) nelle tabelle di alunni, bambini e candidati; avviso più chiaro se manca l’autore al salvataggio';
+const AGGIORNAMENTO_NOTE = 'verbale di condivisione del PDP: delibera di avvio delle procedure di approvazione con elenco degli alunni (importabile da Excel o CSV)';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -3856,11 +3856,10 @@ function salvaModulo(man, nome){
            'La famiglia non condivide alcune misure e ne chiede la revisione: il dissenso viene messo a verbale.',
          ]},
 
-        {t:'h', testo:'Validità e verifiche'},
-        {t:'riga', campi:[
-          {t:'data', id:'monitoraggio', nopdf:true, label:'Monitoraggio intermedio entro', w:6},
-          {t:'data', id:'verifica_finale', nopdf:true, label:'Verifica finale entro', w:6}]},
-        {t:'testofisso', testo:`Il PDP è efficace dalla data di approvazione del ${organo} ({pdp_data}). Il monitoraggio intermedio è previsto entro il {monitoraggio} e la verifica finale entro il {verifica_finale}.`},
+        {t:'h', testo:`Delibera del ${organo}`},
+        {t:'testofisso', testo:`Il ${organo} delibera l’avvio delle procedure per l’approvazione del PDP degli alunni:`},
+        {t:'elenco', id:'alunni_pdp', label:'Alunni', min:3, ph:'Cognome e nome (o codice)',
+         sugg:'Un alunno per riga. Con «Importa elenco da Excel o CSV» si possono caricare i nomi dall’elenco della classe.'},
         {t:'nota', testo:'La firma dei genitori attesta presa visione e condivisione; se la famiglia rifiuta di firmare, indicarlo nelle osservazioni: la condivisione deve risultare documentata. Registrare l’effettiva applicazione delle misure.'},
         {t:'riga', campi:[{t:'ora', id:'ora_fine', label:'Ora di chiusura', w:3}]},
         {t:'firme', ruoli:[
