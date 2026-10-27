@@ -289,7 +289,7 @@ const LOGO = document.querySelector('.top img').src;
    Compare nell'intestazione del portale e nel piè di pagina della home. */
 const AGGIORNAMENTO = '2026-10-27';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'verbale di condivisione del PDP: delibera di avvio delle procedure di approvazione con elenco degli alunni (importabile da Excel o CSV)';
+const AGGIORNAMENTO_NOTE = 'delibera di avvio delle procedure di approvazione dei PDP, con elenco degli alunni importabile da Excel o CSV, nel verbale di condivisione del PDP e nel verbale del consiglio di interclasse e di classe';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -4712,6 +4712,14 @@ function salvaModulo(man, nome){
       {t:'tabella', id:'delibere', col:[
         {h:'Oggetto e motivazione', w:6, tipo:'area', ph:'es. Approvazione dell’uscita didattica al museo di scienze del 12/03: coerente con la progettazione di scienze'},
         {h:'Favorevoli', w:1.5, ph:'12'}, {h:'Contrari', w:1.5, ph:'0'}, {h:'Astenuti', w:1.5, ph:'1'}, {h:'Esito', w:1.5, ph:'approvata'}], righe:1, aggiungi:true},
+      /* delibera di avvio dei PDP (stessa formula del verbale di condivisione del PDP); non prevista all'Infanzia */
+      ...(s === 'I' ? [] : [
+        {t:'scelta', id:'delibera_pdp', label:'Il consiglio delibera l’avvio delle procedure di approvazione dei PDP?', opz:['sì', 'no'], def:'no', nopdf:true,
+         sugg:'Scegliere «sì» per inserire nel verbale la delibera con l’elenco degli alunni per i quali si avviano le procedure di approvazione del PDP.'},
+        {t:'se', campo:'delibera_pdp', vale:'sì', blocchi:[
+          {t:'testofisso', testo:`Il ${ORGANO[s]} delibera l’avvio delle procedure per l’approvazione del PDP degli alunni:`},
+          {t:'elenco', id:'alunni_pdp', label:'Alunni', min:3, ph:'Cognome e nome (o codice)',
+           sugg:'Un alunno per riga. Con «Importa elenco da Excel o CSV» si possono caricare i nomi dall’elenco della classe.'}]}]),
       ...H.chiusura(['Il Segretario verbalizzante', 'Il Presidente'])
     ], R_CONS)
   });
