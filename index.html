@@ -287,9 +287,9 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-27';
+const AGGIORNAMENTO = '2026-10-30';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'delibera di avvio delle procedure di approvazione dei PDP, con elenco degli alunni importabile da Excel o CSV, nel verbale di condivisione del PDP e nel verbale del consiglio di interclasse e di classe';
+const AGGIORNAMENTO_NOTE = 'PEI della Secondaria: il modello completo si stampa senza la dicitura «Bozza - modello completo»';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -402,6 +402,10 @@ function marcaEssenziali(bl){
 let STATO = {}, MOD = null, SCU = null, BLOCCHI = [], SPORCO = false;
 /* Modello completo (bozza): mostra e stampa tutte le parti condizionate, anche vuote, senza controlli di validita' */
 let COMPLETO = false;
+/* modulo.completoDefinitivo (true o elenco di gradi): nel modello completo il PDF NON e' marcato bozza;
+   restano i normali controlli degli elementi essenziali, calcolati sulle parti davvero scelte */
+function completoDefinitivo(){ const v = MOD && MOD.completoDefinitivo; return !!v && (v === true || v.includes(SCU)); }
+function completoBozza(){ return COMPLETO && !completoDefinitivo(); }
 let FILTRO = 'tutte', CERCA = '';
 
 function azzera(){ STATO = {}; SPORCO = false; }
@@ -526,8 +530,8 @@ function apri(id, s){
         if (COMPLETO && $('#compatto')) $('#compatto').checked = false;
         document.querySelectorAll('.obbl.manca').forEach(x => x.classList.remove('manca'));
         aggiornaDinamici();
-        toast(COMPLETO ? 'Modello completo: tutte le parti sono visibili e verranno stampate come bozza.' : 'Documento definitivo: sono visibili solo le parti scelte.');
-      }}), 'Modello completo (bozza)') : null,
+        toast(COMPLETO ? (completoDefinitivo() ? 'Modello completo: tutte le parti sono visibili e vengono stampate, anche quelle da compilare più avanti.' : 'Modello completo: tutte le parti sono visibili e verranno stampate come bozza.') : 'Documento definitivo: sono visibili solo le parti scelte.');
+      }}), completoDefinitivo() ? 'Modello completo' : 'Modello completo (bozza)') : null,
     MOD.protocollo
       ? el('span', {class:'chk-inline', title:'Per PEI e PDP il numero di protocollo è obbligatorio: il riquadro è sempre stampato'},
           el('input', {type:'checkbox', id:'protocollo', checked:true, disabled:true}), 'Protocollo obbligatorio')
@@ -1440,7 +1444,7 @@ function creaPDF(man = []){
     font('normal', 7, GRIGIO);
     doc.text('Scuola Sacra Famiglia – Orzinuovi (BS) · sacrafamiglia.edu.it', PDF.M, 291);
     doc.text(`Pagina ${i} di ${n}`, PDF.M + PDF.W, 291, {align:'right'});
-    if (man.length || COMPLETO){ font('bold', 7, [140, 90, 20]); doc.text(COMPLETO ? 'BOZZA - MODELLO COMPLETO' : 'BOZZA INCOMPLETA', PDF.M + PDF.W / 2, 291, {align:'center'}); }
+    if (man.length || completoBozza()){ font('bold', 7, [140, 90, 20]); doc.text(completoBozza() ? 'BOZZA - MODELLO COMPLETO' : 'BOZZA INCOMPLETA', PDF.M + PDF.W / 2, 291, {align:'center'}); }
   }
   doc.setProperties({title:pulisci(titoloStampa()), subject:pulisci(SCUOLE[SCU].nome), creator:'Modulistica docenti – Scuola Sacra Famiglia'});
   return doc;
@@ -1843,7 +1847,10 @@ function caricaStato(dati){
 
 /* elementi essenziali non compilati (solo nelle parti visibili) */
 function mancanti(){
-  if (COMPLETO) return []; // bozza del modello completo: nessun controllo
+  if (COMPLETO){
+    if (!completoDefinitivo()) return []; // bozza del modello completo: nessun controllo
+    COMPLETO = false; try { return mancanti(); } finally { COMPLETO = true; } // controlli sulle parti scelte
+  }
   const out = [];
   const pieno = (b) => {
     const v = STATO[b.id];
@@ -1938,7 +1945,7 @@ function scarica(forza){
   }
   document.querySelectorAll('.obbl.manca').forEach(e => e.classList.remove('manca'));
   dialogoNome({data:STATO.data || oggiISO(), grado:SCUOLE[SCU].breve, doc:(MOD.file || MOD.id).replace(/_/g, '-'),
-    classe:classeProposta(), autore:autoreProposto(), bozza:man.length > 0 || COMPLETO}, nome => salvaModulo(man, nome));
+    classe:classeProposta(), autore:autoreProposto(), bozza:man.length > 0 || completoBozza()}, nome => salvaModulo(man, nome));
 }
 function salvaModulo(man, nome){
   const doc = creaPDF(man);
@@ -4126,6 +4133,7 @@ function salvaModulo(man, nome){
 
   registra({
     id: 'pei',
+    completoDefinitivo: ['S'], // PEI secondaria: il modello completo si stampa senza la dicitura di bozza
     protocollo: true, // numero di protocollo obbligatorio (decisione della scuola)
     titolo: 'Piano Educativo Individualizzato (PEI)',
     sottotitolo: 'Art. 7 D.Lgs. 66/2017 – modello nazionale D.I. 182/2020 mod. D.I. 153/2023',
