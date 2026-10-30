@@ -289,7 +289,7 @@ const LOGO = document.querySelector('.top img').src;
    Compare nell'intestazione del portale e nel piè di pagina della home. */
 const AGGIORNAMENTO = '2026-10-30';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'PEI della Secondaria: il modello completo si stampa senza la dicitura «Bozza - modello completo»';
+const AGGIORNAMENTO_NOTE = 'PEI della Secondaria: il modello completo si stampa senza dicitura di bozza a piè di pagina e senza riquadro di documento incompleto';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -402,8 +402,8 @@ function marcaEssenziali(bl){
 let STATO = {}, MOD = null, SCU = null, BLOCCHI = [], SPORCO = false;
 /* Modello completo (bozza): mostra e stampa tutte le parti condizionate, anche vuote, senza controlli di validita' */
 let COMPLETO = false;
-/* modulo.completoDefinitivo (true o elenco di gradi): nel modello completo il PDF NON e' marcato bozza;
-   restano i normali controlli degli elementi essenziali, calcolati sulle parti davvero scelte */
+/* modulo.completoDefinitivo (true o elenco di gradi): nel modello completo il PDF NON e' marcato bozza
+   (niente dicitura a pie' di pagina, niente riquadro "incompleto", niente _BOZZA nel nome) */
 function completoDefinitivo(){ const v = MOD && MOD.completoDefinitivo; return !!v && (v === true || v.includes(SCU)); }
 function completoBozza(){ return COMPLETO && !completoDefinitivo(); }
 let FILTRO = 'tutte', CERCA = '';
@@ -1847,10 +1847,8 @@ function caricaStato(dati){
 
 /* elementi essenziali non compilati (solo nelle parti visibili) */
 function mancanti(){
-  if (COMPLETO){
-    if (!completoDefinitivo()) return []; // bozza del modello completo: nessun controllo
-    COMPLETO = false; try { return mancanti(); } finally { COMPLETO = true; } // controlli sulle parti scelte
-  }
+  /* modello completo: nessun controllo (al primo incontro mancano per forza le parti conclusive) */
+  if (COMPLETO) return [];
   const out = [];
   const pieno = (b) => {
     const v = STATO[b.id];
