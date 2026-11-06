@@ -287,9 +287,9 @@ const ARGOMENTI = [
 const LOGO = document.querySelector('.top img').src;
 /* Data dell'ultimo aggiornamento dell'app (AAAA-MM-GG): AGGIORNARE A OGNI MODIFICA PUBBLICATA.
    Compare nell'intestazione del portale e nel piè di pagina della home. */
-const AGGIORNAMENTO = '2026-10-30';
+const AGGIORNAMENTO = '2026-11-06';
 /* Cosa e' cambiato nell'ultimo aggiornamento: AGGIORNARE INSIEME ALLA DATA (testo breve, senza norme ne' nomi). */
-const AGGIORNAMENTO_NOTE = 'PEI della Secondaria: il modello completo si stampa senza dicitura di bozza a piè di pagina e senza riquadro di documento incompleto';
+const AGGIORNAMENTO_NOTE = 'PDP della Secondaria: la data della verifica finale è obbligatoria solo quando si compila la parte finale; le bozze già salvate restano valide';
 (() => {
   const d = AGGIORNAMENTO.split('-').reverse().join('/');
   const a = document.getElementById('agg');
@@ -703,6 +703,7 @@ function campo(b){
   if (e && b.obbl){
     e.classList.add('obbl'); e.dataset.obbl = b.id;
     e.append(el('span', {class:'obbl-rif'}, 'Elemento essenziale' + (b.rif ? ' – ' + b.rif : '')));
+    if (b.obblSe) e._obblSe = b;
   }
   return e;
 }
@@ -1105,6 +1106,13 @@ function condizione(campoId, vale){
 function aggiornaDinamici(){
   document.querySelectorAll('[data-fisso]').forEach(d => d.innerHTML = componi(esc(d.dataset.fisso), true));
   document.querySelectorAll('[data-se]').forEach(d => { const cs = JSON.parse(d.dataset.se); d.classList.toggle('nascosto', !cs.every(([c, v]) => condizione(c, v))); });
+  /* asterisco e riquadro ambra solo quando l'obbligo condizionato e' attivo */
+  document.querySelectorAll('[data-obbl]').forEach(e => {
+    if (!e._obblSe) return;
+    const on = obblAttivo(e._obblSe);
+    e.classList.toggle('obbl', on);
+    const r = e.querySelector(':scope > .obbl-rif'); if (r) r.style.display = on ? '' : 'none';
+  });
 }
 
 /* =====================================================================
@@ -1845,45 +1853,53 @@ function caricaStato(dati){
   toast(`Bozza del ${quando} riaperta` + (scartati ? `: ${scartati} campi non più presenti nel modulo aggiornato` : ''));
 }
 
+/* campo con un valore */
+function pieno(b){
+  const v = STATO[b.id];
+  switch (b.t){
+    case 'multi': return Array.isArray(v) && v.length > 0;
+    case 'elenco': return Array.isArray(v) && v.some(x => x && x.trim());
+    case 'libere': return Array.isArray(v) && v.some(x => (x.testo || '').trim());
+    case 'tabella': {
+      const init = b.init || [];
+      return (v || []).some((r, i) => r.some((x, j) => !(b.fisse && j === 0) && b.col[j].tipo !== 'pres' && x !== '' && x !== false && !(init[i] && init[i][j] === x)));
+    }
+    case 'matrice': return v && Object.keys(v).length > 0;
+    default: return v != null && String(v).trim() !== '';
+  }
+}
+/* campo con un valore diverso da quello iniziale */
+function compilato(b){
+  if (!pieno(b)) return false;
+  if (b.t === 'multi') return JSON.stringify(STATO[b.id]) !== JSON.stringify(b.def || []);
+  if (b.t === 'firme') return Object.values(STATO[b.id] || {}).some(x => x && String(x).trim());
+  return b.def == null || STATO[b.id] !== b.def;
+}
+function tuttiICampi(bl = BLOCCHI, out = []){
+  for (const b of bl){ if (b.t === 'riga') tuttiICampi(b.campi, out); else if (b.t === 'se') tuttiICampi(b.blocchi, out); else if (b.id) out.push(b); }
+  return out;
+}
+/* obblSe: obbligo condizionato. Con prefisso o compilati la data di una fase futura (es. verifica finale)
+   e' obbligatoria solo quando la fase e' davvero compilata: almeno un altro campo con quel prefisso o in quell'elenco
+   differisce dal valore iniziale. Cosi' al primo incontro il documento completo non diventa bozza.
+   Il controllo e' calcolato ora per ora e non cambia i dati: le bozze gia' salvate restano valide. */
+function obblAttivo(b){
+  const c = b.obblSe; if (!c) return true;
+  if (c.campo != null && !condizione(c.campo, c.vale)) return false;
+  const avviata = (x) => x !== b && ((c.prefisso != null && x.id.startsWith(c.prefisso)) || (c.compilati && c.compilati.includes(x.id))) && compilato(x);
+  return (c.prefisso == null && !c.compilati) || tuttiICampi().some(avviata);
+}
 /* elementi essenziali non compilati (solo nelle parti visibili) */
 function mancanti(){
   /* modello completo: nessun controllo (al primo incontro mancano per forza le parti conclusive) */
   if (COMPLETO) return [];
   const out = [];
-  const pieno = (b) => {
-    const v = STATO[b.id];
-    switch (b.t){
-      case 'multi': return Array.isArray(v) && v.length > 0;
-      case 'elenco': return Array.isArray(v) && v.some(x => x && x.trim());
-      case 'libere': return Array.isArray(v) && v.some(x => (x.testo || '').trim());
-      case 'tabella': {
-        const init = b.init || [];
-        return (v || []).some((r, i) => r.some((x, j) => !(b.fisse && j === 0) && b.col[j].tipo !== 'pres' && x !== '' && x !== false && !(init[i] && init[i][j] === x)));
-      }
-      case 'matrice': return v && Object.keys(v).length > 0;
-      default: return v != null && String(v).trim() !== '';
-    }
-  };
-  /* obblSe.prefisso: la data di una fase futura (es. verifica finale) e' obbligatoria solo quando
-     la fase e' davvero compilata, cioe' almeno un altro campo con quel prefisso differisce dal valore iniziale.
-     Cosi' al primo incontro si puo' stampare il PEI completo senza che diventi bozza. */
-  const tutti = [];
-  const raccogli = (bl) => { for (const b of bl){ if (b.t === 'riga') raccogli(b.campi); else if (b.t === 'se') raccogli(b.blocchi); else if (b.id) tutti.push(b); } };
-  raccogli(BLOCCHI);
-  const compilato = (b) => {
-    if (!pieno(b)) return false;
-    if (b.t === 'multi') return JSON.stringify(STATO[b.id]) !== JSON.stringify(b.def || []);
-    if (b.t === 'firme') return Object.values(STATO[b.id] || {}).some(x => x && String(x).trim());
-    return b.def == null || STATO[b.id] !== b.def;
-  };
-  const faseAvviata = (pref, self) => tutti.some(x => x !== self && x.id.startsWith(pref) && compilato(x));
-  const attivo = (b) => !b.obblSe || ((b.obblSe.campo == null || condizione(b.obblSe.campo, b.obblSe.vale)) && (b.obblSe.prefisso == null || faseAvviata(b.obblSe.prefisso, b)));
   const walk = (bl, sezione) => {
     for (const b of bl){
       if (b.t === 'h') sezione = b.testo;
       if (b.t === 'riga') walk(b.campi, sezione);
       else if (b.t === 'se'){ if (condizione(b.campo, b.vale)) walk(b.blocchi, sezione); }
-      else if (b.obbl && attivo(b) && !pieno(b)) out.push({id:b.id, label:b.label || sezione || b.id, rif:b.rif || ''});
+      else if (b.obbl && obblAttivo(b) && !pieno(b)) out.push({id:b.id, label:b.label || sezione || b.id, rif:b.rif || ''});
     }
   };
   walk(BLOCCHI, '');
@@ -7848,10 +7864,10 @@ function salvaModulo(man, nome){
         /* Doppia firma: le firme finali sono sempre presenti (si firmano alla verifica di fine anno) */
         {t:'h', testo:'Approvazione e firme – verifica finale'},
           {t:'riga', campi:[
-            {t:'data', id:'data_vf', label:'Verifica finale approvata dal ' + organo + ' il', w:6, nopdf:true, obbl:true, obblSe:{campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico'}, rif:'Data della verifica finale del piano da parte del ' + organo + ' (Linee guida DSA 2011; C.M. 8/2013)'},
+            {t:'data', id:'data_vf', label:'Verifica finale approvata dal ' + organo + ' il', w:6, nopdf:true, obbl:true, obblSe:{campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico', ...(s === 'S' ? {compilati:['oss_fine', 'data_fine', 'verbale_vf']} : {})}, rif:'Data della verifica finale del piano da parte del ' + organo + ' (Linee guida DSA 2011; C.M. 8/2013)'},
             {t:'testo', id:'verbale_vf', label:'Verbale n.', w:6, nopdf:true, ph:'es. 7 del 05/06/2027'}]},
           {t:'testofisso', testo:`La verifica finale del presente piano è approvata dal ${organo} il {data_vf} (verbale n. {verbale_vf}) e condivisa con la famiglia.`},
-          firmeDocenti('firme_docenti_fine', 'Firme dei docenti', {obbl:true, obblSe:{campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico'}, rif:'Sottoscrizione dei docenti del ' + organo + ' che approvano la verifica finale'}),
+          firmeDocenti('firme_docenti_fine', 'Firme dei docenti', {obbl:true, obblSe:{campo:'fase', vale:'Osservazioni alla conclusione dell’anno scolastico', ...(s === 'S' ? {compilati:['oss_fine', 'data_fine', 'verbale_vf', 'data_vf']} : {})}, rif:'Sottoscrizione dei docenti del ' + organo + ' che approvano la verifica finale'}),
           ...famiglia('_fine'),
           {t:'firme', id:'firme_scuola_fine', ruoli:[...(s === 'S' ? ['L’allievo/a'] : []), 'Il Coordinatore didattico']},
       ];
